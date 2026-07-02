@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Keyboard Settings</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed-dim": "#adc7ff",
+                        "secondary-container": "#86f898",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#d9dadb",
+                        "on-tertiary-fixed": "#261a00",
+                        "on-error": "#ffffff",
+                        "on-primary-container": "#ffffff",
+                        "primary": "#005bbf",
+                        "secondary-fixed": "#89fa9b",
+                        "on-background": "#191c1d",
+                        "inverse-on-surface": "#f0f1f2",
+                        "primary-container": "#1a73e8",
+                        "on-tertiary-container": "#ffffff",
+                        "surface-container-low": "#f3f4f5",
+                        "surface-tint": "#005bc0",
+                        "on-surface": "#191c1d",
+                        "surface-container-high": "#e7e8e9",
+                        "outline": "#727785",
+                        "secondary-fixed-dim": "#6ddd81",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-bright": "#f8f9fa",
+                        "on-primary-fixed": "#001a41",
+                        "primary-fixed": "#d8e2ff",
+                        "inverse-surface": "#2e3132",
+                        "on-primary-fixed-variant": "#004493",
+                        "surface": "#f8f9fa",
+                        "on-error-container": "#93000a",
+                        "surface-variant": "#e1e3e4",
+                        "tertiary-container": "#987000",
+                        "secondary": "#006e2c",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#edeeef",
+                        "on-surface-variant": "#414754",
+                        "on-secondary-fixed": "#002108",
+                        "inverse-primary": "#adc7ff",
+                        "surface-container-highest": "#e1e3e4",
+                        "on-secondary-fixed-variant": "#005320",
+                        "on-secondary-container": "#00722f",
+                        "outline-variant": "#c1c6d6",
+                        "tertiary-fixed": "#ffdfa0",
+                        "background": "#f8f9fa",
+                        "tertiary-fixed-dim": "#fbbc05",
+                        "tertiary": "#795900",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed-variant": "#5c4300"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    spacing: {
+                        "key-gutter-x": "6px",
+                        "card-padding": "16px",
+                        "list-item-gap": "12px",
+                        "screen-margin": "16px",
+                        "key-gutter-y": "12px",
+                        "section-spacing": "24px"
+                    },
+                    fontFamily: {
+                        "body-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "key-label": ["Inter"],
+                        "title-md": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "label-lg": ["Inter"]
+                    },
+                    fontSize: {
+                        "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                        "label-sm": ["11px", { lineHeight: "16px", letterSpacing: "0.5px", fontWeight: "500" }],
+                        "key-label": ["22px", { lineHeight: "28px", fontWeight: "400" }],
+                        "title-md": ["16px", { lineHeight: "24px", fontWeight: "500" }],
+                        "headline-md": ["20px", { lineHeight: "28px", fontWeight: "500" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "headline-lg": ["24px", { lineHeight: "32px", fontWeight: "600" }],
+                        "label-lg": ["14px", { lineHeight: "20px", letterSpacing: "0.1px", fontWeight: "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        .toggle-checkbox:checked { right: 0; border-color: #005bbf; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #1a73e8; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-lg text-body-lg pb-safe">
+    <!-- TopAppBar -->
+    <header class="bg-surface dark:bg-surface-dim flex justify-between items-center w-full px-screen-margin py-3 max-w-full sticky top-0 z-40 border-b border-surface-variant/40">
+        <div class="flex items-center gap-4">
+            <h1 class="text-headline-md font-headline-md font-semibold text-primary">Keyboard Settings</h1>
+        </div>
+        <button class="w-8 h-8 rounded-full overflow-hidden hover:bg-surface-container-high transition-colors">
+            <span class="material-symbols-outlined text-on-surface-variant">person</span>
+        </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto px-screen-margin py-6 space-y-6 pb-32">
+        <!-- IME Status Banner (Warning / Activation) -->
+        <div id="status-banner" style="display: none;"></div>
+
+        <!-- Premium Banner -->
+        <div id="premium-banner" class="rounded-xl p-card-padding bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-sm relative overflow-hidden group cursor-pointer transition-transform hover:scale-[1.01]">
+            <div class="relative z-10">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+                    <h2 class="text-title-md font-title-md font-semibold">Go Premium</h2>
+                </div>
+                <p class="text-body-md font-body-md text-primary-fixed opacity-90 mb-4">No Ads &amp; Exclusive Themes</p>
+                <button class="bg-surface text-primary px-4 py-2 rounded-full text-label-lg font-label-lg font-semibold hover:bg-surface-bright transition-colors shadow-sm">
+                    Upgrade Now
+                </button>
+            </div>
+            <div class="absolute right-0 bottom-0 opacity-10 translate-x-1/4 translate-y-1/4 pointer-events-none">
+                <span class="material-symbols-outlined text-[120px]">workspace_premium</span>
+            </div>
+        </div>
+
+        <!-- Settings List -->
+        <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-variant overflow-hidden">
+            <!-- Languages -->
+            <div class="flex items-center gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined">language</span>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-title-md font-title-md">Languages</h3>
+                    <p class="text-body-md font-body-md text-on-surface-variant">English (US), Thai</p>
+                </div>
+            </div>
+            
+            <div class="h-[1px] bg-surface-variant mx-4"></div>
+            
+            <!-- Number Row -->
+            <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                        <span class="material-symbols-outlined">grid_on</span>
+                    </div>
+                    <div>
+                        <h3 class="text-title-md font-title-md">Number row</h3>
+                        <p class="text-body-md font-body-md text-on-surface-variant">Show number row above the keyboard</p>
+                    </div>
+                </div>
+                <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="number-row-toggle" type="checkbox">
+                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="number-row-toggle"></label>
+                </div>
+            </div>
+            
+            <div class="h-[1px] bg-surface-variant mx-4"></div>
+            
+            <!-- Sound Switch -->
+            <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                        <span class="material-symbols-outlined">volume_up</span>
+                    </div>
+                    <div>
+                        <h3 class="text-title-md font-title-md">Sound on keypress</h3>
+                        <p class="text-body-md font-body-md text-on-surface-variant">Play sound effects when typing</p>
+                    </div>
+                </div>
+                <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="sound-toggle" type="checkbox">
+                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="sound-toggle"></label>
+                </div>
+            </div>
+
+            <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+            <!-- Auto-Correction -->
+            <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                        <span class="material-symbols-outlined">spellcheck</span>
+                    </div>
+                    <div>
+                        <h3 class="text-title-md font-title-md">Auto-correction</h3>
+                        <p class="text-body-md font-body-md text-on-surface-variant">Correct words as you space or send</p>
+                    </div>
+                </div>
+                <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="auto-correction-toggle" type="checkbox">
+                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="auto-correction-toggle"></label>
+                </div>
+            </div>
+
+            <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+            <!-- Suggestions -->
+            <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                        <span class="material-symbols-outlined">chat_bubble_outline</span>
+                    </div>
+                    <div>
+                        <h3 class="text-title-md font-title-md">Show suggestions</h3>
+                        <p class="text-body-md font-body-md text-on-surface-variant">Display prediction bar above keyboard</p>
+                    </div>
+                </div>
+                <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="suggestions-toggle" type="checkbox">
+                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="suggestions-toggle"></label>
+                </div>
+            </div>
+
+            <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+            <!-- Search Toggle -->
+            <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                        <span class="material-symbols-outlined">travel_explore</span>
+                    </div>
+                    <div>
+                        <h3 class="text-title-md font-title-md">Search</h3>
+                        <p class="text-body-md font-body-md text-on-surface-variant">Predictive search suggestions</p>
+                    </div>
+                </div>
+                <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="search-toggle" type="checkbox">
+                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="search-toggle"></label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inline Ad -->
+        <div id="inline-ad" class="bg-surface-container-lowest rounded-xl p-3 border border-surface-variant flex items-center gap-3 relative shadow-sm">
+            <span class="absolute top-1 left-3 text-[9px] font-semibold text-outline tracking-wider uppercase">Sponsored</span>
+            <div class="w-12 h-12 rounded bg-surface-variant flex-shrink-0 mt-3 overflow-hidden">
+                <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGtlRzM0W_xZCCm8joY7qojQMGrClP28-YwlDKMCTuRBszhLa54UWwyuBG5TPqRe5tLcGYzJm2X4IaAcJcDB8xr7MhHmKCb020W5RSQrmZXSf42UptGkeCI18-f67xI19nK5W05ehLI48yu8GfNuRhJzKux76hTspsEtfA-8YkZ93_sXZZKsHcLuklxpe_u7Z5vWsp76tRp_ERoXLJwy38A_y5yl2V1-NuiZ6bVTIpCg25jFK_I8ViEfv0AlgDYkJjw2yjd7RZR4qm">
+            </div>
+            <div class="flex-1 mt-3">
+                <h4 class="text-title-md font-title-md text-on-surface line-clamp-1">Discover New Keyboards</h4>
+                <p class="text-label-sm font-label-sm text-on-surface-variant line-clamp-1">Customize your typing experience today.</p>
+            </div>
+            <button class="text-label-lg font-label-lg text-primary px-3 py-1 bg-primary-fixed rounded-full hover:bg-primary-fixed-dim transition-colors mt-3">
+                Install
+            </button>
+        </div>
+    </main>
+
+    <!-- BottomNavBar -->
+    <nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-2 pb-safe bg-surface-container dark:bg-surface-container-lowest">
+        <!-- Settings (Active) -->
+        <button class="flex flex-col items-center justify-center bg-secondary-container dark:bg-on-secondary-fixed-variant text-on-secondary-container dark:text-secondary-fixed rounded-full px-5 py-1 scale-90 duration-150 group">
+            <span class="material-symbols-outlined" data-icon="settings" style="font-variation-settings: 'FILL' 1;">settings</span>
+            <span class="text-label-sm font-label-sm mt-1">Settings</span>
+        </button>
+        <!-- Themes -->
+        <a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors rounded-full group" href="themes.html">
+            <span class="material-symbols-outlined" data-icon="palette">palette</span>
+            <span class="text-label-sm font-label-sm mt-1">Themes</span>
+        </a>
+        <!-- Premium -->
+        <a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors rounded-full group" href="premium.html">
+            <span class="material-symbols-outlined" data-icon="workspace_premium">workspace_premium</span>
+            <span class="text-label-sm font-label-sm mt-1">Premium</span>
+        </a>
+        <!-- Preview -->
+        <a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors rounded-full group" href="preview.html">
+            <span class="material-symbols-outlined" data-icon="keyboard">keyboard</span>
+            <span class="text-label-sm font-label-sm mt-1">Preview</span>
+        </a>
+    </nav>
+
+    <script>
+        // Check activation status of keyboard
+        function checkKeyboardStatus() {
+            if (typeof Android !== 'undefined') {
+                const enabled = Android.isKeyboardEnabled();
+                const selected = Android.isKeyboardSelected();
+                const banner = document.getElementById('status-banner');
+                
+                if (!enabled) {
+                    banner.innerHTML = `
+                        <div class="bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-900 text-amber-900 dark:text-amber-200 p-4 rounded-xl flex flex-col gap-3 shadow-sm mb-6">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-amber-500">warning</span>
+                                <h3 class="font-title-md text-title-md font-semibold">Keyboard not enabled</h3>
+                            </div>
+                            <p class="text-body-md font-body-md">Enable Flowboard in your system settings to start using it.</p>
+                            <button onclick="Android.enableKeyboard()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold text-label-lg py-2 px-4 rounded-full shadow-sm self-start transition-colors">
+                                Enable now
+                            </button>
+                        </div>
+                    `;
+                    banner.style.display = 'block';
+                } else if (!selected) {
+                    banner.innerHTML = `
+                        <div class="bg-blue-100 dark:bg-blue-950/40 border border-blue-300 dark:border-blue-900 text-blue-900 dark:text-blue-200 p-4 rounded-xl flex flex-col gap-3 shadow-sm mb-6">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-blue-500">info</span>
+                                <h3 class="font-title-md text-title-md font-semibold">Keyboard not active</h3>
+                            </div>
+                            <p class="text-body-md font-body-md">Select Flowboard as your current input method.</p>
+                            <button onclick="Android.selectKeyboard()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold text-label-lg py-2 px-4 rounded-full shadow-sm self-start transition-colors">
+                                Select now
+                            </button>
+                        </div>
+                    `;
+                    banner.style.display = 'block';
+                } else {
+                    banner.style.display = 'none';
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof Android !== 'undefined') {
+                // Initialize Premium layout
+                const isPremium = Android.isPremium();
+                const premiumBanner = document.getElementById('premium-banner');
+                const inlineAd = document.getElementById('inline-ad');
+                
+                if (isPremium) {
+                    premiumBanner.innerHTML = `
+                        <div class="rounded-xl p-card-padding bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-sm relative overflow-hidden group">
+                            <div class="relative z-10">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="material-symbols-outlined text-amber-200" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+                                    <h2 class="text-title-md font-title-md font-semibold text-amber-100">Flowboard Premium Active</h2>
+                                </div>
+                                <p class="text-body-md font-body-md opacity-90">Enjoy unlimited theme downloads & ad-free typing!</p>
+                            </div>
+                            <div class="absolute right-0 bottom-0 opacity-10 translate-x-1/4 translate-y-1/4 pointer-events-none">
+                                <span class="material-symbols-outlined text-[120px]">workspace_premium</span>
+                            </div>
+                        </div>
+                    `;
+                    // Hide sponsor ad for premium users
+                    if (inlineAd) inlineAd.style.display = 'none';
+                } else {
+                    premiumBanner.addEventListener('click', () => {
+                        window.location.href = 'premium.html';
+                    });
+                }
+
+                // Setup toggles
+                const settingsList = [
+                    { id: 'sound-toggle', key: 'sound_on_keypress', defaultVal: false },
+                    { id: 'number-row-toggle', key: 'show_number_row', defaultVal: false },
+                    { id: 'auto-correction-toggle', key: 'auto_correction', defaultVal: true },
+                    { id: 'suggestions-toggle', key: 'show_suggestions', defaultVal: true },
+                    { id: 'search-toggle', key: 'search_suggestions', defaultVal: true }
+                ];
+
+                settingsList.forEach(setting => {
+                    const el = document.getElementById(setting.id);
+                    if (el) {
+                        el.checked = Android.getSetting(setting.key, setting.defaultVal);
+                        
+                        const updateStyle = (checked) => {
+                            if(checked) {
+                                el.style.transform = 'translateX(1.5rem)';
+                                el.style.borderColor = '#005bbf';
+                            } else {
+                                el.style.transform = 'translateX(0)';
+                                el.style.borderColor = '#c1c6d6';
+                            }
+                        };
+                        
+                        updateStyle(el.checked);
+
+                        el.addEventListener('change', function() {
+                            Android.saveSetting(setting.key, this.checked);
+                            updateStyle(this.checked);
+                        });
+                    }
+                });
+                
+                checkKeyboardStatus();
+            }
+        });
+
+        window.addEventListener('focus', checkKeyboardStatus);
+        setInterval(checkKeyboardStatus, 1500);
+    </script>
+</body>
+</html>

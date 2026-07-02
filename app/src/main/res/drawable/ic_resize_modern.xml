@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Modern two-way diagonal resize arrow -->
+    <path
+        android:strokeColor="#777777"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M11,13 L21,23 M21,23 L21,17 M21,23 L15,23 M13,11 L3,1 M3,1 L9,1 M3,1 L3,7" />
+</vector>

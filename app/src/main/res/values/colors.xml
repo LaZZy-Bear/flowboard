@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Keyboard Container -->
+    <color name="kb_background">#E2E2E7</color>
+
+    <!-- Key Colors -->
+    <color name="key_bg">#FFFFFF</color>
+    <color name="key_active">#CACAD0</color>
+
+    <!-- Zone Gradient Start Colors -->
+    <color name="zone_top_start">#F0F4FF</color>
+    <color name="zone_mid_start">#F0FFF4</color>
+    <color name="zone_bot_start">#FFF7ED</color>
+
+    <!-- Text Colors -->
+    <color name="text_tap">#1D1D1F</color>
+    <color name="text_swipe">#86868B</color>
+    <color name="text_icon">#475569</color>
+
+    <!-- UI Element Colors -->
+    <color name="tool_bg">#D1D1D6</color>
+    <color name="accent">#6B43F5</color>
+    <color name="accent_active">#5229DB</color>
+    <color name="send_text">#FFFFFF</color>
+
+    <!-- Legacy references (kept for backward compatibility) -->
+    <color name="kb_accent">#6B43F5</color>
+    <color name="kb_text">#1D1D1F</color>
+    <color name="kb_text_dim">#86868B</color>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Flowboard</string>
+    <string name="subtype_thai">ภาษาไทย</string>
+    <string name="space_label">วรรค</string>
+    <string name="numbers_label">\?123</string>
+</resources>
