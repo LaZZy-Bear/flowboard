@@ -131,6 +131,7 @@ class FlowboardIMEService : InputMethodService() {
     private val clipboardHistory = mutableListOf<String>()
     private var lastDragHandleClickTime = 0L
     private var isMinimized = false
+    private var isCommiting = false
 
     // Window position drag states
     private var initialX = 0
@@ -1174,6 +1175,8 @@ class FlowboardIMEService : InputMethodService() {
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
         
+        if (isCommiting) return
+        
         val ic = currentInputConnection ?: return
         val textBeforeCursor = ic.getTextBeforeCursor(50, 0) ?: ""
         
@@ -1232,7 +1235,9 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         val ic = currentInputConnection ?: return
+        isCommiting = true
         ic.commitText(char, 1)
+        isCommiting = false
 
         refreshLayout()
         updatePredictions()
@@ -1252,11 +1257,13 @@ class FlowboardIMEService : InputMethodService() {
 
         val ic = currentInputConnection ?: return
         val selectedText = ic.getSelectedText(0)
+        isCommiting = true
         if (selectedText.isNullOrEmpty()) {
             ic.deleteSurroundingText(1, 0)
         } else {
             ic.commitText("", 1)
         }
+        isCommiting = false
 
         refreshLayout()
         updatePredictions()

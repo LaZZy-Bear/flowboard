@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Keyboard Settings</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     <script id="tailwind-config">
@@ -102,7 +102,7 @@
     <style>
         body { -webkit-tap-highlight-color: transparent; }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
-        .toggle-checkbox:checked { right: 0; border-color: #005bbf; }
+        .toggle-checkbox:checked { border-color: #005bbf; }
         .toggle-checkbox:checked + .toggle-label { background-color: #1a73e8; }
     </style>
 </head>
@@ -154,25 +154,7 @@
             
             <div class="h-[1px] bg-surface-variant mx-4"></div>
             
-            <!-- Number Row -->
-            <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
-                <div class="flex items-center gap-4 flex-1">
-                    <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
-                        <span class="material-symbols-outlined">grid_on</span>
-                    </div>
-                    <div>
-                        <h3 class="text-title-md font-title-md">Number row</h3>
-                        <p class="text-body-md font-body-md text-on-surface-variant">Show number row above the keyboard</p>
-                    </div>
-                </div>
-                <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                    <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="number-row-toggle" type="checkbox">
-                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="number-row-toggle"></label>
-                </div>
-            </div>
-            
-            <div class="h-[1px] bg-surface-variant mx-4"></div>
-            
+
             <!-- Sound Switch -->
             <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
                 <div class="flex items-center gap-4 flex-1">
@@ -228,24 +210,6 @@
                 </div>
             </div>
 
-            <div class="h-[1px] bg-surface-variant mx-4"></div>
-
-            <!-- Search Toggle -->
-            <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
-                <div class="flex items-center gap-4 flex-1">
-                    <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
-                        <span class="material-symbols-outlined">travel_explore</span>
-                    </div>
-                    <div>
-                        <h3 class="text-title-md font-title-md">Search</h3>
-                        <p class="text-body-md font-body-md text-on-surface-variant">Predictive search suggestions</p>
-                    </div>
-                </div>
-                <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                    <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="search-toggle" type="checkbox">
-                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="search-toggle"></label>
-                </div>
-            </div>
         </div>
 
         <!-- Inline Ad -->
@@ -281,11 +245,7 @@
             <span class="material-symbols-outlined" data-icon="workspace_premium">workspace_premium</span>
             <span class="text-label-sm font-label-sm mt-1">Premium</span>
         </a>
-        <!-- Preview -->
-        <a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-5 py-1 hover:bg-surface-variant dark:hover:bg-surface-variant transition-colors rounded-full group" href="preview.html">
-            <span class="material-symbols-outlined" data-icon="keyboard">keyboard</span>
-            <span class="text-label-sm font-label-sm mt-1">Preview</span>
-        </a>
+
     </nav>
 
     <script>
@@ -363,10 +323,8 @@
                 // Setup toggles
                 const settingsList = [
                     { id: 'sound-toggle', key: 'sound_on_keypress', defaultVal: false },
-                    { id: 'number-row-toggle', key: 'show_number_row', defaultVal: false },
                     { id: 'auto-correction-toggle', key: 'auto_correction', defaultVal: true },
-                    { id: 'suggestions-toggle', key: 'show_suggestions', defaultVal: true },
-                    { id: 'search-toggle', key: 'search_suggestions', defaultVal: true }
+                    { id: 'suggestions-toggle', key: 'show_suggestions', defaultVal: true }
                 ];
 
                 settingsList.forEach(setting => {

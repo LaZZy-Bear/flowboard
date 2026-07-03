@@ -411,17 +411,21 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         var prefix = ""
 
         while (ptr < chunk.length) {
-            var foundWord: String? = null
-            for (len in (chunk.length - ptr) downTo 1) {
-                val cand = chunk.substring(ptr, ptr + len)
-                if (isWordInTrie(cand)) {
-                    foundWord = cand
-                    break
+            var node = repo.trieDictRoot
+            var maxMatchLen = 0
+
+            for (i in ptr until chunk.length) {
+                val c = chunk[i]
+                node = node?.get(c)
+                if (node == null) break
+                if (node.isEndOfWord) {
+                    maxMatchLen = (i - ptr) + 1
                 }
             }
-            if (foundWord != null) {
-                words.add(foundWord)
-                ptr += foundWord.length
+
+            if (maxMatchLen > 0) {
+                words.add(chunk.substring(ptr, ptr + maxMatchLen))
+                ptr += maxMatchLen
             } else {
                 prefix = chunk.substring(ptr)
                 break
@@ -431,14 +435,6 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     }
 
     private data class TokenizeResult(val words: List<String>, val prefix: String)
-
-    private fun isWordInTrie(word: String): Boolean {
-        var node = repo.trieDictRoot ?: return false
-        for (c in word) {
-            node = node[c] ?: return false
-        }
-        return node.isEndOfWord
-    }
 
     private fun parseNGramList(list: Any?): Map<String, Double> {
         if (list == null) return emptyMap()
