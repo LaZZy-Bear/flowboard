@@ -104,7 +104,9 @@ class FlowboardIMEService : InputMethodService() {
 
     // Bottom Bar
     private var btnNumbers: TextView? = null
-    private var btnShift: ImageView? = null
+    private var btnShift: FrameLayout? = null
+    private var btnShiftIcon: ImageView? = null
+    private var btnShiftText: TextView? = null
     private var btnGlobe: ImageView? = null
     private var btnSpace: FrameLayout? = null
     private var btnPeriod: FrameLayout? = null
@@ -157,6 +159,9 @@ class FlowboardIMEService : InputMethodService() {
 
     /** Whether number layer is active */
     private var isNumberMode = false
+
+    /** Which symbol page is active (0 = Core, 1 = Pro) */
+    private var symbolPageIndex = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -284,13 +289,23 @@ class FlowboardIMEService : InputMethodService() {
         // ══════════════════════════════════════════
         btnNumbers = rootView.findViewById(R.id.btnNumbers)
         btnShift = rootView.findViewById(R.id.btnShift)
+        btnShiftIcon = rootView.findViewById(R.id.btnShiftIcon)
+        btnShiftText = rootView.findViewById(R.id.btnShiftText)
         btnGlobe = rootView.findViewById(R.id.btnGlobe)
 
         // Space bar with swipe-down detector (TAP -> Space, DOWN -> "0")
         val spaceSwipeDetector = SwipeDetector(thresholdPx = 25f * resources.displayMetrics.density) { action ->
-            when (action) {
-                SwipeDetector.SwipeAction.DOWN -> commitChar("0")
-                else -> commitChar(" ")
+            if (isNumberMode) {
+                when (action) {
+                    SwipeDetector.SwipeAction.TAP -> commitChar("0")
+                    SwipeDetector.SwipeAction.DOWN -> commitChar(" ")
+                    else -> commitChar("0")
+                }
+            } else {
+                when (action) {
+                    SwipeDetector.SwipeAction.DOWN -> commitChar("0")
+                    else -> commitChar(" ")
+                }
             }
         }
         btnSpace = rootView.findViewById<FrameLayout>(R.id.btnSpace).apply {
@@ -381,7 +396,7 @@ class FlowboardIMEService : InputMethodService() {
         // Initial setups
         refreshLayout()
         updatePredictions()
-        updateSpaceLabel()
+        updateSpaceLabelForMode()
         updateShiftButtonTint()
         setHandedness(isLeftHanded)
 
@@ -408,12 +423,15 @@ class FlowboardIMEService : InputMethodService() {
         }
         isMissingMode = false
         isShiftActive = false
+        isNumberMode = false
+        symbolPageIndex = 0
+        btnNumbers?.text = "?12"
 
         setHandedness(isLeftHanded)
 
         refreshLayout()
         updatePredictions()
-        updateSpaceLabel()
+        updateSpaceLabelForMode()
         updateShiftButtonTint()
     }
 
@@ -1129,17 +1147,29 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     @Suppress("DEPRECATION")
-    private fun updateSpaceLabel() {
+    private fun getLanguageLabel(): String {
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         val subtype = imm.currentInputMethodSubtype
         val locale = subtype?.locale ?: "th_TH"
-        val label = if (locale.startsWith("th")) "ไทย" else "English"
-        keyboardRoot?.findViewById<TextView>(R.id.btnSpaceText)?.text = label
+        return if (locale.startsWith("th")) "ไทย" else "English"
+    }
+
+    private fun updateSpaceLabelForMode() {
+        val mainText = keyboardRoot?.findViewById<TextView>(R.id.btnSpaceText)
+        val downText = keyboardRoot?.findViewById<TextView>(R.id.btnSpaceDownText)
+        
+        if (isNumberMode) {
+            mainText?.text = "0"
+            downText?.text = getLanguageLabel()
+        } else {
+            mainText?.text = getLanguageLabel()
+            downText?.text = "0"
+        }
     }
 
     override fun onCurrentInputMethodSubtypeChanged(newSubtype: InputMethodSubtype) {
         super.onCurrentInputMethodSubtypeChanged(newSubtype)
-        updateSpaceLabel()
+        updateSpaceLabelForMode()
     }
 
     private fun updateShiftButtonTint() {
@@ -1147,8 +1177,40 @@ class FlowboardIMEService : InputMethodService() {
         val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
         val colors = com.flowboard.ime.util.ThemeManager.getThemeColors(this, activeTheme, isEffectiveDarkMode())
         
-        val color = if (isMissingMode) colors.accent else colors.textTap
-        btnShift?.imageTintList = ColorStateList.valueOf(color)
+        if (isNumberMode) {
+            btnShiftIcon?.visibility = View.GONE
+            btnShiftText?.visibility = View.VISIBLE
+            btnShiftText?.text = if (symbolPageIndex == 0) "1/2" else "2/2"
+            val color = if (symbolPageIndex == 1) colors.accent else colors.textTap
+            btnShiftText?.setTextColor(color)
+        } else {
+            btnShiftText?.visibility = View.GONE
+            btnShiftIcon?.visibility = View.VISIBLE
+            val color = if (isMissingMode) colors.accent else colors.textTap
+            btnShiftIcon?.imageTintList = ColorStateList.valueOf(color)
+        }
+    }
+
+    private fun toggleNumberMode() {
+        isNumberMode = !isNumberMode
+        symbolPageIndex = 0
+        
+        btnNumbers?.text = if (isNumberMode) "ก" else "?12"
+        
+        val prefs = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+        val showSuggestions = prefs.getBoolean("show_suggestions", true)
+        if (isNumberMode) {
+            predictionBar?.visibility = View.INVISIBLE
+            predictionRow?.visibility = if (!isFloatingMode) View.VISIBLE else View.GONE
+        } else {
+            predictionRow?.visibility = if (showSuggestions && !isFloatingMode) View.VISIBLE else View.GONE
+            predictionBar?.visibility = View.VISIBLE
+            updatePredictions()
+        }
+        
+        updateSpaceLabelForMode()
+        refreshLayout()
+        updateShiftButtonTint()
     }
 
     // ══════════════════════════════════════════
@@ -1156,6 +1218,11 @@ class FlowboardIMEService : InputMethodService() {
     // ══════════════════════════════════════════
 
     private fun handleKeyAction(action: SwipeDetector.SwipeAction, keySlots: KeySlots) {
+        if (isNumberMode && action == SwipeDetector.SwipeAction.DOWN) {
+            handleNumberModeDownSwipe(keySlots)
+            return
+        }
+
         val charToType = when (action) {
             SwipeDetector.SwipeAction.TAP -> keySlots.tap
             SwipeDetector.SwipeAction.UP -> keySlots.up
@@ -1167,6 +1234,29 @@ class FlowboardIMEService : InputMethodService() {
         if (charToType.isNotEmpty()) {
             commitChar(charToType)
         }
+    }
+
+    private fun handleNumberModeDownSwipe(keySlots: KeySlots) {
+        val prefs = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+        val isPremium = prefs.getBoolean("is_premium_user", false)
+        
+        if (isPremium) {
+            val macroKey = "macro_${keySlots.tap}"
+            val macroText = prefs.getString(macroKey, null)
+            if (!macroText.isNullOrEmpty()) {
+                commitChar(macroText)
+            }
+        } else {
+            showPremiumUpsell()
+        }
+    }
+
+    private fun showPremiumUpsell() {
+        val intent = Intent(this, com.flowboard.ime.MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("OPEN_PAGE", "premium.html")
+        }
+        startActivity(intent)
     }
 
     override fun onUpdateSelection(
@@ -1382,6 +1472,13 @@ class FlowboardIMEService : InputMethodService() {
             return
         }
 
+        if (isNumberMode) {
+            val layout = if (symbolPageIndex == 0) repo.symbolPage1 else repo.symbolPage2
+            keyboardView?.isAltMode = false
+            keyboardView?.updateLayout(layout)
+            return
+        }
+
         val textSnapshot = synchronized(typedText) { typedText.toString() }
         val scores = scoringEngine.calculateScores(textSnapshot)
         val layout = if (isMissingMode) {
@@ -1444,6 +1541,11 @@ class FlowboardIMEService : InputMethodService() {
     private fun updatePredictions() {
         if (isFloatingMode) {
             predictionBar?.visibility = View.GONE
+            return
+        }
+
+        if (isNumberMode) {
+            predictionBar?.visibility = View.INVISIBLE
             return
         }
 
@@ -1622,13 +1724,19 @@ class FlowboardIMEService : InputMethodService() {
         btnNumbers?.setTextColor(textTapColor)
         btnNumbers?.setOnClickListener {
             playClick(0)
-            Log.d(TAG, "Numbers button pressed")
+            toggleNumberMode()
         }
         
         btnShift?.backgroundTintList = keyBgTintList
         btnShift?.setOnClickListener {
             playClick(0)
-            toggleAltMode()
+            if (isNumberMode) {
+                symbolPageIndex = if (symbolPageIndex == 0) 1 else 0
+                refreshLayout()
+                updateShiftButtonTint()
+            } else {
+                toggleAltMode()
+            }
         }
         updateShiftButtonTint() // handles the shift text color highlight
         

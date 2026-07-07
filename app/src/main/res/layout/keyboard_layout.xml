@@ -305,17 +305,33 @@
                 android:layout_marginEnd="4dp"
                 android:fontFamily="sans-serif-medium" />
 
-            <ImageView
+            <FrameLayout
                 android:id="@+id/btnShift"
                 android:layout_width="0dp"
                 android:layout_weight="1.2"
                 android:layout_height="match_parent"
-                android:src="@drawable/ic_shift"
                 android:background="@drawable/fn_key_bg"
-                android:scaleType="center"
-                android:padding="10dp"
-                android:layout_marginEnd="4dp"
-                android:contentDescription="Shift" />
+                android:layout_marginEnd="4dp">
+
+                <ImageView
+                    android:id="@+id/btnShiftIcon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_shift"
+                    android:scaleType="center"
+                    android:padding="10dp"
+                    android:contentDescription="Shift" />
+
+                <TextView
+                    android:id="@+id/btnShiftText"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_icon"
+                    android:fontFamily="sans-serif-medium"
+                    android:visibility="gone" />
+            </FrameLayout>
 
             <ImageView
                 android:id="@+id/btnGlobe"
@@ -348,6 +364,7 @@
                     android:fontFamily="sans-serif-medium" />
                     
                 <TextView
+                    android:id="@+id/btnSpaceDownText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="bottom"

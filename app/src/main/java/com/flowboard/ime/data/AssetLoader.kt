@@ -61,11 +61,19 @@ class AssetLoader(private val context: Context) {
         val profileJob = async(Dispatchers.IO) {
             loadProfile("$LOCALE_DIR/profile_default.json")
         }
+        val symbolPage1Job = async(Dispatchers.IO) {
+            loadSymbolPage("$LOCALE_DIR/symbol_page_1.json")
+        }
+        val symbolPage2Job = async(Dispatchers.IO) {
+            loadSymbolPage("$LOCALE_DIR/symbol_page_2.json")
+        }
 
         repo.unigram = unigramJob.await()
         repo.charMap = charMapJob.await()
         repo.masterLayout = masterLayoutJob.await()
         repo.patternPenalty = patternPenaltyJob.await()
+        repo.symbolPage1 = symbolPage1Job.await()
+        repo.symbolPage2 = symbolPage2Job.await()
 
         val profile = profileJob.await()
         repo.activeProfile = profile
@@ -189,6 +197,31 @@ class AssetLoader(private val context: Context) {
         return try {
             val text = readAssetText(path)
             json.decodeFromString<Map<String, MasterKey>>(text)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to load $path: ${e.message}")
+            emptyMap()
+        }
+    }
+
+    /**
+     * Load symbol_page_1.json or symbol_page_2.json as Map<String, KeySlots>.
+     */
+    private fun loadSymbolPage(path: String): Map<String, com.flowboard.ime.data.models.KeySlots> {
+        return try {
+            val text = readAssetText(path)
+            val obj = json.parseToJsonElement(text).jsonObject
+            val result = mutableMapOf<String, com.flowboard.ime.data.models.KeySlots>()
+            for ((key, value) in obj) {
+                val slotsObj = value.jsonObject
+                result[key] = com.flowboard.ime.data.models.KeySlots(
+                    tap = slotsObj["tap"]?.jsonPrimitive?.content ?: "",
+                    up = slotsObj["up"]?.jsonPrimitive?.content ?: "",
+                    left = slotsObj["left"]?.jsonPrimitive?.content ?: "",
+                    right = slotsObj["right"]?.jsonPrimitive?.content ?: "",
+                    down = slotsObj["down"]?.jsonPrimitive?.content ?: ""
+                )
+            }
+            result
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to load $path: ${e.message}")
             emptyMap()

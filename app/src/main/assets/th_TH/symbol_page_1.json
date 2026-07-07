@@ -1,0 +1,11 @@
+{
+  "key_1": { "tap": "1", "left": ",", "right": ".", "up": "?", "down": "" },
+  "key_2": { "tap": "2", "left": "'", "right": "\"", "up": "!", "down": "" },
+  "key_3": { "tap": "3", "left": "@", "right": "#", "up": ":", "down": "" },
+  "key_4": { "tap": "4", "left": "(", "right": ")", "up": "-", "down": "" },
+  "key_5": { "tap": "5", "left": "_", "right": "=", "up": "/", "down": "" },
+  "key_6": { "tap": "6", "left": "[", "right": "]", "up": "*", "down": "" },
+  "key_7": { "tap": "7", "left": "{", "right": "}", "up": "%", "down": "" },
+  "key_8": { "tap": "8", "left": "<", "right": ">", "up": "+", "down": "" },
+  "key_9": { "tap": "9", "left": "&", "right": "|", "up": "...", "down": "" }
+}

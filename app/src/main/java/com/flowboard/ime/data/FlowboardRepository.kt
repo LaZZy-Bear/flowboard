@@ -1,5 +1,6 @@
 package com.flowboard.ime.data
 
+import com.flowboard.ime.data.models.KeySlots
 import com.flowboard.ime.data.models.MasterKey
 import com.flowboard.ime.data.models.Profile
 import com.flowboard.ime.data.models.TrieNode
@@ -40,6 +41,12 @@ object FlowboardRepository {
     // ══════════════════════════════════════════
     // Phase B: Normal Data (enhances predictions)
     // ══════════════════════════════════════════
+
+    /** Symbol page 1: key_1..key_9 → KeySlots (Core Symbols) */
+    var symbolPage1: Map<String, KeySlots> = emptyMap()
+
+    /** Symbol page 2: key_1..key_9 → KeySlots (Pro Symbols) */
+    var symbolPage2: Map<String, KeySlots> = emptyMap()
 
     /** Character bigram: last_char → ranked list of likely next chars */
     var bigram: Map<String, List<String>> = emptyMap()
@@ -122,6 +129,8 @@ object FlowboardRepository {
         reverseWordMap = emptyMap()
         trieDictRoot = null
         hybridWordTrie = emptyMap()
+        symbolPage1 = emptyMap()
+        symbolPage2 = emptyMap()
         activeProfile = Profile.DEFAULT
         bonusDict = emptyMap()
         _isReady.value = false
