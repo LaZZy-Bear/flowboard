@@ -1,7 +1,9 @@
 package com.flowboard.ime.data
 
+import com.flowboard.ime.data.models.ClusteredWordBigram
 import com.flowboard.ime.data.models.KeySlots
-import com.flowboard.ime.data.models.MasterKey
+import com.flowboard.ime.data.models.LanguageData
+import com.flowboard.ime.data.models.MasterLayoutEntry
 import com.flowboard.ime.data.models.Profile
 import com.flowboard.ime.data.models.TrieNode
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,128 +14,112 @@ import kotlinx.coroutines.flow.asStateFlow
  * Singleton repository that holds all loaded data in RAM.
  * Acts as the single source of truth for the Scoring Engine, Layout Manager,
  * and all other components.
- *
- * Data is loaded progressively in 3 phases:
- * - [isReady] becomes true after critical data (Phase A) is loaded
- * - [isFullyLoaded] becomes true after all data (Phase C) is loaded
- *
- * The keyboard can render and function as soon as [isReady] is true,
- * using Unigram-only scoring as a fallback until more data arrives.
  */
 object FlowboardRepository {
 
     // ══════════════════════════════════════════
-    // Phase A: Critical Data (loaded before keyboard renders)
+    // Language Registry
     // ══════════════════════════════════════════
+    val languageRegistry: MutableMap<String, LanguageData> = mutableMapOf()
+    var activeLang: String = "TH"
+    var layoutStrategy: String = "TH"
 
-    /** Ranked list of Thai characters by frequency (most common first) */
-    var unigram: List<String> = emptyList()
-
-    /** Thai character → category tag mapping (e.g., "ก" → "C", "เ" → "Vp") */
+    // ══════════════════════════════════════════
+    // Shared Data (Language-Independent)
+    // ══════════════════════════════════════════
     var charMap: Map<String, String> = emptyMap()
-
-    /** Key assignments: key_1..key_9 → MasterKey(main, alts) */
-    var masterLayout: Map<String, MasterKey> = emptyMap()
-
-    /** Context tag pair → list of penalized tags (e.g., "C-Vf" → ["Vt", "Vb"]) */
+    var charReverseMap: Map<String, String> = emptyMap()
+    var thaiCharMap: Map<String, String> = emptyMap()
     var patternPenalty: Map<String, List<String>> = emptyMap()
-
-    // ══════════════════════════════════════════
-    // Phase B: Normal Data (enhances predictions)
-    // ══════════════════════════════════════════
-
-    /** Symbol page 1: key_1..key_9 → KeySlots (Core Symbols) */
+    
+    // Symbols (Shared)
     var symbolPage1: Map<String, KeySlots> = emptyMap()
-
-    /** Symbol page 2: key_1..key_9 → KeySlots (Pro Symbols) */
     var symbolPage2: Map<String, KeySlots> = emptyMap()
 
-    /** Character bigram: last_char → ranked list of likely next chars */
+    // ══════════════════════════════════════════
+    // Active Language Pointers (Data for current language)
+    // ══════════════════════════════════════════
+    var unigram: List<String> = emptyList()
+    var masterLayout: Map<String, MasterLayoutEntry> = emptyMap()
     var bigram: Map<String, List<String>> = emptyMap()
-
-    /** Character trigram: last_2_chars → ranked list of likely next chars */
     var trigram: Map<String, List<String>> = emptyMap()
-
-    /** Space n-gram: "char " → ranked list of likely next chars after space */
+    var trieDict: TrieNode? = null
+    var wordList: List<String> = emptyList()
+    var wordReverseMap: Map<String, Int> = emptyMap()
+    var clusteredBigram: ClusteredWordBigram = ClusteredWordBigram.EMPTY
     var spaceNgram: Map<String, List<String>> = emptyMap()
-
-    /** Word ID list: index → word string */
-    var wordIdMap: List<String> = emptyList()
-
-    /** Reverse mapping: word string → ID string */
-    var reverseWordMap: Map<String, String> = emptyMap()
-
-    /** Root of the dictionary trie (trie_dict.json) */
-    var trieDictRoot: TrieNode? = null
-
-    // ══════════════════════════════════════════
-    // Phase C: Deferred Data (large files, loaded last)
-    // ══════════════════════════════════════════
-
-    /**
-     * Hybrid word trie for word-level predictions.
-     * Structure: contextId → wordId → nextWordId → frequency
-     * Special key "_base" contains base word bigram data.
-     */
-    var hybridWordTrie: Map<String, Map<String, Map<String, Int>>> = emptyMap()
 
     // ══════════════════════════════════════════
     // Active Profile
     // ══════════════════════════════════════════
-
-    /** Currently active typing profile (Default or Chat) */
     var activeProfile: Profile = Profile.DEFAULT
-
-    /** Character bonus scores from the active profile */
     var bonusDict: Map<String, Double> = emptyMap()
 
     // ══════════════════════════════════════════
     // Loading State
     // ══════════════════════════════════════════
-
     private val _isReady = MutableStateFlow(false)
-    /** True when critical data (Phase A) is loaded and keyboard can render */
     val isReady: StateFlow<Boolean> = _isReady.asStateFlow()
 
     private val _isFullyLoaded = MutableStateFlow(false)
-    /** True when all data (Phases A, B, C) are loaded */
     val isFullyLoaded: StateFlow<Boolean> = _isFullyLoaded.asStateFlow()
 
-    /**
-     * Mark Phase A (critical data) as complete.
-     * The keyboard view will start rendering after this.
-     */
     fun markReady() {
         _isReady.value = true
     }
 
-    /**
-     * Mark all phases as complete.
-     */
     fun markFullyLoaded() {
         _isFullyLoaded.value = true
     }
 
     /**
-     * Reset all data. Used for testing or when switching languages.
+     * Switch the active language pointers.
      */
+    fun setLanguage(lang: String) {
+        val data = languageRegistry[lang] ?: return
+        activeLang = lang
+        layoutStrategy = data.layoutStrategy
+        unigram = data.unigram
+        masterLayout = data.masterLayout
+        bigram = data.bigram
+        trigram = data.trigram
+        trieDict = data.trieDict
+        wordList = data.wordList
+        wordReverseMap = data.wordReverseMap
+        clusteredBigram = data.clusteredBigram
+        spaceNgram = data.spaceNgram
+        
+        activeProfile = data.defaultProfile ?: Profile.DEFAULT
+        bonusDict = activeProfile.bonusDict
+    }
+
     fun reset() {
-        unigram = emptyList()
+        languageRegistry.clear()
+        activeLang = "TH"
+        layoutStrategy = "TH"
+        
         charMap = emptyMap()
-        masterLayout = emptyMap()
+        charReverseMap = emptyMap()
+        thaiCharMap = emptyMap()
         patternPenalty = emptyMap()
-        bigram = emptyMap()
-        trigram = emptyMap()
-        spaceNgram = emptyMap()
-        wordIdMap = emptyList()
-        reverseWordMap = emptyMap()
-        trieDictRoot = null
-        hybridWordTrie = emptyMap()
         symbolPage1 = emptyMap()
         symbolPage2 = emptyMap()
+        
+        unigram = emptyList()
+        masterLayout = emptyMap()
+        bigram = emptyMap()
+        trigram = emptyMap()
+        trieDict = null
+        wordList = emptyList()
+        wordReverseMap = emptyMap()
+        clusteredBigram = ClusteredWordBigram.EMPTY
+        spaceNgram = emptyMap()
+        
         activeProfile = Profile.DEFAULT
         bonusDict = emptyMap()
+        
         _isReady.value = false
         _isFullyLoaded.value = false
     }
 }
+

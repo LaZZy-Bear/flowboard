@@ -1,107 +1,338 @@
 {
-  "key_1": {
-    "main": "ส",
-    "alts": [
-      "ซ",
-      "ศ",
-      "ั"
-    ]
+  "เ": {
+    "homeKey": "key_7",
+    "defaultSlot": "left"
   },
-  "key_2": {
-    "main": "เ",
-    "alts": [
-      "ย",
-      "ฟ",
-      "โ",
-      "ก",
-      "ณ",
-      "ู",
-      "ๆ",
-      "ื",
-      "ฅ"
-    ]
+  "แ": {
+    "homeKey": "key_6",
+    "defaultSlot": "right"
   },
-  "key_3": {
-    "main": "ร",
-    "alts": [
-      "จ",
-      "ช",
-      "ฒ",
-      "ฺ",
-      "แ",
-      "ำ",
-      "ฯ"
-    ]
+  "โ": {
+    "homeKey": "key_1",
+    "defaultSlot": "right"
   },
-  "key_4": {
-    "main": "ข",
-    "alts": [
-      "ี",
-      "น",
-      "ผ",
-      "็",
-      "ฤ"
-    ]
+  "ไ": {
+    "homeKey": "key_3",
+    "defaultSlot": "up"
   },
-  "key_5": {
-    "main": "่",
-    "alts": [
-      "ฐ",
-      "ึ",
-      "ด",
-      "ฏ",
-      "ท",
-      "ฝ",
-      "ถ",
-      "๊"
-    ]
+  "ก": {
+    "homeKey": "key_5",
+    "defaultSlot": "tap"
   },
-  "key_6": {
-    "main": "ม",
-    "alts": [
-      "ค",
-      "ิ",
-      "ง",
-      "๋",
-      "ฑ",
-      "พ",
-      "ภ",
-      "ฆ"
-    ]
+  "ข": {
+    "homeKey": "key_5",
+    "defaultSlot": "up"
   },
-  "key_7": {
-    "main": "อ",
-    "alts": [
-      "ไ",
-      "ุ",
-      "ป",
-      "้",
-      "า",
-      "ฌ",
-      "ฉ",
-      "ฎ"
-    ]
+  "ค": {
+    "homeKey": "key_8",
+    "defaultSlot": "tap"
   },
-  "key_8": {
-    "main": "ล",
-    "alts": [
-      "ะ",
-      "ฮ",
-      "ษ"
-    ]
+  "ฉ": {
+    "homeKey": "key_2",
+    "defaultSlot": "right"
   },
-  "key_9": {
-    "main": "ว",
-    "alts": [
-      "ห",
-      "ใ",
-      "์",
-      "ธ",
-      "ฃ",
-      "บ",
-      "ญ",
-      "ฬ",
-      "ต"
-    ]
+  "จ": {
+    "homeKey": "key_8",
+    "defaultSlot": "up"
+  },
+  "ช": {
+    "homeKey": "key_8",
+    "defaultSlot": "right"
+  },
+  "ซ": {
+    "homeKey": "key_3",
+    "defaultSlot": "up"
+  },
+  "ณ": {
+    "homeKey": "key_3",
+    "defaultSlot": "tap"
+  },
+  "ด": {
+    "homeKey": "key_4",
+    "defaultSlot": "tap"
+  },
+  "ต": {
+    "homeKey": "key_7",
+    "defaultSlot": "tap"
+  },
+  "ถ": {
+    "homeKey": "key_5",
+    "defaultSlot": "left"
+  },
+  "ท": {
+    "homeKey": "key_8",
+    "defaultSlot": "left"
+  },
+  "น": {
+    "homeKey": "key_6",
+    "defaultSlot": "up"
+  },
+  "ม": {
+    "homeKey": "key_3",
+    "defaultSlot": "up"
+  },
+  "อ": {
+    "homeKey": "key_4",
+    "defaultSlot": "up"
+  },
+  "ว": {
+    "homeKey": "key_2",
+    "defaultSlot": "up"
+  },
+  "ป": {
+    "homeKey": "key_3",
+    "defaultSlot": "up"
+  },
+  "ผ": {
+    "homeKey": "key_4",
+    "defaultSlot": "tap"
+  },
+  "พ": {
+    "homeKey": "key_7",
+    "defaultSlot": "up"
+  },
+  "ฟ": {
+    "homeKey": "key_9",
+    "defaultSlot": "left"
+  },
+  "ภ": {
+    "homeKey": "key_9",
+    "defaultSlot": "right"
+  },
+  "บ": {
+    "homeKey": "key_2",
+    "defaultSlot": "tap"
+  },
+  "ร": {
+    "homeKey": "key_1",
+    "defaultSlot": "up"
+  },
+  "ล": {
+    "homeKey": "key_1",
+    "defaultSlot": "right"
+  },
+  "ส": {
+    "homeKey": "key_9",
+    "defaultSlot": "left"
+  },
+  "ศ": {
+    "homeKey": "key_1",
+    "defaultSlot": "right"
+  },
+  "ธ": {
+    "homeKey": "key_1",
+    "defaultSlot": "up"
+  },
+  "ห": {
+    "homeKey": "key_5",
+    "defaultSlot": "right"
+  },
+  "ย": {
+    "homeKey": "key_2",
+    "defaultSlot": "right"
+  },
+  "ง": {
+    "homeKey": "key_4",
+    "defaultSlot": "left"
+  },
+  "ฮ": {
+    "homeKey": "key_6",
+    "defaultSlot": "right"
+  },
+  "ใ": {
+    "homeKey": "key_9",
+    "defaultSlot": "right"
+  },
+  "า": {
+    "homeKey": "key_3",
+    "defaultSlot": "tap"
+  },
+  "่": {
+    "homeKey": "key_5",
+    "defaultSlot": "up"
+  },
+  "้": {
+    "homeKey": "key_4",
+    "defaultSlot": "up"
+  },
+  "ั": {
+    "homeKey": "key_2",
+    "defaultSlot": "left"
+  },
+  "ี": {
+    "homeKey": "key_6",
+    "defaultSlot": "right"
+  },
+  "ิ": {
+    "homeKey": "key_4",
+    "defaultSlot": "left"
+  },
+  "ะ": {
+    "homeKey": "key_6",
+    "defaultSlot": "left"
+  },
+  "ุ": {
+    "homeKey": "key_3",
+    "defaultSlot": "right"
+  },
+  "ื": {
+    "homeKey": "key_9",
+    "defaultSlot": "tap"
+  },
+  "์": {
+    "homeKey": "key_8",
+    "defaultSlot": "right"
+  },
+  "ู": {
+    "homeKey": "key_9",
+    "defaultSlot": "tap"
+  },
+  "็": {
+    "homeKey": "key_9",
+    "defaultSlot": "tap"
+  },
+  "ำ": {
+    "homeKey": "key_1",
+    "defaultSlot": "left"
+  },
+  "ึ": {
+    "homeKey": "key_8",
+    "defaultSlot": "left"
+  },
+  "ษ": {
+    "homeKey": "key_3",
+    "defaultSlot": "left"
+  },
+  "ญ": {
+    "homeKey": "key_3",
+    "defaultSlot": "right"
+  },
+  "ๆ": {
+    "homeKey": "key_6",
+    "defaultSlot": "left"
+  },
+  "๊": {
+    "homeKey": "key_5",
+    "defaultSlot": "right"
+  },
+  "ฐ": {
+    "homeKey": "key_4",
+    "defaultSlot": "left"
+  },
+  "ฝ": {
+    "homeKey": "key_3",
+    "defaultSlot": "right"
+  },
+  "ฤ": {
+    "homeKey": "key_7",
+    "defaultSlot": "left"
+  },
+  "๋": {
+    "homeKey": "key_5",
+    "defaultSlot": "left"
+  },
+  "ฒ": {
+    "homeKey": "key_8",
+    "defaultSlot": "up"
+  },
+  "ฯ": {
+    "homeKey": "key_7",
+    "defaultSlot": "right"
+  },
+  "ฏ": {
+    "homeKey": "key_2",
+    "defaultSlot": "left"
+  },
+  "ฑ": {
+    "homeKey": "key_4",
+    "defaultSlot": "right"
+  },
+  "ฎ": {
+    "homeKey": "key_2",
+    "defaultSlot": "up"
+  },
+  "ฆ": {
+    "homeKey": "key_8",
+    "defaultSlot": "up"
+  },
+  "ฬ": {
+    "homeKey": "key_9",
+    "defaultSlot": "up"
+  },
+  "๒": {
+    "homeKey": "key_4",
+    "defaultSlot": "up"
+  },
+  "๑": {
+    "homeKey": "key_7",
+    "defaultSlot": "tap"
+  },
+  "๕": {
+    "homeKey": "key_6",
+    "defaultSlot": "tap"
+  },
+  "ฺ": {
+    "homeKey": "key_4",
+    "defaultSlot": "left"
+  },
+  "๐": {
+    "homeKey": "key_2",
+    "defaultSlot": "right"
+  },
+  "ํ": {
+    "homeKey": "key_8",
+    "defaultSlot": "up"
+  },
+  "๓": {
+    "homeKey": "key_2",
+    "defaultSlot": "right"
+  },
+  "๔": {
+    "homeKey": "key_7",
+    "defaultSlot": "left"
+  },
+  "๖": {
+    "homeKey": "key_7",
+    "defaultSlot": "tap"
+  },
+  "๙": {
+    "homeKey": "key_1",
+    "defaultSlot": "up"
+  },
+  "๘": {
+    "homeKey": "key_4",
+    "defaultSlot": "left"
+  },
+  "๗": {
+    "homeKey": "key_4",
+    "defaultSlot": "tap"
+  },
+  "ฌ": {
+    "homeKey": "key_2",
+    "defaultSlot": "tap"
+  },
+  "ฃ": {
+    "homeKey": "key_9",
+    "defaultSlot": "tap"
+  },
+  "ฅ": {
+    "homeKey": "key_7",
+    "defaultSlot": "tap"
+  },
+  "ๅ": {
+    "homeKey": "key_1",
+    "defaultSlot": "tap"
+  },
+  "๏": {
+    "homeKey": "key_6",
+    "defaultSlot": "tap"
+  },
+  "๎": {
+    "homeKey": "key_5",
+    "defaultSlot": "left"
+  },
+  "ฦ": {
+    "homeKey": "key_1",
+    "defaultSlot": "tap"
   }
 }

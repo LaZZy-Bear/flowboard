@@ -3,181 +3,381 @@ package com.flowboard.ime.engine
 import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.KeySlots
 
-/**
- * Manages the dynamic character placement on the 9-key grid.
- *
- * Key groups:
- * - group_top: key_1, key_2, key_3
- * - group_mid: key_4, key_5, key_6
- * - group_bot: key_7, key_8, key_9
- *
- * Placement priority per character (descending score order):
- * 1. Home key's tap slot
- * 2. Any group key's tap slot
- * 3. Home key's swipe slots (up → left → right)
- * 4. Any group key's swipe slots (up → left → right)
- */
 class LayoutManager(private val repo: FlowboardRepository) {
 
     companion object {
-        val KEY_GROUPS = mapOf(
-            "group_top" to listOf("key_1", "key_2", "key_3"),
-            "group_mid" to listOf("key_4", "key_5", "key_6"),
-            "group_bot" to listOf("key_7", "key_8", "key_9")
+        // Partner Key Pairing configuration
+        val PARTNER_KEY = mapOf(
+            "key_1" to "key_2", "key_2" to "key_1",  // top-left ↔ top-center
+            "key_3" to "key_6", "key_6" to "key_3",  // top-right ↔ mid-right
+            "key_4" to "key_7", "key_7" to "key_4",  // mid-left ↔ bot-left
+            "key_8" to "key_9", "key_9" to "key_8",  // bot-center ↔ bot-right
+            "key_5" to null                           // center — no partner
         )
-        private val SWIPE_SLOTS = listOf("up", "left", "right")
     }
 
-    /**
-     * Assign characters to the 9-key layout based on AI scores.
-     * Numbers 1-9 are always placed in the 'down' slot.
-     *
-     * @param scores Map of character → prediction score
-     * @return Map of key_id → KeySlots
-     */
+    data class Candidate(val char: String, val defaultSlot: String, val score: Double)
+
     fun assignLayout(scores: Map<String, Double>): Map<String, KeySlots> {
-        val layout = HashMap<String, KeySlots>(9)
-        for (i in 1..9) {
-            layout["key_$i"] = KeySlots(down = i.toString())
+        // Phase 1: Base layout — place chars at homeKey
+        val (baseLayout, charsByHome) = buildBaseLayout(scores)
+
+        // Phase 2: Partner swap — language-specific strategy
+        val evicted = when (repo.layoutStrategy) {
+            "EN" -> partnerSwapEN(baseLayout, charsByHome, scores)
+            else -> partnerSwapTH(baseLayout, charsByHome, scores)
         }
 
-        val bonusDict = repo.bonusDict
-        val masterLayout = repo.masterLayout
+        // Phase 3: Fill unrendered — rescue chars with score > 0
+        return fillUnrenderedChars(baseLayout, scores, evicted)
+    }
 
-        for ((_, groupKeys) in KEY_GROUPS) {
-            // Collect all candidate characters in this group
-            data class CharCandidate(
-                val char: String,
-                val homeKey: String,
-                val score: Double
-            )
+    private fun buildBaseLayout(scores: Map<String, Double>): Pair<MutableMap<String, MutableMap<String, String>>, Map<String, List<Candidate>>> {
+        val newLayout = mutableMapOf<String, MutableMap<String, String>>()
+        for (i in 1..9) {
+            newLayout["key_$i"] = mutableMapOf("tap" to "", "up" to "", "left" to "", "right" to "", "down" to i.toString())
+        }
 
-            val candidates = mutableListOf<CharCandidate>()
+        val charactersByHomeKey = mutableMapOf<String, MutableList<Candidate>>()
+        for (i in 1..9) {
+            charactersByHomeKey["key_$i"] = mutableListOf()
+        }
 
-            for (keyId in groupKeys) {
-                val masterKey = masterLayout[keyId] ?: continue
-                val members = masterKey.allMembers()
-                members.forEachIndexed { index, c ->
-                    val aiScore = scores[c] ?: 0.0
-                    val userBonus = bonusDict[c] ?: 0.0
-                    val defaultBonus = 0.1 - (index * 0.001)
-                    candidates.add(CharCandidate(c, keyId, aiScore + userBonus + defaultBonus))
+        for ((char, info) in repo.masterLayout) {
+            val home = info.homeKey
+            val score = scores[char] ?: 0.0
+            charactersByHomeKey[home]?.add(Candidate(char, info.defaultSlot, score))
+        }
+
+        for (k in charactersByHomeKey.keys) {
+            charactersByHomeKey[k]?.sortByDescending { it.score }
+        }
+
+        for (i in 1..9) {
+            val keyId = "key_$i"
+            val candidates = charactersByHomeKey[keyId] ?: continue
+            if (candidates.isEmpty()) continue
+
+            val topWinner = candidates[0]
+            val keyMap = newLayout[keyId] ?: continue
+            if (topWinner.score > 0) {
+                keyMap["tap"] = topWinner.char
+                if (topWinner.defaultSlot != "tap" && topWinner.defaultSlot != "down") {
+                    val defTapObj = candidates.find { it.defaultSlot == "tap" }
+                    if (defTapObj != null) {
+                        keyMap[topWinner.defaultSlot] = defTapObj.char
+                    }
+                }
+                val slots = listOf("up", "left", "right")
+                for (slot in slots) {
+                    if ((keyMap[slot] ?: "").isEmpty()) {
+                        val defCharObj = candidates.find { it.defaultSlot == slot }
+                        if (defCharObj != null && defCharObj.char != topWinner.char) {
+                            keyMap[slot] = defCharObj.char
+                        }
+                    }
+                }
+            } else {
+                for (c in candidates) {
+                    if (c.defaultSlot != "down") {
+                        keyMap[c.defaultSlot] = c.char
+                    }
                 }
             }
+        }
 
-            // Sort by score descending
-            candidates.sortByDescending { it.score }
+        return Pair(newLayout, charactersByHomeKey)
+    }
 
-            // Place characters according to priority rules
-            for (data in candidates) {
-                var placed = false
-                val c = data.char
-                val home = data.homeKey
-
-                // Rule 1: Home key's tap slot
-                if (layout[home]!!.tap.isEmpty()) {
-                    layout[home]!!.tap = c
-                    placed = true
-                }
-
-                // Rule 2: Any group key's tap slot
-                if (!placed) {
-                    for (keyId in groupKeys) {
-                        if (layout[keyId]!!.tap.isEmpty()) {
-                            layout[keyId]!!.tap = c
-                            placed = true
-                            break
-                        }
-                    }
-                }
-
-                // Rule 3: Home key's swipe slots
-                if (!placed) {
-                    for (slot in SWIPE_SLOTS) {
-                        if (getSlot(layout[home]!!, slot).isEmpty()) {
-                            setSlot(layout[home]!!, slot, c)
-                            placed = true
-                            break
-                        }
-                    }
-                }
-
-                // Rule 4: Any group key's swipe slots
-                if (!placed) {
-                    outer@ for (keyId in groupKeys) {
-                        for (slot in SWIPE_SLOTS) {
-                            if (getSlot(layout[keyId]!!, slot).isEmpty()) {
-                                setSlot(layout[keyId]!!, slot, c)
-                                placed = true
-                                break@outer
+    private fun partnerSwapTH(
+        newLayout: MutableMap<String, MutableMap<String, String>>,
+        charactersByHomeKey: Map<String, List<Candidate>>,
+        scores: Map<String, Double>
+    ): List<String> {
+        val evictedFromTap = mutableListOf<String>()
+        for (i in 1..9) {
+            val keyId = "key_$i"
+            val partnerKeyId = PARTNER_KEY[keyId] ?: continue
+            val candidates = charactersByHomeKey[keyId] ?: continue
+            if (candidates.size > 1) {
+                val runnerUp = candidates[1]
+                if (runnerUp.score > 0) {
+                    val partnerTapChar = newLayout[partnerKeyId]?.get("tap") ?: ""
+                    val partnerTapScore = scores[partnerTapChar] ?: 0.0
+                    if (runnerUp.score > partnerTapScore) {
+                        if (partnerTapChar.isNotEmpty()) evictedFromTap.add(partnerTapChar)
+                        newLayout[partnerKeyId]?.set("tap", runnerUp.char)
+                        val keySlotsMap = newLayout[keyId] ?: continue
+                        for ((slot, char) in keySlotsMap) {
+                            if (char == runnerUp.char) {
+                                keySlotsMap[slot] = ""
+                                break
                             }
                         }
                     }
                 }
             }
         }
-
-        return layout
+        return evictedFromTap
     }
 
-    /**
-     * Create an alternate layout showing characters that are missing
-     * from the normal layout. Used when the user toggles Alt Mode (Aa button).
-     *
-     * Characters are distributed across keys in this slot order:
-     * tap → up → left → right → down
-     */
+    private fun partnerSwapEN(
+        newLayout: MutableMap<String, MutableMap<String, String>>,
+        charactersByHomeKey: Map<String, List<Candidate>>,
+        scores: Map<String, Double>
+    ): List<String> {
+        for (i in 1..9) {
+            val keyId = "key_$i"
+            val partnerKeyId = PARTNER_KEY[keyId] ?: continue
+
+            val candidates = charactersByHomeKey[keyId] ?: continue
+            if (candidates.size > 1) {
+                val runnerUp = candidates[1]
+                if (runnerUp.score > 0) {
+                    val partnerTapChar = newLayout[partnerKeyId]?.get("tap") ?: ""
+                    val partnerTapScore = if (partnerTapChar.isNotEmpty()) (scores[partnerTapChar] ?: 0.0) else 0.0
+
+                    if (runnerUp.score > partnerTapScore) {
+                        var runnerUpOldSlot: String? = null
+                        val keySlotsMap = newLayout[keyId] ?: continue
+                        for ((slot, char) in keySlotsMap) {
+                            if (char == runnerUp.char) {
+                                runnerUpOldSlot = slot
+                                keySlotsMap[slot] = ""
+                                break
+                            }
+                        }
+
+                        newLayout[partnerKeyId]?.set("tap", runnerUp.char)
+
+                        if (partnerTapChar.isNotEmpty()) {
+                            var minScore = Double.MAX_VALUE
+                            var weakestSlot: String? = null
+                            var weakestChar: String? = null
+
+                            val slots = listOf("up", "left", "right")
+                            val partnerSlotsMap = newLayout[partnerKeyId] ?: continue
+                            for (slot in slots) {
+                                val occupant = partnerSlotsMap[slot] ?: ""
+                                if (occupant.isEmpty()) {
+                                    weakestSlot = slot
+                                    weakestChar = ""
+                                    minScore = -1.0
+                                    break
+                                } else {
+                                    val occupantScore = scores[occupant] ?: 0.0
+                                    if (occupantScore < minScore) {
+                                        minScore = occupantScore
+                                        weakestSlot = slot
+                                        weakestChar = occupant
+                                    }
+                                }
+                            }
+
+                            if (weakestSlot != null) {
+                                partnerSlotsMap[weakestSlot] = partnerTapChar
+
+                                if (!weakestChar.isNullOrEmpty() && runnerUpOldSlot != null) {
+                                    keySlotsMap[runnerUpOldSlot] = weakestChar
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return emptyList()
+    }
+
+    data class EvictResult(val slot: String, val char: String, val score: Double)
+
+    private fun fillUnrenderedChars(
+        newLayout: MutableMap<String, MutableMap<String, String>>,
+        scores: Map<String, Double>,
+        evictedFromTap: List<String>
+    ): Map<String, KeySlots> {
+        val currentlyRendered = mutableSetOf<String>()
+        for (k in newLayout.keys) {
+            val keyMap = newLayout[k] ?: continue
+            for ((slot, char) in keyMap) {
+                if (slot != "down" && char.isNotEmpty()) {
+                    currentlyRendered.add(char)
+                }
+            }
+        }
+
+        val unrenderedScoredChars = mutableListOf<String>()
+        for (char in scores.keys) {
+            val score = scores[char] ?: 0.0
+            if (score > 0 && repo.masterLayout.containsKey(char) && !currentlyRendered.contains(char)) {
+                unrenderedScoredChars.add(char)
+            }
+        }
+        for (char in evictedFromTap) {
+            if (!currentlyRendered.contains(char)) {
+                unrenderedScoredChars.add(char)
+            }
+        }
+
+        val uniqueUnrendered = unrenderedScoredChars.distinct().toMutableList()
+        uniqueUnrendered.sortByDescending { scores[it] ?: 0.0 }
+
+        fun findBestSlotToEvict(targetKey: String?, checkZeroOnly: Boolean): EvictResult? {
+            if (targetKey == null) return null
+            val slots = listOf("up", "left", "right", "tap")
+            var bestSlot: String? = null
+            var minScore = Double.MAX_VALUE
+            var minChar = ""
+
+            val keyMap = newLayout[targetKey] ?: return null
+            for (slot in slots) {
+                val occupant = keyMap[slot] ?: ""
+                val occupantScore = if (occupant.isNotEmpty()) (scores[occupant] ?: 0.0) else 0.0
+
+                if (checkZeroOnly) {
+                    if (occupantScore == 0.0) {
+                        return EvictResult(slot, occupant, 0.0)
+                    }
+                } else {
+                    if (occupant.isNotEmpty() && occupantScore < minScore) {
+                        minScore = occupantScore
+                        bestSlot = slot
+                        minChar = occupant
+                    }
+                }
+            }
+            return if (checkZeroOnly) null else if (bestSlot != null) EvictResult(bestSlot, minChar, minScore) else null
+        }
+
+        for (char in uniqueUnrendered) {
+            val entry = repo.masterLayout[char] ?: continue
+            val homeKey = entry.homeKey
+            val partnerKey = PARTNER_KEY[homeKey]
+
+            if (repo.layoutStrategy == "EN") {
+                var placed = false
+                fun fillEmpty(targetKey: String?): Boolean {
+                    if (targetKey == null) return false
+                    val slots = listOf("up", "left", "right", "tap")
+                    val keyMap = newLayout[targetKey] ?: return false
+                    for (slot in slots) {
+                        if ((keyMap[slot] ?: "").isEmpty()) {
+                            keyMap[slot] = char
+                            return true
+                        }
+                    }
+                    return false
+                }
+                placed = fillEmpty(homeKey)
+                if (!placed && partnerKey != null) placed = fillEmpty(partnerKey)
+
+                if (!placed) {
+                    var bestSlot: String? = null
+                    var minScore = Double.MAX_VALUE
+                    var chosenKey = homeKey
+
+                    fun checkSlots(key: String?) {
+                        if (key == null) return
+                        val slots = listOf("up", "left", "right", "tap")
+                        val keyMap = newLayout[key] ?: return
+                        for (slot in slots) {
+                            val occupant = keyMap[slot] ?: ""
+                            val occupantScore = if (occupant.isNotEmpty()) (scores[occupant] ?: 0.0) else 0.0
+                            if (occupantScore < minScore) {
+                                minScore = occupantScore
+                                bestSlot = slot
+                                chosenKey = key
+                            }
+                        }
+                    }
+                    checkSlots(homeKey)
+                    checkSlots(partnerKey)
+
+                    if (bestSlot != null && (scores[char] ?: 0.0) > minScore) {
+                        newLayout[chosenKey]?.set(bestSlot!!, char)
+                    }
+                }
+            } else {
+                var target = findBestSlotToEvict(homeKey, true)
+                var chosenKey = homeKey
+                if (target == null && partnerKey != null) {
+                    target = findBestSlotToEvict(partnerKey, true)
+                    chosenKey = partnerKey
+                }
+                if (target == null) {
+                    target = findBestSlotToEvict(homeKey, false)
+                    chosenKey = homeKey
+                }
+                if (target == null && partnerKey != null) {
+                    target = findBestSlotToEvict(partnerKey, false)
+                    chosenKey = partnerKey
+                }
+                if (target?.slot != null) {
+                    val charScore = scores[char] ?: 0.0
+                    if (charScore > target.score) {
+                        newLayout[chosenKey]?.set(target.slot, char)
+                    }
+                }
+            }
+        }
+
+        val finalResult = mutableMapOf<String, KeySlots>()
+        for (i in 1..9) {
+            val key = "key_$i"
+            val map = newLayout[key]!!
+            finalResult[key] = KeySlots(
+                tap = map["tap"] ?: "",
+                up = map["up"] ?: "",
+                left = map["left"] ?: "",
+                right = map["right"] ?: "",
+                down = map["down"] ?: ""
+            )
+        }
+
+        return finalResult
+    }
+
     fun assignMissingLayout(normalLayout: Map<String, KeySlots>): Map<String, KeySlots> {
-        // 1. Collect all visible characters in normal layout
-        val visibleChars = HashSet<String>()
+        val visibleChars = mutableSetOf<String>()
         for (i in 1..9) {
-            val k = normalLayout["key_$i"] ?: continue
-            visibleChars.addAll(k.visibleChars())
+            val keyId = "key_$i"
+            val k = normalLayout[keyId] ?: continue
+            if (k.tap.isNotEmpty()) visibleChars.add(k.tap)
+            if (k.up.isNotEmpty()) visibleChars.add(k.up)
+            if (k.left.isNotEmpty()) visibleChars.add(k.left)
+            if (k.right.isNotEmpty()) visibleChars.add(k.right)
         }
 
-        // 2. Find all Thai characters that are missing
-        val allThaiChars = repo.charMap.keys.filter { it != " " }
+        val allThaiChars = repo.charMap.values.filter { c ->
+            c != " " && !c.matches(Regex("^[0-9]$")) && !c.matches(Regex("^[๐-๙]$"))
+        }
+
         val missingChars = allThaiChars.filter { it !in visibleChars }
-
-        // 3. Create empty layout
-        val altLayout = HashMap<String, KeySlots>(9)
+        val altLayout = mutableMapOf<String, KeySlots>()
+        val thaiNumbers = listOf("", "๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙")
         for (i in 1..9) {
-            altLayout["key_$i"] = KeySlots()
+            altLayout["key_$i"] = KeySlots(down = thaiNumbers[i])
         }
 
-        // 4. Distribute missing characters: tap → up → left → right → down
-        val slotsOrder = listOf("tap", "up", "left", "right", "down")
+        val slotsOrder = listOf("tap", "up", "left", "right")
         var missingIndex = 0
 
         for (slot in slotsOrder) {
             for (i in 1..9) {
-                if (missingIndex >= missingChars.size) return altLayout
-                setSlot(altLayout["key_$i"]!!, slot, missingChars[missingIndex])
-                missingIndex++
+                if (missingIndex < missingChars.size) {
+                    val keyId = "key_$i"
+                    val keySlotObj = altLayout[keyId] ?: continue
+                    when (slot) {
+                        "tap" -> keySlotObj.tap = missingChars[missingIndex]
+                        "up" -> keySlotObj.up = missingChars[missingIndex]
+                        "left" -> keySlotObj.left = missingChars[missingIndex]
+                        "right" -> keySlotObj.right = missingChars[missingIndex]
+                    }
+                    missingIndex++
+                }
             }
         }
 
         return altLayout
-    }
-
-    // ── Slot Accessors ──
-
-    private fun getSlot(key: KeySlots, slot: String): String = when (slot) {
-        "tap" -> key.tap
-        "up" -> key.up
-        "left" -> key.left
-        "right" -> key.right
-        "down" -> key.down
-        else -> ""
-    }
-
-    private fun setSlot(key: KeySlots, slot: String, value: String) {
-        when (slot) {
-            "tap" -> key.tap = value
-            "up" -> key.up = value
-            "left" -> key.left = value
-            "right" -> key.right = value
-            "down" -> key.down = value
-        }
     }
 }

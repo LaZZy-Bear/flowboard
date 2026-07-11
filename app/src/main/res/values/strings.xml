@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">Flowboard</string>
     <string name="subtype_thai">ภาษาไทย</string>
+    <string name="subtype_english">English</string>
     <string name="space_label">วรรค</string>
     <string name="numbers_label">\?123</string>
 </resources>

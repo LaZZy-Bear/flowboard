@@ -3,106 +3,85 @@ package com.flowboard.ime.engine
 import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.EngineWeights
 import com.flowboard.ime.data.models.TrieNode
+import com.flowboard.ime.data.models.WordBigramEntry
 import com.flowboard.ime.util.ThaiCharUtil
 
-/**
- * The core scoring engine that calculates character prediction scores
- * based on the current typing context. Uses a 6-state machine with
- * weighted combination of 6 sub-engines:
- *
- * - Unigram (U):     Base character frequency
- * - Bigram (B):      Previous 1-character context
- * - Trigram (T):     Previous 2-character context
- * - Dictionary (D):  Trie prefix matching
- * - Word Bigram (WB): Word-level prediction
- * - Space N-gram (SN): Post-space character prediction
- *
- * States:
- * - State 1: Start of text (len=0) → Pure Unigram
- * - State 2: 1-char prefix → Dictionary dominant
- * - State 3: 2-char prefix → Trigram dominant
- * - State 4: 3+ char prefix → Dictionary dominant
- * - State 5: Completed word (prefix empty) → Trigram dominant
- * - State 7: After space → Balanced distribution
- */
 class ScoringEngine(private val repo: FlowboardRepository) {
 
-    // ── Engine State Weights (matching prototype 11 exactly) ──
     companion object {
+        // Updated Weights to match P21 V7
         private val STATE_WEIGHTS = mapOf(
-            1 to EngineWeights(U = 100, B = 0, T = 0, D = 0, WB = 0, SN = 0),
-            2 to EngineWeights(U = 0, B = 32, T = 6, D = 95, WB = 0, SN = 0),
-            3 to EngineWeights(U = 7, B = 13, T = 78, D = 31, WB = 0, SN = 15),
-            4 to EngineWeights(U = 12, B = 10, T = 23, D = 90, WB = 0, SN = 1),
-            5 to EngineWeights(U = 34, B = 8, T = 82, D = 13, WB = 7, SN = 1),
-            7 to EngineWeights(U = 21, B = 22, T = 17, D = 21, WB = 14, SN = 16)
+            1 to EngineWeights(U = 87, B = 9, T = 15, D = 71, WB = 8, SN = 0),
+            2 to EngineWeights(U = 0, B = 94, T = 100, D = 15, WB = 0, SN = 0),
+            3 to EngineWeights(U = 1, B = 3, T = 66, D = 99, WB = 14, SN = 0),
+            4 to EngineWeights(U = 6, B = 24, T = 50, D = 86, WB = 3, SN = 2),
+            5 to EngineWeights(U = 26, B = 4, T = 100, D = 8, WB = 73, SN = 6),
+            7 to EngineWeights(U = 55, B = 3, T = 59, D = 25, WB = 45, SN = 15)
         )
     }
 
-    // ── Cached Trie Pointer (for O(1) incremental trie walking) ──
     private var cachedTriePrefix: String = ""
     private var cachedTrieNode: TrieNode? = null
 
-    /** Current engine status string for debug display */
-    var engineStatus: String = "State 1 (U100)"
+    var engineStatus: String = "State 1 (Start)"
         private set
 
-    /**
-     * Reset the cached trie pointer. Call when text is cleared or backspace is pressed.
-     */
     fun resetTrieCache() {
         cachedTriePrefix = ""
         cachedTrieNode = null
     }
 
-    /**
-     * Main entry point: calculate prediction scores for all Thai characters
-     * given the current typed text.
-     *
-     * @param text The complete text typed so far
-     * @return Map of character → score (higher = more likely)
-     */
     fun calculateScores(text: String): Map<String, Double> {
-        val len = text.length
-        val last1 = if (len >= 1) text.substring(len - 1) else ""
-        val last2 = if (len >= 2) text.substring(len - 2) else ""
+        val engineText = if (repo.activeLang == "EN") text.lowercase() else text
+        val len = engineText.length
+        val last1 = if (len >= 1) engineText.substring(len - 1) else ""
+        val last2 = if (len >= 2) engineText.substring(len - 2) else ""
         val isSpace = last1 == " "
-        val lastCharBeforeSpace = if (len >= 2) text.substring(len - 2, len - 1) else ""
+        val lastCharBeforeSpace = if (len >= 2) engineText.substring(len - 2, len - 1) else ""
 
-        // Split text by spaces to find current word chunk
-        val parts = text.split(" ")
-        val lastChunk = parts.last()
-        val previousChunk = if (parts.size > 1) parts[parts.size - 2] else ""
-
-        // Tokenize the current chunk using greedy dictionary matching
         var activePrefix = ""
         var activeWordsArray: List<String> = emptyList()
 
-        if (lastChunk.isNotEmpty()) {
-            val result = tokenizeGreedy(lastChunk)
-            activePrefix = result.prefix
-            activeWordsArray = result.words
-        } else if (isSpace && previousChunk.isNotEmpty()) {
-            val result = tokenizeGreedy(previousChunk)
-            activeWordsArray = result.words
+        if (repo.activeLang == "EN") {
+            val enParts = engineText.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
+            if (engineText.endsWith(" ") || engineText.isEmpty()) {
+                activePrefix = ""
+                activeWordsArray = enParts
+            } else {
+                activePrefix = enParts.lastOrNull() ?: ""
+                activeWordsArray = if (enParts.isNotEmpty()) enParts.dropLast(1) else emptyList()
+            }
+        } else {
+            val parts = engineText.split(" ")
+            val lastChunk = parts.last()
+            val previousChunk = if (parts.size > 1) parts[parts.size - 2] else ""
+
+            if (lastChunk.isNotEmpty()) {
+                val result = tokenizeGreedy(lastChunk)
+                activePrefix = result.prefix
+                activeWordsArray = result.words
+            } else if (isSpace && previousChunk.isNotEmpty()) {
+                val result = tokenizeGreedy(previousChunk)
+                activeWordsArray = result.words
+            }
         }
 
-        // ── Determine State ──
         val state = when {
             len == 0 -> 1
             isSpace -> 7
             activePrefix.isEmpty() -> 5
             activePrefix.length == 1 -> 2
             activePrefix.length == 2 -> 3
-            else -> 4  // activePrefix.length >= 3
+            else -> 4
         }
 
-        val W = (STATE_WEIGHTS[state] ?: STATE_WEIGHTS[1]!!).mutableCopy()
+        val fallbackWeights = EngineWeights(U = 100, B = 0, T = 0, D = 0, WB = 0, SN = 0)
+        val stateWeightsObj = STATE_WEIGHTS[state] ?: fallbackWeights
+        val W = stateWeightsObj.mutableCopy()
         engineStatus = STATE_WEIGHTS[state]?.let {
             "State $state (U${it.U}, B${it.B}, T${it.T}, D${it.D}, WB${it.WB}, SN${it.SN})"
-        } ?: "Unknown State"
+        } ?: "Fallback"
 
-        // ── Calculate Sub-Engine Scores ──
         val sU = getUnigramScores()
         val sB = getBigramScores(last1)
         val sT = getTrigramScores(last2)
@@ -110,7 +89,6 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         val sWB = getWordBigramScores(activeWordsArray)
         val sSN = getSpaceNgramScores(lastCharBeforeSpace)
 
-        // ── OOV Decay: if prefix exists but no dict matches, transfer D weight to T ──
         val hasDictScores = sD.isNotEmpty()
         if (activePrefix.isNotEmpty() && !hasDictScores) {
             W.T += W.D
@@ -118,7 +96,6 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             engineStatus += " [OOV Decay ⚠️]"
         }
 
-        // ── Calculate effective weights (zero out if sub-engine has no data) ──
         val curWU = if (sU.isNotEmpty()) W.U else 0
         val curWB = if (sB.isNotEmpty()) W.B else 0
         val curWT = if (sT.isNotEmpty()) W.T else 0
@@ -128,7 +105,6 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
         var sumW = curWU + curWB + curWT + curWD + curWWB + curWSN
 
-        // Fallback: if all sub-engines are empty, use pure unigram
         val effectiveSU: Map<String, Double>
         val effectiveCurWU: Int
         if (sumW == 0) {
@@ -140,7 +116,6 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             effectiveCurWU = curWU
         }
 
-        // ── Merge Scores ──
         val finalScores = HashMap<String, Double>()
 
         fun mergeScores(source: Map<String, Double>, weightRatio: Double) {
@@ -157,23 +132,24 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         mergeScores(sWB, curWWB.toDouble() / sumW)
         mergeScores(sSN, curWSN.toDouble() / sumW)
 
-        // ── Post-Processing: Pattern Penalty ──
-        applyPatternPenalty(finalScores, last2, last1)
+        // ── Post-Processing ──
+        val rules = repo.activeProfile.rules
 
-        // ── Post-Processing: Echo Booster (Chat Profile) ──
-        applyEchoBooster(finalScores, text)
+        if (repo.activeLang == "TH") {
+            applyPatternPenalty(finalScores, last2, last1)
+        }
 
-        // ── Post-Processing: Vowel Booster (States 2-3) ──
-        applyVowelBooster(finalScores, state)
+        if (rules.allowEcho && len > 0) {
+            applyEchoBooster(finalScores, engineText)
+        }
 
-        // ── Post-Processing: Soft Anchor Booster ──
-        applySoftAnchorBooster(finalScores)
+        if (repo.activeLang == "TH") {
+            if (state == 2 || state == 3) applyVowelBooster(finalScores)
+            applySoftAnchorBooster(finalScores)
+            if (state == 1 || state == 7) applyIllegalStartPenalty(finalScores)
+        }
 
-        // ── Post-Processing: Unigram Tie-breaker ──
         applyUnigramTiebreaker(finalScores)
-
-        // ── Post-Processing: Illegal Start Penalty (States 1, 7) ──
-        applyIllegalStartPenalty(finalScores, state)
 
         return finalScores
     }
@@ -210,24 +186,29 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     ): Map<String, Double> {
         if (prefix.isEmpty()) {
             cachedTriePrefix = ""
-            cachedTrieNode = repo.trieDictRoot
+            cachedTrieNode = repo.trieDict
             return emptyMap()
         }
 
-        // Incremental trie walk using cached pointer
         val node: TrieNode?
         if (cachedTrieNode != null
             && prefix.length == cachedTriePrefix.length + 1
             && prefix.startsWith(cachedTriePrefix)
         ) {
-            node = cachedTrieNode!![prefix.last()]
+            val lastChar = prefix.last().toString()
+            val nodeKey = if (repo.activeLang == "EN") lastChar else repo.charReverseMap[lastChar]
+            node = if (nodeKey != null) cachedTrieNode!![nodeKey] else null
         } else if (cachedTrieNode != null && prefix == cachedTriePrefix) {
             node = cachedTrieNode
         } else {
-            // Full walk from root
-            var current = repo.trieDictRoot
+            var current = repo.trieDict
             for (c in prefix) {
-                current = current?.get(c)
+                val nodeKey = if (repo.activeLang == "EN") c.toString() else repo.charReverseMap[c.toString()]
+                if (nodeKey == null) {
+                    current = null
+                    break
+                }
+                current = current?.get(nodeKey)
                 if (current == null) break
             }
             node = current
@@ -239,54 +220,49 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         if (node == null) return emptyMap()
 
         val raw = HashMap<String, Double>()
-        for ((nextChar, _) in node.children) {
-            val charStr = nextChar.toString()
-            raw[charStr] = sT[charStr] ?: sB[charStr] ?: sU[charStr] ?: 1.0
+        for ((nextKey, _) in node.children) {
+            if (nextKey != "_w") {
+                val realChar = if (repo.activeLang == "EN") nextKey else repo.charMap[nextKey]
+                if (realChar != null) {
+                    raw[realChar] = sT[realChar] ?: sB[realChar] ?: sU[realChar] ?: 1.0
+                }
+            }
         }
         return normalizeScores(raw)
     }
 
     private fun getWordBigramScores(wordsArray: List<String>): Map<String, Double> {
         if (wordsArray.isEmpty()) return emptyMap()
-        val hybridWordTrie = repo.hybridWordTrie
-        if (hybridWordTrie.isEmpty()) return emptyMap()
+        val cwb = repo.clusteredBigram
+        if (cwb.bigram.isEmpty()) return emptyMap()
 
         val lastWord = wordsArray.last()
-        val prevWord = if (wordsArray.size > 1) wordsArray[wordsArray.size - 2] else null
+        val wordId = repo.wordReverseMap[lastWord] ?: return emptyMap()
+        
+        val nodeData = cwb.bigram[wordId.toString()] ?: return emptyMap()
 
-        val id2 = repo.reverseWordMap[lastWord] ?: return emptyMap()
-        val id1 = if (prevWord != null) repo.reverseWordMap[prevWord] else null
-
-        // Try trigram context first (id1 → id2 → next), then fallback to bigram (_base → id2 → next)
-        var nextWordNodes: Map<String, Int>? = null
-
-        if (id1 != null) {
-            val contextNode = hybridWordTrie[id1]?.get(id2)
-            nextWordNodes = if (contextNode != null && contextNode.isNotEmpty()) {
-                contextNode
-            } else {
-                hybridWordTrie["_base"]?.get(id2)
+        val nextWordIDs: List<Int> = when (nodeData) {
+            is WordBigramEntry.DirectList -> nodeData.ids
+            is WordBigramEntry.GroupRef -> {
+                val groupIds = cwb.groups[nodeData.group] ?: emptyList()
+                if (nodeData.extra != null) {
+                    val list = groupIds.toMutableList()
+                    list.add(nodeData.extra)
+                    list
+                } else {
+                    groupIds
+                }
             }
         }
 
-        if (nextWordNodes == null) {
-            nextWordNodes = hybridWordTrie["_base"]?.get(id2)
-        }
-
-        if (nextWordNodes == null) return emptyMap()
-
         val raw = HashMap<String, Double>()
-        val wordIdMap = repo.wordIdMap
-
-        for ((nextId, freq) in nextWordNodes) {
-            val wordIndex = nextId.toIntOrNull() ?: continue
-            if (wordIndex < 0 || wordIndex >= wordIdMap.size) continue
-            val wordStr = wordIdMap[wordIndex]
-            if (wordStr.isNotEmpty()) {
-                val firstChar = wordStr[0].toString()
-                val currentScore = raw[firstChar] ?: 0.0
-                if (freq > currentScore) {
-                    raw[firstChar] = freq.toDouble()
+        for (i in nextWordIDs.indices) {
+            val nextWord = repo.wordList.getOrNull(nextWordIDs[i]) ?: continue
+            if (nextWord.isNotEmpty()) {
+                val firstChar = nextWord[0].toString()
+                val score = ((nextWordIDs.size - i) * 10).toDouble()
+                if ((raw[firstChar] ?: 0.0) < score) {
+                    raw[firstChar] = score
                 }
             }
         }
@@ -309,14 +285,13 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         last1: String
     ) {
         if (last2.length != 2) return
-        val charMap = repo.charMap
-        val ctxTag = ThaiCharUtil.getContextTag(last2, charMap) ?: return
+        val ctxTag = "${ThaiCharUtil.getContextTag(last2.substring(0, 1), repo.thaiCharMap)}-${ThaiCharUtil.getContextTag(last2.substring(1, 2), repo.thaiCharMap)}"
         val badTags = repo.patternPenalty[ctxTag] ?: return
         if (badTags.isEmpty()) return
 
         val rules = repo.activeProfile.rules
         for (c in scores.keys.toList()) {
-            val charTag = charMap[c] ?: "O"
+            val charTag = repo.thaiCharMap[c] ?: "O"
             if (charTag in badTags) {
                 if (rules.allowEcho && c == last1) {
                     scores[c] = (scores[c] ?: 0.0) * rules.echoImmunityRatio
@@ -329,8 +304,6 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
     private fun applyEchoBooster(scores: HashMap<String, Double>, text: String) {
         val rules = repo.activeProfile.rules
-        if (!rules.allowEcho || text.isEmpty()) return
-
         var realLastChar = ""
         var repeatCount = 0
         var hasSpaceInBetween = false
@@ -356,18 +329,16 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             val isDragging = repeatCount >= 2 || (hasSpaceInBetween && repeatCount >= 1)
             val echoBuff: Double = when {
                 rules.echoHardcapChars.contains(realLastChar) -> rules.echoHardcapBuff
-                isDragging -> 999.0
+                isDragging -> rules.echoDragBuff
                 else -> rules.echoBaseBuff
             }
             scores[realLastChar] = (scores[realLastChar] ?: 0.0) + echoBuff
         }
     }
 
-    private fun applyVowelBooster(scores: HashMap<String, Double>, state: Int) {
+    private fun applyVowelBooster(scores: HashMap<String, Double>) {
         val rules = repo.activeProfile.rules
         if (rules.vowelBoosterChars.isEmpty()) return
-        if (state != 2 && state != 3) return
-
         for (v in rules.vowelBoosterChars) {
             if (scores.containsKey(v)) {
                 scores[v] = (scores[v] ?: 0.0) + rules.vowelBoosterBuff
@@ -390,8 +361,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         }
     }
 
-    private fun applyIllegalStartPenalty(scores: HashMap<String, Double>, state: Int) {
-        if (state != 1 && state != 7) return
+    private fun applyIllegalStartPenalty(scores: HashMap<String, Double>) {
         val rules = repo.activeProfile.rules
         for (c in rules.illegalStartChars) {
             scores[c] = rules.illegalStartPenalty
@@ -402,36 +372,41 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     // Helpers
     // ═══════════════════════════════════════
 
-    /**
-     * Greedy dictionary tokenization: find longest matching words from left to right.
-     */
+    private fun isWordInTrie(word: String): Boolean {
+        var node = repo.trieDict
+        for (c in word) {
+            val nodeKey = if (repo.activeLang == "EN") c.toString() else repo.charReverseMap[c.toString()]
+            if (nodeKey == null || node?.get(nodeKey) == null) return false
+            node = node[nodeKey]
+        }
+        return node?.isEndOfWord == true
+    }
+
     private fun tokenizeGreedy(chunk: String): TokenizeResult {
         var ptr = 0
         val words = mutableListOf<String>()
-        var prefix = ""
+        var tempPrefix = ""
 
         while (ptr < chunk.length) {
-            var node = repo.trieDictRoot
-            var maxMatchLen = 0
-
-            for (i in ptr until chunk.length) {
-                val c = chunk[i]
-                node = node?.get(c)
-                if (node == null) break
-                if (node.isEndOfWord) {
-                    maxMatchLen = (i - ptr) + 1
+            var bestWord: String? = null
+            for (len in chunk.length - ptr downTo 1) {
+                val cand = chunk.substring(ptr, ptr + len)
+                if (isWordInTrie(cand)) {
+                    bestWord = cand
+                    break
                 }
             }
 
-            if (maxMatchLen > 0) {
-                words.add(chunk.substring(ptr, ptr + maxMatchLen))
-                ptr += maxMatchLen
+            if (bestWord != null) {
+                if (tempPrefix.isNotEmpty()) tempPrefix = ""
+                words.add(bestWord)
+                ptr += bestWord.length
             } else {
-                prefix = chunk.substring(ptr)
-                break
+                tempPrefix += chunk[ptr]
+                ptr += 1
             }
         }
-        return TokenizeResult(words, prefix)
+        return TokenizeResult(words, tempPrefix)
     }
 
     private data class TokenizeResult(val words: List<String>, val prefix: String)

@@ -1,47 +1,50 @@
 package com.flowboard.ime.engine
 
-import android.content.Context
 import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.Profile
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 
 /**
  * Manages profile switching between typing modes (Default, Chat).
- * When a profile is switched, it updates the repository's active profile
- * and bonus dictionary.
+ * Profiles are already loaded in memory per-language during AssetLoader phase A.
  */
-class ProfileManager(
-    private val context: Context,
-    private val repo: FlowboardRepository
-) {
-    private val json = Json { ignoreUnknownKeys = true }
+class ProfileManager(private val repo: FlowboardRepository) {
 
-    companion object {
-        const val PROFILE_DEFAULT = "th_TH/profile_default.json"
-        const val PROFILE_CHAT = "th_TH/profile_chat.json"
-    }
+    enum class ProfileMode { DEFAULT, CHAT }
+    
+    var currentMode: ProfileMode = ProfileMode.DEFAULT
+        private set
 
     /**
-     * Switch to a different typing profile.
-     *
-     * @param profilePath Relative path in assets (e.g., "th_TH/profile_chat.json")
+     * Switch to a different typing profile mode.
+     * Uses the appropriate profile for the currently active language.
+     * English does not have a default profile, so it falls back to empty rules.
      */
-    suspend fun switchProfile(profilePath: String) {
-        withContext(Dispatchers.IO) {
-            try {
-                val profileJson = context.assets.open(profilePath).use { stream ->
-                    stream.bufferedReader().readText()
-                }
-                val profile = json.decodeFromString<Profile>(profileJson)
-                repo.activeProfile = profile
-                repo.bonusDict = profile.bonusDict
-            } catch (e: Exception) {
-                // Fallback to default profile
-                repo.activeProfile = Profile.DEFAULT
-                repo.bonusDict = emptyMap()
-            }
+    fun switchProfile(mode: ProfileMode) {
+        currentMode = mode
+        
+        val langData = repo.languageRegistry[repo.activeLang]
+        if (langData == null) {
+            applyProfile(Profile.DEFAULT)
+            return
         }
+        
+        val targetProfile = when (mode) {
+            ProfileMode.CHAT -> langData.chatProfile
+            ProfileMode.DEFAULT -> langData.defaultProfile
+        }
+        
+        applyProfile(targetProfile ?: Profile.DEFAULT)
+    }
+    
+    /**
+     * Re-applies the current profile mode (useful after a language switch).
+     */
+    fun refreshProfile() {
+        switchProfile(currentMode)
+    }
+
+    private fun applyProfile(profile: Profile) {
+        repo.activeProfile = profile
+        repo.bonusDict = profile.bonusDict
     }
 }

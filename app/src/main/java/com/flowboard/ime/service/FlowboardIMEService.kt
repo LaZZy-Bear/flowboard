@@ -31,6 +31,7 @@ import android.view.DragEvent
 import android.widget.GridLayout
 
 import com.flowboard.ime.data.models.KeySlots
+import com.flowboard.ime.engine.LanguageManager
 import com.flowboard.ime.engine.LayoutManager
 import com.flowboard.ime.engine.ProfileManager
 import com.flowboard.ime.engine.ScoringEngine
@@ -56,6 +57,7 @@ class FlowboardIMEService : InputMethodService() {
     private val repo = FlowboardRepository
     private lateinit var scoringEngine: ScoringEngine
     private lateinit var layoutManager: LayoutManager
+    private lateinit var languageManager: LanguageManager
     private lateinit var profileManager: ProfileManager
 
     private val settingsReceiver = object : BroadcastReceiver() {
@@ -169,7 +171,8 @@ class FlowboardIMEService : InputMethodService() {
 
         scoringEngine = ScoringEngine(repo)
         layoutManager = LayoutManager(repo)
-        profileManager = ProfileManager(this, repo)
+        languageManager = LanguageManager(repo)
+        profileManager = ProfileManager(repo)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(settingsReceiver, IntentFilter("com.flowboard.ime.ACTION_SETTINGS_CHANGED"), Context.RECEIVER_NOT_EXPORTED)
@@ -350,33 +353,33 @@ class FlowboardIMEService : InputMethodService() {
         val btnSizeLarge = rootView.findViewById<android.widget.Button>(R.id.btnSizeLarge)
 
         val prefs = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
-        // Ensure default is 1.3f if not set
-        var currentScale = prefs.getFloat("docked_keyboard_scale", 1.3f)
+        // Ensure default is 1.2f if not set
+        var currentScale = prefs.getFloat("docked_keyboard_scale", 1.2f)
         applyDockedScale(currentScale)
 
         fun updateActiveButton() {
-            btnSizeSmall?.backgroundTintList = android.content.res.ColorStateList.valueOf(if (currentScale <= 0.9f) android.graphics.Color.DKGRAY else android.graphics.Color.LTGRAY)
-            btnSizeSmall?.setTextColor(if (currentScale <= 0.9f) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+            btnSizeSmall?.backgroundTintList = android.content.res.ColorStateList.valueOf(if (currentScale <= 1.05f) android.graphics.Color.DKGRAY else android.graphics.Color.LTGRAY)
+            btnSizeSmall?.setTextColor(if (currentScale <= 1.05f) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
             
-            val isMedium = currentScale > 0.9f && currentScale < 1.5f
+            val isMedium = currentScale > 1.05f && currentScale < 1.4f
             btnSizeMedium?.backgroundTintList = android.content.res.ColorStateList.valueOf(if (isMedium) android.graphics.Color.DKGRAY else android.graphics.Color.LTGRAY)
             btnSizeMedium?.setTextColor(if (isMedium) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
             
-            btnSizeLarge?.backgroundTintList = android.content.res.ColorStateList.valueOf(if (currentScale >= 1.5f) android.graphics.Color.DKGRAY else android.graphics.Color.LTGRAY)
-            btnSizeLarge?.setTextColor(if (currentScale >= 1.5f) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+            btnSizeLarge?.backgroundTintList = android.content.res.ColorStateList.valueOf(if (currentScale >= 1.4f) android.graphics.Color.DKGRAY else android.graphics.Color.LTGRAY)
+            btnSizeLarge?.setTextColor(if (currentScale >= 1.4f) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
         }
 
         updateActiveButton()
 
         btnSizeSmall?.setOnClickListener {
-            currentScale = 0.9f
+            currentScale = 1.0f
             prefs.edit().putFloat("docked_keyboard_scale", currentScale).commit()
             applyDockedScale(currentScale)
             updateActiveButton()
         }
         
         btnSizeMedium?.setOnClickListener {
-            currentScale = 1.3f
+            currentScale = 1.2f
             prefs.edit().putFloat("docked_keyboard_scale", currentScale).commit()
             applyDockedScale(currentScale)
             updateActiveButton()
@@ -467,8 +470,8 @@ class FlowboardIMEService : InputMethodService() {
             4
         } else {
             when {
-                scale <= 0.9f -> 4
-                scale > 1.3f -> 7
+                scale <= 1.05f -> 4
+                scale >= 1.4f -> 7
                 else -> 6
             }
         }
@@ -1186,7 +1189,16 @@ class FlowboardIMEService : InputMethodService() {
         } else {
             btnShiftText?.visibility = View.GONE
             btnShiftIcon?.visibility = View.VISIBLE
-            val color = if (isMissingMode) colors.accent else colors.textTap
+            
+            val color = if (repo.activeLang == "TH") {
+                if (isMissingMode) colors.accent else colors.textTap
+            } else {
+                when (languageManager.shiftState) {
+                    LanguageManager.ShiftState.OFF -> colors.textTap
+                    LanguageManager.ShiftState.SHIFT_ONCE -> colors.accent
+                    LanguageManager.ShiftState.CAPS_LOCK -> colors.accent
+                }
+            }
             btnShiftIcon?.imageTintList = ColorStateList.valueOf(color)
         }
     }
@@ -1195,7 +1207,9 @@ class FlowboardIMEService : InputMethodService() {
         isNumberMode = !isNumberMode
         symbolPageIndex = 0
         
-        btnNumbers?.text = if (isNumberMode) "ก" else "?12"
+        btnNumbers?.text = if (isNumberMode) {
+            if (repo.activeLang == "TH") "ก" else "Aa"
+        } else "?12"
         
         val prefs = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
         val showSuggestions = prefs.getBoolean("show_suggestions", true)
@@ -1314,19 +1328,26 @@ class FlowboardIMEService : InputMethodService() {
 
     private fun commitChar(char: String) {
         playClick(if (char == " ") 32 else 0)
+        
+        val finalChar = languageManager.applyCase(char)
+        
         synchronized(typedText) {
             typedTextHistory.add(typedText.toString())
-            typedText.append(char)
+            typedText.append(finalChar)
         }
 
-        if (isMissingMode) {
+        if (repo.activeLang == "TH" && isMissingMode) {
             isMissingMode = false
             updateShiftButtonTint()
+        } else if (repo.activeLang == "EN" && languageManager.shiftState == LanguageManager.ShiftState.OFF) {
+            // Re-render if shift state auto-reset from SHIFT_ONCE
+            updateShiftButtonTint()
+            refreshLayout()
         }
 
         val ic = currentInputConnection ?: return
         isCommiting = true
-        ic.commitText(char, 1)
+        ic.commitText(finalChar, 1)
         isCommiting = false
 
         refreshLayout()
@@ -1389,6 +1410,26 @@ class FlowboardIMEService : InputMethodService() {
 
     private fun handleGlobeClick() {
         playClick(0)
+        val newLang = languageManager.toggleLanguage()
+        profileManager.refreshProfile() // Switch default/chat based on new lang
+        
+        isMissingMode = false
+        isNumberMode = false
+        
+        // Update language indicator
+        val langStr = if (newLang == "TH") "ไทย" else "EN"
+        android.widget.Toast.makeText(this, langStr, android.widget.Toast.LENGTH_SHORT).show()
+        
+        btnNumbers?.text = "?12"
+        updateSpaceLabelForMode()
+        updateShiftButtonTint()
+        
+        scoringEngine.resetTrieCache()
+        refreshLayout()
+        updatePredictions()
+    }
+
+    private fun switchToNextIME() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             switchToNextInputMethod(false)
         } else {
@@ -1456,7 +1497,11 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun toggleAltMode() {
-        isMissingMode = !isMissingMode
+        if (repo.activeLang == "TH") {
+            isMissingMode = !isMissingMode
+        } else {
+            languageManager.cycleShift()
+        }
         refreshLayout()
         updateShiftButtonTint()
     }
@@ -1481,27 +1526,42 @@ class FlowboardIMEService : InputMethodService() {
 
         val textSnapshot = synchronized(typedText) { typedText.toString() }
         val scores = scoringEngine.calculateScores(textSnapshot)
-        val layout = if (isMissingMode) {
+        val layout = if (repo.activeLang == "TH" && isMissingMode) {
             val normalLayout = layoutManager.assignLayout(scores)
             layoutManager.assignMissingLayout(normalLayout)
         } else {
             layoutManager.assignLayout(scores)
         }
 
-        keyboardView?.isAltMode = isMissingMode
-        keyboardView?.updateLayout(layout)
+        val displayLayout = layout.mapValues { (_, slots) ->
+            KeySlots(
+                tap = languageManager.getDisplayCase(slots.tap),
+                up = languageManager.getDisplayCase(slots.up),
+                down = languageManager.getDisplayCase(slots.down),
+                left = languageManager.getDisplayCase(slots.left),
+                right = languageManager.getDisplayCase(slots.right)
+            )
+        }
+
+        keyboardView?.isAltMode = (repo.activeLang == "TH" && isMissingMode)
+        keyboardView?.updateLayout(displayLayout)
     }
 
     private fun applyDockedScale(scale: Float) {
         val density = resources.displayMetrics.density
         
         val baseKeyHeight = 65
-        keyboardView?.setKeyHeight((baseKeyHeight * scale).toInt())
+        val scaledKeyHeightDp = (baseKeyHeight * scale).toInt()
+        keyboardView?.setKeyHeight(scaledKeyHeightDp)
+        
+        val keyHeightPx = (scaledKeyHeightDp * density).toInt()
+        val gapPx = (6 * density).toInt()
+        val totalGridHeight = keyHeightPx * 3 + gapPx * 2
         
         // Use exact scale for outer rows based on preset selection
         val minorScale = when {
-            scale <= 0.9f -> 0.9f
-            scale > 1.3f -> 1.1f
+            scale <= 1.05f -> 0.9f
+            scale >= 1.4f -> 1.1f
             else -> 1.0f
         }
         
@@ -1518,7 +1578,7 @@ class FlowboardIMEService : InputMethodService() {
         
         val sideToolsView = keyboardRoot?.findViewById<View>(R.id.sideTools)
         sideToolsView?.layoutParams = sideToolsView?.layoutParams?.apply {
-            width = (42 * scale * density).toInt()
+            height = totalGridHeight
         }
         
         renderToolbar()
@@ -1580,10 +1640,12 @@ class FlowboardIMEService : InputMethodService() {
     private fun getSimpleSuggestions(text: String): List<String> {
         val results = mutableListOf<String>()
 
-        val root = repo.trieDictRoot ?: return results
+        val root = repo.trieDict ?: return results
         var node = root
         for (c in text) {
-            node = node[c] ?: return results
+            val nodeKey = if (repo.activeLang == "EN") c.toString() else repo.charReverseMap[c.toString()]
+            if (nodeKey == null) return results
+            node = node[nodeKey] ?: return results
         }
 
         val allResults = mutableListOf<Pair<String, Int>>()
@@ -1594,8 +1656,11 @@ class FlowboardIMEService : InputMethodService() {
             if (n.isEndOfWord) {
                 allResults.add(prefix to n.frequency)
             }
-            for ((c, child) in n.children) {
-                dfs(child, prefix + c, depth + 1)
+            for (entry in n.children.entries) {
+                val key = entry.key
+                val child = entry.value
+                val realChar = if (repo.activeLang == "EN") key else repo.charMap[key] ?: ""
+                dfs(child, prefix + realChar, depth + 1)
             }
         }
 
@@ -1612,7 +1677,8 @@ class FlowboardIMEService : InputMethodService() {
 
     fun switchToProfile(profilePath: String) {
         serviceScope.launch {
-            profileManager.switchProfile(profilePath)
+            val mode = if (profilePath.contains("chat")) ProfileManager.ProfileMode.CHAT else ProfileManager.ProfileMode.DEFAULT
+            profileManager.switchProfile(mode)
             refreshLayout()
         }
     }
@@ -1744,6 +1810,10 @@ class FlowboardIMEService : InputMethodService() {
         btnGlobe?.imageTintList = ColorStateList.valueOf(textTapColor)
         btnGlobe?.setOnClickListener {
             handleGlobeClick()
+        }
+        btnGlobe?.setOnLongClickListener {
+            switchToNextIME()
+            true
         }
         
         btnSpace?.backgroundTintList = keyBgTintList

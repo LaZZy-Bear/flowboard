@@ -2,13 +2,16 @@ package com.flowboard.ime.data
 
 import android.content.Context
 import android.util.Log
-import com.flowboard.ime.data.models.MasterKey
+import com.flowboard.ime.data.models.ClusteredWordBigram
+import com.flowboard.ime.data.models.KeySlots
+import com.flowboard.ime.data.models.LanguageData
+import com.flowboard.ime.data.models.MasterLayoutEntry
 import com.flowboard.ime.data.models.Profile
 import com.flowboard.ime.data.models.TrieNode
+import com.flowboard.ime.data.models.WordBigramEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -18,125 +21,178 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.InputStream
 
-/**
- * Orchestrates loading all JSON data files from the assets directory.
- *
- * Loading is organized in 3 phases:
- * - **Phase A (Critical)**: Small files needed before the keyboard can render
- *   (unigram, char_map, master_layout, pattern_penalty, default profile)
- * - **Phase B (Normal)**: Medium files that enhance prediction accuracy
- *   (bigram, space_ngram, trie_dict, word_id_map)
- * - **Phase C (Deferred)**: Large files loaded in the background
- *   (trigram, hybrid_word_trie)
- */
 class AssetLoader(private val context: Context) {
 
     companion object {
         private const val TAG = "AssetLoader"
-        private const val LOCALE_DIR = "th_TH"
+        private const val DIR_TH = "th_TH"
+        private const val DIR_EN = "en_US"
+        private const val DIR_SHARED = "shared"
     }
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    /**
-     * Phase A: Load critical data needed before the keyboard can be displayed.
-     * This should complete in < 50ms on most devices.
-     */
+    // Temporary storage during load
+    private lateinit var thData: MutableLanguageData
+    private lateinit var enData: MutableLanguageData
+
+    private class MutableLanguageData {
+        var unigram: List<String> = emptyList()
+        var masterLayout: Map<String, MasterLayoutEntry> = emptyMap()
+        var bigram: Map<String, List<String>> = emptyMap()
+        var trigram: Map<String, List<String>> = emptyMap()
+        var trieDict: TrieNode = TrieNode()
+        var wordList: List<String> = emptyList()
+        var clusteredBigram: ClusteredWordBigram = ClusteredWordBigram.EMPTY
+        var spaceNgram: Map<String, List<String>> = emptyMap()
+        var defaultProfile: Profile? = null
+        var chatProfile: Profile? = null
+    }
+
     suspend fun loadCriticalData(repo: FlowboardRepository) = coroutineScope {
         Log.d(TAG, "Phase A: Loading critical data...")
         val startTime = System.currentTimeMillis()
+        thData = MutableLanguageData()
+        enData = MutableLanguageData()
 
-        val unigramJob = async(Dispatchers.IO) {
-            loadStringList("$LOCALE_DIR/unigram.json")
-        }
-        val charMapJob = async(Dispatchers.IO) {
-            loadStringMap("$LOCALE_DIR/thai_char_map.json")
-        }
-        val masterLayoutJob = async(Dispatchers.IO) {
-            loadMasterLayout("$LOCALE_DIR/master_layout.json")
-        }
-        val patternPenaltyJob = async(Dispatchers.IO) {
-            loadStringListMap("$LOCALE_DIR/pattern_penalty.json")
-        }
-        val profileJob = async(Dispatchers.IO) {
-            loadProfile("$LOCALE_DIR/profile_default.json")
-        }
-        val symbolPage1Job = async(Dispatchers.IO) {
-            loadSymbolPage("$LOCALE_DIR/symbol_page_1.json")
-        }
-        val symbolPage2Job = async(Dispatchers.IO) {
-            loadSymbolPage("$LOCALE_DIR/symbol_page_2.json")
-        }
+        // Shared Data
+        val charMapJob = async(Dispatchers.IO) { loadStringMap("$DIR_SHARED/char_map.json") }
+        val thaiCharMapJob = async(Dispatchers.IO) { loadStringMap("$DIR_SHARED/thai_char_map.json") }
+        val patternPenaltyJob = async(Dispatchers.IO) { loadStringListMap("$DIR_SHARED/pattern_penalty.json") }
+        
+        // Symbols (Shared UI)
+        val symbolPage1Job = async(Dispatchers.IO) { loadSymbolPage("$DIR_TH/symbol_page_1.json") }
+        val symbolPage2Job = async(Dispatchers.IO) { loadSymbolPage("$DIR_TH/symbol_page_2.json") }
 
-        repo.unigram = unigramJob.await()
+        // TH Critical
+        val thUnigramJob = async(Dispatchers.IO) { loadStringList("$DIR_TH/unigram.json") }
+        val thMasterJob = async(Dispatchers.IO) { loadMasterLayoutV2("$DIR_TH/master_layout.json") }
+        val thDefProfJob = async(Dispatchers.IO) { loadProfile("$DIR_TH/profile_default.json") }
+        val thChatProfJob = async(Dispatchers.IO) { loadProfile("$DIR_TH/profile_chat.json") }
+
+        // EN Critical
+        val enUnigramJob = async(Dispatchers.IO) { loadStringList("$DIR_EN/unigram.json") }
+        val enMasterJob = async(Dispatchers.IO) { loadMasterLayoutV2("$DIR_EN/master_layout.json") }
+        val enChatProfJob = async(Dispatchers.IO) { loadProfile("$DIR_EN/profile_chat.json") } // No default profile for EN
+
+        // Await shared
         repo.charMap = charMapJob.await()
-        repo.masterLayout = masterLayoutJob.await()
+        repo.thaiCharMap = thaiCharMapJob.await()
         repo.patternPenalty = patternPenaltyJob.await()
         repo.symbolPage1 = symbolPage1Job.await()
         repo.symbolPage2 = symbolPage2Job.await()
 
-        val profile = profileJob.await()
-        repo.activeProfile = profile
-        repo.bonusDict = profile.bonusDict
+        // Build char reverse map
+        val reverseMap = HashMap<String, String>()
+        for ((id, char) in repo.charMap) {
+            reverseMap[char] = id
+        }
+        repo.charReverseMap = reverseMap
+
+        // Await TH
+        thData.unigram = thUnigramJob.await()
+        thData.masterLayout = thMasterJob.await()
+        thData.defaultProfile = thDefProfJob.await()
+        thData.chatProfile = thChatProfJob.await()
+
+        // Await EN
+        enData.unigram = enUnigramJob.await()
+        enData.masterLayout = enMasterJob.await()
+        enData.chatProfile = enChatProfJob.await()
 
         val elapsed = System.currentTimeMillis() - startTime
         Log.d(TAG, "Phase A complete in ${elapsed}ms")
     }
 
-    /**
-     * Phase B: Load normal-priority data that improves predictions.
-     */
     suspend fun loadNormalData(repo: FlowboardRepository) = coroutineScope {
         Log.d(TAG, "Phase B: Loading normal data...")
         val startTime = System.currentTimeMillis()
 
-        val bigramJob = async(Dispatchers.IO) {
-            loadStringListMap("$LOCALE_DIR/bigram.json")
-        }
-        val spaceNgramJob = async(Dispatchers.IO) {
-            loadStringListMap("$LOCALE_DIR/space_ngram.json")
-        }
-        val trieJob = async(Dispatchers.IO) {
-            loadTrieDict("$LOCALE_DIR/trie_dict.json")
-        }
-        val wordIdMapJob = async(Dispatchers.IO) {
-            loadStringList("$LOCALE_DIR/word_id_map.json")
-        }
+        // TH Normal
+        val thBigramJob = async(Dispatchers.IO) { loadStringListMap("$DIR_TH/bigram.json") }
+        val thSpaceJob = async(Dispatchers.IO) { loadStringListMap("$DIR_TH/space_ngram.json") }
+        val thTrieJob = async(Dispatchers.IO) { loadCompressedTrie("$DIR_TH/trie_dict_compressed.json") }
+        val thWordListJob = async(Dispatchers.IO) { loadStringList("$DIR_TH/word_list.json") }
 
-        repo.bigram = bigramJob.await()
-        repo.spaceNgram = spaceNgramJob.await()
-        repo.trieDictRoot = trieJob.await()
-        repo.wordIdMap = wordIdMapJob.await()
+        // EN Normal
+        val enBigramJob = async(Dispatchers.IO) { loadStringListMap("$DIR_EN/bigram.json") }
+        val enSpaceJob = async(Dispatchers.IO) { loadStringListMap("$DIR_EN/space_ngram.json") }
+        val enTrieJob = async(Dispatchers.IO) { loadCompressedTrie("$DIR_EN/trie_dict_compressed.json") }
+        val enWordListJob = async(Dispatchers.IO) { loadStringList("$DIR_EN/word_list.json") }
 
-        // Build reverse word map (word → id)
-        val reverseMap = HashMap<String, String>(repo.wordIdMap.size)
-        repo.wordIdMap.forEachIndexed { index, word ->
-            if (word.isNotEmpty()) {
-                reverseMap[word] = index.toString()
-            }
-        }
-        repo.reverseWordMap = reverseMap
+        thData.bigram = thBigramJob.await()
+        thData.spaceNgram = thSpaceJob.await()
+        thData.trieDict = thTrieJob.await()
+        thData.wordList = thWordListJob.await()
+
+        enData.bigram = enBigramJob.await()
+        enData.spaceNgram = enSpaceJob.await()
+        enData.trieDict = enTrieJob.await()
+        enData.wordList = enWordListJob.await()
 
         val elapsed = System.currentTimeMillis() - startTime
         Log.d(TAG, "Phase B complete in ${elapsed}ms")
     }
 
-    /**
-     * Phase C: Load large deferred data in the background.
-     */
     suspend fun loadDeferredData(repo: FlowboardRepository) = coroutineScope {
         Log.d(TAG, "Phase C: Loading deferred data...")
         val startTime = System.currentTimeMillis()
 
-        val trigramJob = async(Dispatchers.IO) {
-            loadStringListMap("$LOCALE_DIR/trigram.json")
-        }
-        val hybridTrieJob = async(Dispatchers.IO) {
-            loadHybridWordTrie("$LOCALE_DIR/hybrid_word_trie.json")
+        // TH Deferred
+        val thTrigramJob = async(Dispatchers.IO) { loadStringListMap("$DIR_TH/trigram.json") }
+        val thCwbJob = async(Dispatchers.IO) { loadClusteredWordBigram("$DIR_TH/clustered_word_bigram.json") }
+
+        // EN Deferred
+        val enTrigramJob = async(Dispatchers.IO) { loadStringListMap("$DIR_EN/trigram.json") }
+        val enCwbJob = async(Dispatchers.IO) { loadClusteredWordBigram("$DIR_EN/clustered_word_bigram.json") }
+
+        thData.trigram = thTrigramJob.await()
+        thData.clusteredBigram = thCwbJob.await()
+
+        enData.trigram = enTrigramJob.await()
+        enData.clusteredBigram = enCwbJob.await()
+
+        // Finalize LanguageData and register
+        fun buildWordReverseMap(wordList: List<String>): Map<String, Int> {
+            val map = HashMap<String, Int>(wordList.size)
+            wordList.forEachIndexed { index, word -> if (word.isNotEmpty()) map[word] = index }
+            return map
         }
 
-        repo.trigram = trigramJob.await()
-        repo.hybridWordTrie = hybridTrieJob.await()
+        repo.languageRegistry["TH"] = LanguageData(
+            lang = "TH",
+            layoutStrategy = "TH",
+            unigram = thData.unigram,
+            bigram = thData.bigram,
+            trigram = thData.trigram,
+            masterLayout = thData.masterLayout,
+            trieDict = thData.trieDict,
+            wordList = thData.wordList,
+            wordReverseMap = buildWordReverseMap(thData.wordList),
+            clusteredBigram = thData.clusteredBigram,
+            spaceNgram = thData.spaceNgram,
+            defaultProfile = thData.defaultProfile,
+            chatProfile = thData.chatProfile
+        )
+
+        repo.languageRegistry["EN"] = LanguageData(
+            lang = "EN",
+            layoutStrategy = "EN",
+            unigram = enData.unigram,
+            bigram = enData.bigram,
+            trigram = enData.trigram,
+            masterLayout = enData.masterLayout,
+            trieDict = enData.trieDict,
+            wordList = enData.wordList,
+            wordReverseMap = buildWordReverseMap(enData.wordList),
+            clusteredBigram = enData.clusteredBigram,
+            spaceNgram = enData.spaceNgram,
+            defaultProfile = enData.defaultProfile,
+            chatProfile = enData.chatProfile
+        )
+
+        // Set default language
+        repo.setLanguage("TH")
 
         val elapsed = System.currentTimeMillis() - startTime
         Log.d(TAG, "Phase C complete in ${elapsed}ms")
@@ -146,9 +202,6 @@ class AssetLoader(private val context: Context) {
     // Low-Level JSON Parsers
     // ════════════════════════════════════════════
 
-    /**
-     * Load a JSON file as a List<String> (e.g., unigram.json, word_id_map.json).
-     */
     private fun loadStringList(path: String): List<String> {
         return try {
             val text = readAssetText(path)
@@ -159,9 +212,6 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    /**
-     * Load a JSON file as a Map<String, String> (e.g., thai_char_map.json).
-     */
     private fun loadStringMap(path: String): Map<String, String> {
         return try {
             val text = readAssetText(path)
@@ -172,9 +222,6 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    /**
-     * Load a JSON file as Map<String, List<String>> (e.g., bigram, trigram, pattern_penalty).
-     */
     private fun loadStringListMap(path: String): Map<String, List<String>> {
         return try {
             val text = readAssetText(path)
@@ -190,30 +237,24 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    /**
-     * Load master_layout.json as Map<String, MasterKey>.
-     */
-    private fun loadMasterLayout(path: String): Map<String, MasterKey> {
+    private fun loadMasterLayoutV2(path: String): Map<String, MasterLayoutEntry> {
         return try {
             val text = readAssetText(path)
-            json.decodeFromString<Map<String, MasterKey>>(text)
+            json.decodeFromString<Map<String, MasterLayoutEntry>>(text)
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to load $path: ${e.message}")
             emptyMap()
         }
     }
 
-    /**
-     * Load symbol_page_1.json or symbol_page_2.json as Map<String, KeySlots>.
-     */
-    private fun loadSymbolPage(path: String): Map<String, com.flowboard.ime.data.models.KeySlots> {
+    private fun loadSymbolPage(path: String): Map<String, KeySlots> {
         return try {
             val text = readAssetText(path)
             val obj = json.parseToJsonElement(text).jsonObject
-            val result = mutableMapOf<String, com.flowboard.ime.data.models.KeySlots>()
+            val result = mutableMapOf<String, KeySlots>()
             for ((key, value) in obj) {
                 val slotsObj = value.jsonObject
-                result[key] = com.flowboard.ime.data.models.KeySlots(
+                result[key] = KeySlots(
                     tap = slotsObj["tap"]?.jsonPrimitive?.content ?: "",
                     up = slotsObj["up"]?.jsonPrimitive?.content ?: "",
                     left = slotsObj["left"]?.jsonPrimitive?.content ?: "",
@@ -228,9 +269,6 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    /**
-     * Load a profile JSON file.
-     */
     private fun loadProfile(path: String): Profile {
         return try {
             val text = readAssetText(path)
@@ -241,12 +279,7 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    /**
-     * Load trie_dict.json into a TrieNode tree structure.
-     * The JSON is a nested object where keys are characters
-     * and "_f" marks end of word.
-     */
-    private fun loadTrieDict(path: String): TrieNode {
+    private fun loadCompressedTrie(path: String): TrieNode {
         return try {
             val text = readAssetText(path)
             val obj = json.parseToJsonElement(text).jsonObject
@@ -260,37 +293,52 @@ class AssetLoader(private val context: Context) {
     private fun parseTrieObject(obj: JsonObject): TrieNode {
         val node = TrieNode()
         for ((key, value) in obj) {
-            if (key == "_f") {
+            if (key == "_w") { // Updated to use "_w" for compressed trie
                 node.isEndOfWord = true
                 node.frequency = (value as? JsonPrimitive)?.int ?: 0
-            } else if (key.length == 1) {
+            } else {
                 val childNode = when (value) {
                     is JsonObject -> parseTrieObject(value)
                     else -> TrieNode()
                 }
-                node.children[key[0]] = childNode
+                node.children[key] = childNode // Using String key
             }
         }
         return node
     }
 
-    /**
-     * Load hybrid_word_trie.json as a nested map structure:
-     * Map<contextId, Map<wordId, Map<nextWordId, frequency>>>
-     */
-    private fun loadHybridWordTrie(path: String): Map<String, Map<String, Map<String, Int>>> {
+    private fun loadClusteredWordBigram(path: String): ClusteredWordBigram {
         return try {
             val text = readAssetText(path)
-            json.decodeFromString<Map<String, Map<String, Map<String, Int>>>>(text)
+            val root = json.parseToJsonElement(text).jsonObject
+            
+            // Parse groups
+            val groupsObj = root["groups"]?.jsonObject ?: return ClusteredWordBigram.EMPTY
+            val groups = HashMap<String, List<Int>>(groupsObj.size)
+            for ((k, v) in groupsObj) {
+                groups[k] = v.jsonArray.map { it.jsonPrimitive.int }
+            }
+            
+            // Parse bigram
+            val bigramObj = root["bigram"]?.jsonObject ?: return ClusteredWordBigram.EMPTY
+            val bigram = HashMap<String, WordBigramEntry>(bigramObj.size)
+            for ((k, v) in bigramObj) {
+                if (v is kotlinx.serialization.json.JsonArray) {
+                    bigram[k] = WordBigramEntry.DirectList(v.map { it.jsonPrimitive.int })
+                } else if (v is JsonObject) {
+                    val g = v["g"]?.jsonPrimitive?.content ?: ""
+                    val extra = v["+"]?.jsonPrimitive?.int
+                    bigram[k] = WordBigramEntry.GroupRef(g, extra)
+                }
+            }
+            
+            ClusteredWordBigram(groups, bigram)
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to load $path: ${e.message}")
-            emptyMap()
+            ClusteredWordBigram.EMPTY
         }
     }
 
-    /**
-     * Read a text file from the assets directory.
-     */
     private fun readAssetText(path: String): String {
         return context.assets.open(path).use { stream: InputStream ->
             stream.bufferedReader().readText()

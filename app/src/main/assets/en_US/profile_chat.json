@@ -1,0 +1,11 @@
+{
+  "profile_name": "Chat Mode (English)",
+  "language": "EN",
+  "rules": {
+    "allow_echo": true,
+    "echo_immunity_ratio": 0.9,
+    "echo_base_buff": 3.0,
+    "echo_drag_buff": 15.0
+  },
+  "bonus_dict": {}
+}

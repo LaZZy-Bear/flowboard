@@ -96,9 +96,9 @@ class KeyView @JvmOverloads constructor(
     private val dp = resources.displayMetrics.density
     private val sp = resources.displayMetrics.scaledDensity
     private val cornerRadius = 12f * dp
-    private val tapTextSize = 26f * sp
-    private val swipeTextSize = 13f * sp
-    private val bottomSmallTextSize = 11f * sp
+    private val tapTextSize = 24f * sp
+    private val swipeTextSize = 15f * sp
+    private val bottomSmallTextSize = 12f * sp
     private val shadowOffset = 2f * dp
 
     // ── Geometry ──
@@ -238,7 +238,14 @@ class KeyView @JvmOverloads constructor(
                 isCenterKey && !isAltMode -> colorAccent
                 else -> colorTextTap
             }
-            val textY = centerY - (tapTextPaint.descent() + tapTextPaint.ascent()) / 2f
+            var textY = centerY - (tapTextPaint.descent() + tapTextPaint.ascent()) / 2f
+            
+            // Shift tall Thai characters downwards slightly to prevent overlapping with top text
+            val isTallChar = keySlots.tap.any { it in listOf('ไ', 'ใ', 'โ', 'ป', 'ฝ', 'ฟ', 'ฬ') }
+            if (isTallChar) {
+                textY += 4f * dp
+            }
+            
             canvas.drawText(keySlots.tap, centerX, textY, tapTextPaint)
         }
 
@@ -253,7 +260,7 @@ class KeyView @JvmOverloads constructor(
             canvas.drawText(
                 keySlots.up,
                 centerX,
-                6f * dp + swipeTextSize,
+                4f * dp + swipeTextSize,
                 swipeTextPaint
             )
         }
