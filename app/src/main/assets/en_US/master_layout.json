@@ -1,70 +1,70 @@
 {
   "a": {
-    "homeKey": "key_2",
+    "homeKey": "key_9",
     "defaultSlot": "tap"
   },
   "b": {
-    "homeKey": "key_3",
-    "defaultSlot": "right"
+    "homeKey": "key_5",
+    "defaultSlot": "tap"
   },
   "c": {
-    "homeKey": "key_1",
-    "defaultSlot": "left"
+    "homeKey": "key_8",
+    "defaultSlot": "right"
   },
   "-": {
     "homeKey": "key_2",
-    "defaultSlot": "up"
+    "defaultSlot": "tap"
   },
   "e": {
     "homeKey": "key_3",
     "defaultSlot": "left"
   },
   "d": {
-    "homeKey": "key_5",
-    "defaultSlot": "up"
+    "homeKey": "key_6",
+    "defaultSlot": "tap"
   },
   "f": {
-    "homeKey": "key_3",
-    "defaultSlot": "up"
-  },
-  "\"": {
-    "homeKey": "key_6",
-    "defaultSlot": "up"
-  },
-  "i": {
-    "homeKey": "key_6",
+    "homeKey": "key_5",
     "defaultSlot": "right"
   },
-  "g": {
+  "\"": {
+    "homeKey": "key_4",
+    "defaultSlot": "right"
+  },
+  "i": {
     "homeKey": "key_7",
     "defaultSlot": "tap"
   },
+  "g": {
+    "homeKey": "key_7",
+    "defaultSlot": "left"
+  },
   "h": {
+    "homeKey": "key_8",
+    "defaultSlot": "tap"
+  },
+  "/": {
+    "homeKey": "key_3",
+    "defaultSlot": "right"
+  },
+  "l": {
+    "homeKey": "key_1",
+    "defaultSlot": "tap"
+  },
+  "j": {
     "homeKey": "key_9",
     "defaultSlot": "up"
   },
-  "/": {
-    "homeKey": "key_6",
-    "defaultSlot": "left"
-  },
-  "l": {
+  "k": {
     "homeKey": "key_8",
     "defaultSlot": "left"
   },
-  "j": {
-    "homeKey": "key_7",
-    "defaultSlot": "right"
-  },
-  "k": {
-    "homeKey": "key_2",
-    "defaultSlot": "left"
-  },
   ":": {
-    "homeKey": "key_7",
-    "defaultSlot": "left"
+    "homeKey": "key_3",
+    "defaultSlot": "up"
   },
   "o": {
-    "homeKey": "key_4",
+    "homeKey": "key_6",
     "defaultSlot": "right"
   },
   "m": {
@@ -72,8 +72,8 @@
     "defaultSlot": "right"
   },
   "n": {
-    "homeKey": "key_6",
-    "defaultSlot": "tap"
+    "homeKey": "key_4",
+    "defaultSlot": "left"
   },
   "@": {
     "homeKey": "key_3",
@@ -84,63 +84,63 @@
     "defaultSlot": "tap"
   },
   "p": {
-    "homeKey": "key_9",
-    "defaultSlot": "tap"
+    "homeKey": "key_8",
+    "defaultSlot": "up"
   },
   "q": {
-    "homeKey": "key_5",
-    "defaultSlot": "tap"
+    "homeKey": "key_7",
+    "defaultSlot": "right"
   },
   "r": {
-    "homeKey": "key_4",
-    "defaultSlot": "left"
+    "homeKey": "key_5",
+    "defaultSlot": "up"
   },
   "t": {
-    "homeKey": "key_9",
-    "defaultSlot": "right"
+    "homeKey": "key_2",
+    "defaultSlot": "up"
   },
   "u": {
     "homeKey": "key_1",
     "defaultSlot": "up"
   },
   "v": {
-    "homeKey": "key_8",
-    "defaultSlot": "right"
+    "homeKey": "key_5",
+    "defaultSlot": "left"
   },
   "!": {
+    "homeKey": "key_6",
+    "defaultSlot": "left"
+  },
+  "y": {
+    "homeKey": "key_9",
+    "defaultSlot": "right"
+  },
+  "w": {
+    "homeKey": "key_1",
+    "defaultSlot": "left"
+  },
+  "x": {
+    "homeKey": "key_2",
+    "defaultSlot": "right"
+  },
+  "z": {
     "homeKey": "key_7",
     "defaultSlot": "up"
   },
-  "y": {
-    "homeKey": "key_8",
-    "defaultSlot": "tap"
-  },
-  "w": {
-    "homeKey": "key_5",
-    "defaultSlot": "right"
-  },
-  "x": {
-    "homeKey": "key_4",
-    "defaultSlot": "up"
-  },
-  "z": {
-    "homeKey": "key_8",
-    "defaultSlot": "up"
-  },
   "'": {
-    "homeKey": "key_1",
-    "defaultSlot": "tap"
+    "homeKey": "key_6",
+    "defaultSlot": "up"
   },
   ",": {
-    "homeKey": "key_5",
-    "defaultSlot": "left"
-  },
-  ".": {
     "homeKey": "key_9",
     "defaultSlot": "left"
   },
-  "?": {
+  ".": {
     "homeKey": "key_2",
-    "defaultSlot": "right"
+    "defaultSlot": "left"
+  },
+  "?": {
+    "homeKey": "key_4",
+    "defaultSlot": "up"
   }
 }

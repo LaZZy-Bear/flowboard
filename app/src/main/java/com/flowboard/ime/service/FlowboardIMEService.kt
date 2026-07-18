@@ -1231,12 +1231,31 @@ class FlowboardIMEService : InputMethodService() {
     // Input Handling
     // ══════════════════════════════════════════
 
+    private fun getKeyId(keySlots: KeySlots): String? {
+        val down = keySlots.down
+        if (down.isEmpty()) return null
+        val num = when (down) {
+            "1", "๑" -> 1
+            "2", "๒" -> 2
+            "3", "๓" -> 3
+            "4", "๔" -> 4
+            "5", "๕" -> 5
+            "6", "๖" -> 6
+            "7", "๗" -> 7
+            "8", "๘" -> 8
+            "9", "๙" -> 9
+            else -> null
+        }
+        return if (num != null) "key_$num" else null
+    }
+
     private fun handleKeyAction(action: SwipeDetector.SwipeAction, keySlots: KeySlots) {
         if (isNumberMode && action == SwipeDetector.SwipeAction.DOWN) {
             handleNumberModeDownSwipe(keySlots)
             return
         }
 
+        val keyId = getKeyId(keySlots)
         val charToType = when (action) {
             SwipeDetector.SwipeAction.TAP -> keySlots.tap
             SwipeDetector.SwipeAction.UP -> keySlots.up
@@ -1246,6 +1265,22 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         if (charToType.isNotEmpty()) {
+            if (keyId != null && action != SwipeDetector.SwipeAction.DOWN) {
+                val slotStr = when (action) {
+                    SwipeDetector.SwipeAction.TAP -> "tap"
+                    SwipeDetector.SwipeAction.UP -> "up"
+                    SwipeDetector.SwipeAction.LEFT -> "left"
+                    SwipeDetector.SwipeAction.RIGHT -> "right"
+                    else -> ""
+                }
+                repo.lastActionKeyId = keyId
+                repo.lastActionSlot = slotStr
+                repo.lastActionChar = charToType
+            } else {
+                repo.lastActionKeyId = null
+                repo.lastActionSlot = null
+                repo.lastActionChar = null
+            }
             commitChar(charToType)
         }
     }
@@ -1329,11 +1364,24 @@ class FlowboardIMEService : InputMethodService() {
     private fun commitChar(char: String) {
         playClick(if (char == " ") 32 else 0)
         
-        val finalChar = languageManager.applyCase(char)
+        // Smart Quote Normalization (P21 feature) (Task 7)
+        val normalizedChar = char
+            .replace('\u2018', '\'')
+            .replace('\u2019', '\'')
+            .replace('\u0060', '\'')
+
+        val finalChar = languageManager.applyCase(normalizedChar)
         
         synchronized(typedText) {
             typedTextHistory.add(typedText.toString())
             typedText.append(finalChar)
+        }
+
+        if (finalChar == " ") {
+            repo.lastActionKeyId = null
+            repo.lastActionSlot = null
+            repo.lastActionChar = null
+            repo.stickyChar = null
         }
 
         if (repo.activeLang == "TH" && isMissingMode) {
@@ -1356,6 +1404,11 @@ class FlowboardIMEService : InputMethodService() {
 
     private fun handleDelete() {
         playClick(android.view.KeyEvent.KEYCODE_DEL)
+        repo.lastActionKeyId = null
+        repo.lastActionSlot = null
+        repo.lastActionChar = null
+        repo.stickyChar = null
+
         synchronized(typedText) {
             typedTextHistory.add(typedText.toString())
             if (typedText.isNotEmpty()) {
@@ -1451,6 +1504,11 @@ class FlowboardIMEService : InputMethodService() {
 
         val ic = currentInputConnection ?: return
 
+        repo.lastActionKeyId = null
+        repo.lastActionSlot = null
+        repo.lastActionChar = null
+        repo.stickyChar = null
+
         synchronized(typedText) {
             typedTextHistory.add(typedText.toString())
             val currentLen = typedText.length
@@ -1525,6 +1583,15 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         val textSnapshot = synchronized(typedText) { typedText.toString() }
+
+        // Calculate Sticky Char
+        val lastChar = repo.lastActionChar
+        if (lastChar != null && scoringEngine.isDoubleCharValid(textSnapshot, lastChar)) {
+            repo.stickyChar = lastChar
+        } else {
+            repo.stickyChar = null
+        }
+
         val scores = scoringEngine.calculateScores(textSnapshot)
         val layout = if (repo.activeLang == "TH" && isMissingMode) {
             val normalLayout = layoutManager.assignLayout(scores)

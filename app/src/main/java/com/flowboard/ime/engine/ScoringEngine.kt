@@ -12,11 +12,11 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         // Updated Weights to match P21 V7
         private val STATE_WEIGHTS = mapOf(
             1 to EngineWeights(U = 87, B = 9, T = 15, D = 71, WB = 8, SN = 0),
-            2 to EngineWeights(U = 0, B = 94, T = 100, D = 15, WB = 0, SN = 0),
-            3 to EngineWeights(U = 1, B = 3, T = 66, D = 99, WB = 14, SN = 0),
-            4 to EngineWeights(U = 6, B = 24, T = 50, D = 86, WB = 3, SN = 2),
+            2 to EngineWeights(U = 0, B = 94, T = 87, D = 37, WB = 0, SN = 0),
+            3 to EngineWeights(U = 0, B = 10, T = 100, D = 35, WB = 0, SN = 3),
+            4 to EngineWeights(U = 0, B = 3, T = 11, D = 100, WB = 0, SN = 0),
             5 to EngineWeights(U = 26, B = 4, T = 100, D = 8, WB = 73, SN = 6),
-            7 to EngineWeights(U = 55, B = 3, T = 59, D = 25, WB = 45, SN = 15)
+            7 to EngineWeights(U = 8, B = 5, T = 19, D = 71, WB = 100, SN = 2)
         )
     }
 
@@ -149,6 +149,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             if (state == 1 || state == 7) applyIllegalStartPenalty(finalScores)
         }
 
+        applyBonusDict(finalScores)
         applyUnigramTiebreaker(finalScores)
 
         return finalScores
@@ -285,7 +286,9 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         last1: String
     ) {
         if (last2.length != 2) return
-        val ctxTag = "${ThaiCharUtil.getContextTag(last2.substring(0, 1), repo.thaiCharMap)}-${ThaiCharUtil.getContextTag(last2.substring(1, 2), repo.thaiCharMap)}"
+        val tag1 = ThaiCharUtil.getTag(last2[0], repo.thaiCharMap)
+        val tag2 = ThaiCharUtil.getTag(last2[1], repo.thaiCharMap)
+        val ctxTag = "$tag1-$tag2"
         val badTags = repo.patternPenalty[ctxTag] ?: return
         if (badTags.isEmpty()) return
 
@@ -382,6 +385,16 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         return node?.isEndOfWord == true
     }
 
+    private fun getWordIndex(word: String): Int {
+        var node = repo.trieDict
+        for (c in word) {
+            val nodeKey = if (repo.activeLang == "EN") c.toString() else repo.charReverseMap[c.toString()]
+            if (nodeKey == null || node?.get(nodeKey) == null) return -1
+            node = node[nodeKey]
+        }
+        return if (node?.isEndOfWord == true) node.frequency else -1
+    }
+
     private fun tokenizeGreedy(chunk: String): TokenizeResult {
         var ptr = 0
         val words = mutableListOf<String>()
@@ -389,11 +402,16 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
         while (ptr < chunk.length) {
             var bestWord: String? = null
+            var bestScore = Double.NEGATIVE_INFINITY
             for (len in chunk.length - ptr downTo 1) {
                 val cand = chunk.substring(ptr, ptr + len)
-                if (isWordInTrie(cand)) {
-                    bestWord = cand
-                    break
+                val wordIdx = getWordIndex(cand)
+                if (wordIdx >= 0) {
+                    val score = (cand.length * 9261).toDouble() - wordIdx
+                    if (score > bestScore) {
+                        bestScore = score
+                        bestWord = cand
+                    }
                 }
             }
 
@@ -407,6 +425,12 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             }
         }
         return TokenizeResult(words, tempPrefix)
+    }
+
+    private fun applyBonusDict(scores: HashMap<String, Double>) {
+        for ((char, bonus) in repo.bonusDict) {
+            scores[char] = (scores[char] ?: 0.0) + bonus
+        }
     }
 
     private data class TokenizeResult(val words: List<String>, val prefix: String)
@@ -444,5 +468,54 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             result[k] = (v / max) * 100.0
         }
         return result
+    }
+
+    fun isDoubleCharValid(text: String, charToTest: String): Boolean {
+        if (text.isEmpty() || charToTest.isEmpty()) return false
+
+        val engineText = if (repo.activeLang == "EN") text.lowercase() else text
+        var activePrefix = ""
+
+        if (repo.activeLang == "EN") {
+            val enParts = engineText.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
+            activePrefix = if (engineText.endsWith(" ") || engineText.isEmpty()) "" else enParts.lastOrNull() ?: ""
+        } else {
+            val parts = engineText.split(" ")
+            activePrefix = parts.last()
+        }
+
+        if (activePrefix.isEmpty()) return false
+
+        // One-Time Only Constraint
+        if (activePrefix.length >= 2) {
+            val prevChar = activePrefix[activePrefix.length - 2].toString()
+            val currChar = activePrefix[activePrefix.length - 1].toString()
+            if (prevChar == charToTest && currChar == charToTest) {
+                return false
+            }
+        }
+
+        val safeCharToTest = if (repo.activeLang == "EN") charToTest.lowercase() else charToTest
+        val testPrefix = activePrefix + safeCharToTest
+
+        var isValid = false
+        for (startIdx in 0 until testPrefix.length - 1) {
+            val subPrefix = testPrefix.substring(startIdx)
+            var node = repo.trieDict
+            var branchValid = true
+            for (c in subPrefix) {
+                val nodeKey = if (repo.activeLang == "EN") c.toString() else repo.charReverseMap[c.toString()]
+                if (nodeKey == null || node?.get(nodeKey) == null) {
+                    branchValid = false
+                    break
+                }
+                node = node[nodeKey]
+            }
+            if (branchValid) {
+                isValid = true
+                break
+            }
+        }
+        return isValid
     }
 }

@@ -19,14 +19,15 @@ class LayoutManager(private val repo: FlowboardRepository) {
     data class Candidate(val char: String, val defaultSlot: String, val score: Double)
 
     fun assignLayout(scores: Map<String, Double>): Map<String, KeySlots> {
+        if (repo.layoutStrategy == "TH") {
+            return assignLayoutTH(scores)
+        }
+
         // Phase 1: Base layout — place chars at homeKey
         val (baseLayout, charsByHome) = buildBaseLayout(scores)
 
         // Phase 2: Partner swap — language-specific strategy
-        val evicted = when (repo.layoutStrategy) {
-            "EN" -> partnerSwapEN(baseLayout, charsByHome, scores)
-            else -> partnerSwapTH(baseLayout, charsByHome, scores)
-        }
+        val evicted = partnerSwapEN(baseLayout, charsByHome, scores)
 
         // Phase 3: Fill unrendered — rescue chars with score > 0
         return fillUnrenderedChars(baseLayout, scores, evicted)
@@ -38,12 +39,20 @@ class LayoutManager(private val repo: FlowboardRepository) {
             newLayout["key_$i"] = mutableMapOf("tap" to "", "up" to "", "left" to "", "right" to "", "down" to i.toString())
         }
 
+        val stickyChar = repo.stickyChar
+        val stickyKeyId = repo.lastActionKeyId
+        val stickySlot = repo.lastActionSlot
+        if (stickyChar != null && stickyKeyId != null && stickySlot != null) {
+            newLayout[stickyKeyId]?.set(stickySlot, stickyChar)
+        }
+
         val charactersByHomeKey = mutableMapOf<String, MutableList<Candidate>>()
         for (i in 1..9) {
             charactersByHomeKey["key_$i"] = mutableListOf()
         }
 
         for ((char, info) in repo.masterLayout) {
+            if (stickyChar != null && char == stickyChar) continue
             val home = info.homeKey
             val score = scores[char] ?: 0.0
             charactersByHomeKey[home]?.add(Candidate(char, info.defaultSlot, score))
@@ -61,10 +70,12 @@ class LayoutManager(private val repo: FlowboardRepository) {
             val topWinner = candidates[0]
             val keyMap = newLayout[keyId] ?: continue
             if (topWinner.score > 0) {
-                keyMap["tap"] = topWinner.char
+                if ((keyMap["tap"] ?: "").isEmpty()) {
+                    keyMap["tap"] = topWinner.char
+                }
                 if (topWinner.defaultSlot != "tap" && topWinner.defaultSlot != "down") {
                     val defTapObj = candidates.find { it.defaultSlot == "tap" }
-                    if (defTapObj != null) {
+                    if (defTapObj != null && (keyMap[topWinner.defaultSlot] ?: "").isEmpty()) {
                         keyMap[topWinner.defaultSlot] = defTapObj.char
                     }
                 }
@@ -79,7 +90,7 @@ class LayoutManager(private val repo: FlowboardRepository) {
                 }
             } else {
                 for (c in candidates) {
-                    if (c.defaultSlot != "down") {
+                    if (c.defaultSlot != "down" && (keyMap[c.defaultSlot] ?: "").isEmpty()) {
                         keyMap[c.defaultSlot] = c.char
                     }
                 }
@@ -89,36 +100,189 @@ class LayoutManager(private val repo: FlowboardRepository) {
         return Pair(newLayout, charactersByHomeKey)
     }
 
-    private fun partnerSwapTH(
-        newLayout: MutableMap<String, MutableMap<String, String>>,
-        charactersByHomeKey: Map<String, List<Candidate>>,
-        scores: Map<String, Double>
-    ): List<String> {
-        val evictedFromTap = mutableListOf<String>()
+    private fun assignLayoutTH(scores: Map<String, Double>): Map<String, KeySlots> {
+        val newLayout = mutableMapOf<String, MutableMap<String, String>>()
+        for (i in 1..9) {
+            newLayout["key_$i"] = mutableMapOf("tap" to "", "up" to "", "left" to "", "right" to "", "down" to i.toString())
+        }
+
+        val stickyChar = repo.stickyChar
+        val stickyKeyId = repo.lastActionKeyId
+        val stickySlot = repo.lastActionSlot
+        if (stickyChar != null && stickyKeyId != null && stickySlot != null) {
+            newLayout[stickyKeyId]?.set(stickySlot, stickyChar)
+        }
+
+        val candidatesByKey = mutableMapOf<String, MutableList<Candidate>>()
+        for (i in 1..9) {
+            candidatesByKey["key_$i"] = mutableListOf()
+        }
+
+        for ((char, info) in repo.masterLayout) {
+            if (stickyChar != null && char == stickyChar) continue
+            val score = scores[char] ?: 0.0
+            candidatesByKey[info.homeKey]?.add(Candidate(char, info.defaultSlot, score))
+        }
+
+        for (k in candidatesByKey.keys) {
+            candidatesByKey[k]?.sortByDescending { it.score }
+        }
+
+        val wonTap = mutableSetOf<String>()
+
+        // 1. Initial Tap assignment
+        val initialTap = mutableMapOf<String, Candidate>()
+        for (i in 1..9) {
+            val keyId = "key_$i"
+            if (stickyChar != null && stickyKeyId == keyId && stickySlot == "tap") {
+                initialTap[keyId] = Candidate(stickyChar, "tap", Double.POSITIVE_INFINITY)
+                continue
+            }
+
+            val candidates = candidatesByKey[keyId] ?: continue
+            if (candidates.isNotEmpty()) {
+                val topCandidate = candidates[0]
+                if (topCandidate.score > 0.0) {
+                    initialTap[keyId] = topCandidate
+                } else {
+                    val defTap = candidates.find { it.defaultSlot == "tap" }
+                    if (defTap != null) initialTap[keyId] = defTap
+                }
+            }
+        }
+
+        // 2. Partner Swap for Tap (x1.12)
+        val partnerSwapWins = mutableMapOf<String, Candidate>()
         for (i in 1..9) {
             val keyId = "key_$i"
             val partnerKeyId = PARTNER_KEY[keyId] ?: continue
-            val candidates = charactersByHomeKey[keyId] ?: continue
+            val candidates = candidatesByKey[keyId] ?: continue
             if (candidates.size > 1) {
                 val runnerUp = candidates[1]
-                if (runnerUp.score > 0) {
-                    val partnerTapChar = newLayout[partnerKeyId]?.get("tap") ?: ""
-                    val partnerTapScore = scores[partnerTapChar] ?: 0.0
-                    if (runnerUp.score > partnerTapScore) {
-                        if (partnerTapChar.isNotEmpty()) evictedFromTap.add(partnerTapChar)
-                        newLayout[partnerKeyId]?.set("tap", runnerUp.char)
-                        val keySlotsMap = newLayout[keyId] ?: continue
-                        for ((slot, char) in keySlotsMap) {
-                            if (char == runnerUp.char) {
-                                keySlotsMap[slot] = ""
-                                break
-                            }
-                        }
+                if (runnerUp.score > 0.0) {
+                    val pTap = initialTap[partnerKeyId]
+                    val pTapScore = pTap?.score ?: 0.0
+                    if (runnerUp.score > pTapScore * 1.12) {
+                        partnerSwapWins[partnerKeyId] = runnerUp
                     }
                 }
             }
         }
-        return evictedFromTap
+
+        val freeAgents = mutableListOf<Candidate>()
+
+        for (i in 1..9) {
+            val keyId = "key_$i"
+            val currentTap = initialTap[keyId]
+            val swapWin = partnerSwapWins[keyId]
+            val keyMap = newLayout[keyId] ?: continue
+            if (swapWin != null) {
+                keyMap["tap"] = swapWin.char
+                wonTap.add(swapWin.char)
+            } else {
+                if (currentTap != null) {
+                    keyMap["tap"] = currentTap.char
+                    wonTap.add(currentTap.char)
+                }
+            }
+
+            // 3. Identify free agents (default tap character that is NOT on tap)
+            val defaultTapCand = candidatesByKey[keyId]?.find { it.defaultSlot == "tap" }
+            val assignedTap = keyMap["tap"] ?: ""
+            if (defaultTapCand != null && assignedTap != defaultTapCand.char) {
+                freeAgents.add(defaultTapCand)
+            }
+        }
+
+        // 4. Swipe Group Competition
+        val swipeSlots = listOf("up", "left", "right")
+        for (slot in swipeSlots) {
+            val homeWinners = mutableMapOf<String, Candidate>()
+            val homeLosers = mutableMapOf<String, List<Candidate>>()
+
+            for (i in 1..9) {
+                val keyId = "key_$i"
+                val competitors = candidatesByKey[keyId]?.filter {
+                    it.defaultSlot == slot && !wonTap.contains(it.char)
+                } ?: emptyList()
+
+                if (competitors.isNotEmpty()) {
+                    homeWinners[keyId] = competitors[0]
+                    homeLosers[keyId] = competitors.drop(1)
+                }
+            }
+
+            for (i in 1..9) {
+                val keyId = "key_$i"
+                val winner = homeWinners[keyId]
+                if (winner != null) {
+                    val keyMap = newLayout[keyId] ?: continue
+                    if ((keyMap[slot] ?: "").isEmpty()) { // Protect Sticky!
+                        keyMap[slot] = winner.char
+                    }
+                }
+            }
+
+            // 5. Swipe Partner Migration (x1.12)
+            val migrations = mutableMapOf<String, Candidate>()
+            for (i in 1..9) {
+                val keyId = "key_$i"
+                val partnerKeyId = PARTNER_KEY[keyId] ?: continue
+                val losers = homeLosers[keyId] ?: emptyList()
+                if (losers.isNotEmpty()) {
+                    val bestLoser = losers[0]
+                    if (bestLoser.score > 0.0) {
+                        val partnerMap = newLayout[partnerKeyId] ?: continue
+                        if ((partnerMap[slot] ?: "").isNotEmpty() && !homeWinners.containsKey(partnerKeyId)) {
+                            continue // Partner slot is pinned by sticky
+                        }
+                        val partnerWinner = homeWinners[partnerKeyId]
+                        val partnerWinnerScore = partnerWinner?.score ?: 0.0
+                        if (bestLoser.score > partnerWinnerScore * 1.12) {
+                            migrations[partnerKeyId] = bestLoser
+                        }
+                    }
+                }
+            }
+
+            for ((targetKey, bestLoser) in migrations) {
+                val targetMap = newLayout[targetKey] ?: continue
+                if ((targetMap[slot] ?: "").isEmpty()) { // Protect Sticky!
+                    targetMap[slot] = bestLoser.char
+                }
+            }
+        }
+
+        // 6. Free Agent Placement (weakest swipe slot in home key)
+        freeAgents.forEach { fa ->
+            val entry = repo.masterLayout[fa.char] ?: return@forEach
+            val keyId = entry.homeKey
+
+            var minScore = Double.MAX_VALUE
+            var weakestSlot: String? = null
+
+            for (slot in swipeSlots) {
+                val occupantChar = newLayout[keyId]?.get(slot) ?: ""
+                val occupantScore = if (occupantChar.isNotEmpty()) {
+                    if (occupantChar == stickyChar) Double.MAX_VALUE else (scores[occupantChar] ?: 0.0)
+                } else 0.0
+
+                if (occupantScore < minScore) {
+                    minScore = occupantScore
+                    weakestSlot = slot
+                }
+            }
+
+            if (weakestSlot != null && fa.score > minScore) {
+                val keyMap = newLayout[keyId] ?: return@forEach
+                if ((keyMap[weakestSlot] ?: "").isEmpty() || (keyMap[weakestSlot] ?: "") == fa.char) { // protect sticky
+                    keyMap[weakestSlot] = fa.char
+                }
+            }
+        }
+
+        // 7. Missing Characters Fallback
+        return fillUnrenderedChars(newLayout, scores, emptyList())
     }
 
     private fun partnerSwapEN(
@@ -126,6 +290,7 @@ class LayoutManager(private val repo: FlowboardRepository) {
         charactersByHomeKey: Map<String, List<Candidate>>,
         scores: Map<String, Double>
     ): List<String> {
+        val stickyChar = repo.stickyChar
         for (i in 1..9) {
             val keyId = "key_$i"
             val partnerKeyId = PARTNER_KEY[keyId] ?: continue
@@ -135,9 +300,12 @@ class LayoutManager(private val repo: FlowboardRepository) {
                 val runnerUp = candidates[1]
                 if (runnerUp.score > 0) {
                     val partnerTapChar = newLayout[partnerKeyId]?.get("tap") ?: ""
-                    val partnerTapScore = if (partnerTapChar.isNotEmpty()) (scores[partnerTapChar] ?: 0.0) else 0.0
+                    var partnerTapScore = if (partnerTapChar.isNotEmpty()) (scores[partnerTapChar] ?: 0.0) else 0.0
+                    if (stickyChar != null && partnerTapChar == stickyChar) {
+                        partnerTapScore = Double.MAX_VALUE
+                    }
 
-                    if (runnerUp.score > partnerTapScore) {
+                    if (runnerUp.score > partnerTapScore * 1.2) {
                         var runnerUpOldSlot: String? = null
                         val keySlotsMap = newLayout[keyId] ?: continue
                         for ((slot, char) in keySlotsMap) {
@@ -159,6 +327,7 @@ class LayoutManager(private val repo: FlowboardRepository) {
                             val partnerSlotsMap = newLayout[partnerKeyId] ?: continue
                             for (slot in slots) {
                                 val occupant = partnerSlotsMap[slot] ?: ""
+                                if (stickyChar != null && occupant == stickyChar) continue
                                 if (occupant.isEmpty()) {
                                     weakestSlot = slot
                                     weakestChar = ""
@@ -232,7 +401,10 @@ class LayoutManager(private val repo: FlowboardRepository) {
             val keyMap = newLayout[targetKey] ?: return null
             for (slot in slots) {
                 val occupant = keyMap[slot] ?: ""
-                val occupantScore = if (occupant.isNotEmpty()) (scores[occupant] ?: 0.0) else 0.0
+                var occupantScore = if (occupant.isNotEmpty()) (scores[occupant] ?: 0.0) else 0.0
+                if (repo.stickyChar != null && occupant == repo.stickyChar) {
+                    occupantScore = Double.MAX_VALUE // protect sticky key
+                }
 
                 if (checkZeroOnly) {
                     if (occupantScore == 0.0) {
@@ -282,7 +454,10 @@ class LayoutManager(private val repo: FlowboardRepository) {
                         val keyMap = newLayout[key] ?: return
                         for (slot in slots) {
                             val occupant = keyMap[slot] ?: ""
-                            val occupantScore = if (occupant.isNotEmpty()) (scores[occupant] ?: 0.0) else 0.0
+                            var occupantScore = if (occupant.isNotEmpty()) (scores[occupant] ?: 0.0) else 0.0
+                            if (repo.stickyChar != null && occupant == repo.stickyChar) {
+                                occupantScore = Double.MAX_VALUE // protect sticky key
+                            }
                             if (occupantScore < minScore) {
                                 minScore = occupantScore
                                 bestSlot = slot

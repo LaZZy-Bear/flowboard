@@ -55,6 +55,13 @@ object FlowboardRepository {
     var activeProfile: Profile = Profile.DEFAULT
     var bonusDict: Map<String, Double> = emptyMap()
 
+    // Sticky Key State
+    var lastActionKeyId: String? = null
+    var lastActionSlot: String? = null
+    var lastActionChar: String? = null
+    var stickyChar: String? = null
+
+
     // ══════════════════════════════════════════
     // Loading State
     // ══════════════════════════════════════════
@@ -117,6 +124,11 @@ object FlowboardRepository {
         
         activeProfile = Profile.DEFAULT
         bonusDict = emptyMap()
+
+        lastActionKeyId = null
+        lastActionSlot = null
+        lastActionChar = null
+        stickyChar = null
         
         _isReady.value = false
         _isFullyLoaded.value = false
