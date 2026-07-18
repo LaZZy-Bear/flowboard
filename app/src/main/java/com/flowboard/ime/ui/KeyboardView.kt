@@ -58,6 +58,10 @@ class KeyboardView @JvmOverloads constructor(
         requestLayout()
     }
 
+    fun setFontScale(scale: Float) {
+        keyViews.forEach { it.setFontScale(scale) }
+    }
+
     init {
         for (key in keyViews) {
             addView(key)

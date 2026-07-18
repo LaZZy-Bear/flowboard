@@ -96,9 +96,13 @@ class KeyView @JvmOverloads constructor(
     private val dp = resources.displayMetrics.density
     private val sp = resources.displayMetrics.scaledDensity
     private val cornerRadius = 12f * dp
-    private val tapTextSize = 24f * sp
-    private val swipeTextSize = 15f * sp
-    private val bottomSmallTextSize = 12f * sp
+    private val baseTapTextSize = 24f * sp
+    private val baseSwipeTextSize = 15f * sp
+    private val baseBottomSmallTextSize = 12f * sp
+    
+    private var tapTextSize = baseTapTextSize
+    private var swipeTextSize = baseSwipeTextSize
+    private var bottomSmallTextSize = baseBottomSmallTextSize
     private val shadowOffset = 2f * dp
 
     // ── Geometry ──
@@ -135,6 +139,14 @@ class KeyView @JvmOverloads constructor(
             invalidate()
             onKeyAction?.invoke(action, keySlots)
         }
+    }
+
+    /** Update text sizes based on a scale factor */
+    fun setFontScale(scale: Float) {
+        tapTextSize = baseTapTextSize * scale
+        swipeTextSize = baseSwipeTextSize * scale
+        bottomSmallTextSize = baseBottomSmallTextSize * scale
+        invalidate()
     }
 
     /**

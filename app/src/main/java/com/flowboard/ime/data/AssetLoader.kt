@@ -99,6 +99,8 @@ class AssetLoader(private val context: Context) {
         enData.unigram = enUnigramJob.await()
         enData.masterLayout = enMasterJob.await()
         enData.chatProfile = enChatProfJob.await()
+        
+        publishLanguageData(repo)
 
         val elapsed = System.currentTimeMillis() - startTime
         Log.d(TAG, "Phase A complete in ${elapsed}ms")
@@ -129,6 +131,8 @@ class AssetLoader(private val context: Context) {
         enData.spaceNgram = enSpaceJob.await()
         enData.trieDict = enTrieJob.await()
         enData.wordList = enWordListJob.await()
+        
+        publishLanguageData(repo)
 
         val elapsed = System.currentTimeMillis() - startTime
         Log.d(TAG, "Phase B complete in ${elapsed}ms")
@@ -152,7 +156,13 @@ class AssetLoader(private val context: Context) {
         enData.trigram = enTrigramJob.await()
         enData.clusteredBigram = enCwbJob.await()
 
-        // Finalize LanguageData and register
+        publishLanguageData(repo)
+
+        val elapsed = System.currentTimeMillis() - startTime
+        Log.d(TAG, "Phase C complete in ${elapsed}ms")
+    }
+
+    private fun publishLanguageData(repo: FlowboardRepository) {
         fun buildWordReverseMap(wordList: List<String>): Map<String, Int> {
             val map = HashMap<String, Int>(wordList.size)
             wordList.forEachIndexed { index, word -> if (word.isNotEmpty()) map[word] = index }
@@ -191,11 +201,9 @@ class AssetLoader(private val context: Context) {
             chatProfile = enData.chatProfile
         )
 
-        // Set default language
-        repo.setLanguage("TH")
-
-        val elapsed = System.currentTimeMillis() - startTime
-        Log.d(TAG, "Phase C complete in ${elapsed}ms")
+        // Set default language or re-apply current
+        val currentLang = if (repo.activeLang.isEmpty()) "TH" else repo.activeLang
+        repo.setLanguage(currentLang)
     }
 
     // ════════════════════════════════════════════

@@ -42,6 +42,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 /**
  * The main InputMethodService for Flowboard.
@@ -185,6 +188,16 @@ class FlowboardIMEService : InputMethodService() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onCreateInputView(): View {
         Log.d(TAG, "onCreateInputView")
+        
+        // Ensure Phase A critical data is loaded before inflating anything.
+        // This prevents the keyboard from flashing blank when switching from another IME.
+        if (!repo.isReady.value) {
+            Log.d(TAG, "Waiting for critical data before creating view...")
+            runBlocking {
+                repo.isReady.first { it }
+            }
+        }
+        
         val themedContext = getThemedContext()
         val inflater = LayoutInflater.from(themedContext)
         val rootView = inflater.inflate(R.layout.keyboard_layout, null)
@@ -398,6 +411,15 @@ class FlowboardIMEService : InputMethodService() {
 
         // Initial setups
         refreshLayout()
+        
+        // Listen for repository readiness to populate UI if it wasn't ready on first load
+        serviceScope.launch {
+            repo.isReady.collect { ready ->
+                if (ready) {
+                    refreshLayout()
+                }
+            }
+        }
         updatePredictions()
         updateSpaceLabelForMode()
         updateShiftButtonTint()
@@ -1149,12 +1171,8 @@ class FlowboardIMEService : InputMethodService() {
         window.attributes = lp
     }
 
-    @Suppress("DEPRECATION")
     private fun getLanguageLabel(): String {
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        val subtype = imm.currentInputMethodSubtype
-        val locale = subtype?.locale ?: "th_TH"
-        return if (locale.startsWith("th")) "ไทย" else "English"
+        return if (repo.activeLang == "TH") "ไทย" else "EN"
     }
 
     private fun updateSpaceLabelForMode() {
@@ -1620,6 +1638,15 @@ class FlowboardIMEService : InputMethodService() {
         val baseKeyHeight = 65
         val scaledKeyHeightDp = (baseKeyHeight * scale).toInt()
         keyboardView?.setKeyHeight(scaledKeyHeightDp)
+        keyboardView?.setFontScale(scale)
+        
+        // Scale bottom bar text sizes
+        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnSpaceText)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f * scale)
+        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnSpaceDownText)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f * scale)
+        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnPeriodText)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 20f * scale)
+        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnPeriodCommaText)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10f * scale)
+        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnNumbers)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f * scale)
+        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnShiftText)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f * scale)
         
         val keyHeightPx = (scaledKeyHeightDp * density).toInt()
         val gapPx = (6 * density).toInt()
