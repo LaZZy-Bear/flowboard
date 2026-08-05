@@ -112,12 +112,7 @@ class AssetLoader(private val context: Context) {
         repo.sentenceTopicClusters = stcJob.await()
         repo.personalProfile = personalProfileJob.await()
 
-        // Enable personalization if profile has data
-        if (!repo.personalProfile.isEmpty) {
-            repo.isPersonalizationEnabled = true
-            injectLearnedOOVWords(repo)
-            Log.d(TAG, "Personalization enabled: bigram=${repo.personalProfile.bigram.size}, freq=${repo.personalProfile.wordFreq.size}, oov=${repo.personalProfile.learnedOOV.size}")
-        }
+        updatePersonalizationState(context, repo)
 
         val elapsed = System.currentTimeMillis() - startTime
         Log.d(TAG, "Phase C complete in ${elapsed}ms")
@@ -127,20 +122,32 @@ class AssetLoader(private val context: Context) {
     // Personalization Helpers
     // ════════════════════════════════════════════
 
+    fun updatePersonalizationState(ctx: Context, repo: FlowboardRepository) {
+        val prefs = ctx.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+        val userPrefEnabled = prefs.getBoolean("personalization_enabled", true)
+        if (!repo.personalProfile.isEmpty && userPrefEnabled) {
+            repo.isPersonalizationEnabled = true
+            injectLearnedOOVWords(repo)
+            Log.d(TAG, "Personalization enabled: bigram=${repo.personalProfile.bigram.size}, freq=${repo.personalProfile.wordFreq.size}, oov=${repo.personalProfile.learnedOOV.size}")
+        } else {
+            repo.isPersonalizationEnabled = false
+            repo.trieDictOOV = repo.baseTrieDictOOV
+            Log.d(TAG, "Personalization disabled (userPref=$userPrefEnabled, isEmpty=${repo.personalProfile.isEmpty})")
+        }
+    }
+
     /**
      * Injects learned OOV words from the personal profile into the OOV trie at runtime.
      * This adds personal vocabulary on top of the base OOV trie.
      */
     private fun injectLearnedOOVWords(repo: FlowboardRepository) {
         val learnedWords = repo.personalProfile.learnedOOV
+        val oovTrie = repo.baseTrieDictOOV ?: return
         if (learnedWords.isEmpty()) return
-
-        // Clone base OOV trie if we haven't yet
-        val oovTrie = repo.trieDictOOV ?: TrieNode()
 
         for (word in learnedWords) {
             if (word.isEmpty()) continue
-            var node = oovTrie
+            var node: TrieNode = oovTrie
             for (ch in word) {
                 node = node.getOrPut(ch.toString())
             }

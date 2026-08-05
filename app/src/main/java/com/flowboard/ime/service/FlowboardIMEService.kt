@@ -66,6 +66,9 @@ class FlowboardIMEService : InputMethodService() {
     private val settingsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             Log.d(TAG, "Settings or theme changed — refreshing input view")
+            context?.let { ctx ->
+                com.flowboard.ime.data.AssetLoader(ctx).updatePersonalizationState(ctx, repo)
+            }
             setInputView(onCreateInputView())
         }
     }
