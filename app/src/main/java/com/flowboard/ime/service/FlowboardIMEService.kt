@@ -456,6 +456,7 @@ class FlowboardIMEService : InputMethodService() {
         }
         
         keyboardRoot?.let { applySettingsAndTheme(it, getThemedContext()) }
+        updateSendButtonIcon(info)
         updateFloatingWindowMode()
 
         // Reset typing state for a new input field
@@ -1443,6 +1444,16 @@ class FlowboardIMEService : InputMethodService() {
         updatePredictions()
     }
     
+    private fun updateSendButtonIcon(info: EditorInfo?) {
+        val btnSendIconView = keyboardRoot?.findViewById<ImageView>(R.id.btnSendIcon) ?: return
+        val imeAction = info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION) ?: EditorInfo.IME_ACTION_NONE
+        if (imeAction == EditorInfo.IME_ACTION_SEARCH) {
+            btnSendIconView.setImageResource(R.drawable.ic_search)
+        } else {
+            btnSendIconView.setImageResource(R.drawable.ic_send)
+        }
+    }
+
     private fun handleSend() {
         playClick(10)
         val ic = currentInputConnection ?: return
@@ -1453,20 +1464,31 @@ class FlowboardIMEService : InputMethodService() {
 
         val isMultiline = (editorInfo?.inputType ?: 0) and EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE != 0
         val noEnterAction = (editorInfo?.imeOptions ?: 0) and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0
-        if (imeAction == EditorInfo.IME_ACTION_NONE || noEnterAction || isMultiline) {
-            ic.commitText("\n", 1)
-        } else if (imeAction != EditorInfo.IME_ACTION_UNSPECIFIED) {
-            ic.performEditorAction(imeAction)
-        } else {
+
+        if (imeAction != EditorInfo.IME_ACTION_NONE && imeAction != EditorInfo.IME_ACTION_UNSPECIFIED) {
+            val handled = ic.performEditorAction(imeAction)
+            if (!handled) {
+                ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER))
+                ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER))
+            }
+        } else if (isMultiline && !noEnterAction) {
             ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER))
             ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER))
+        } else {
+            val handled = ic.performEditorAction(EditorInfo.IME_ACTION_DONE)
+            if (!handled) {
+                ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER))
+                ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER))
+            }
         }
 
         synchronized(typedText) {
             typedText.clear()
             typedTextHistory.clear()
         }
-        scoringEngine.resetTrieCache()
+        if (::scoringEngine.isInitialized) {
+            scoringEngine.resetTrieCache()
+        }
         refreshLayout()
         updatePredictions()
     }
