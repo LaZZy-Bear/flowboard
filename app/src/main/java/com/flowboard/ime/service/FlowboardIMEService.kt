@@ -20,7 +20,9 @@ import android.content.res.Configuration
 import android.view.ContextThemeWrapper
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import android.provider.Settings
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
@@ -106,7 +108,6 @@ class FlowboardIMEService : InputMethodService() {
     )
     private var sideTools: LinearLayout? = null
     private var dragHandleArea: View? = null
-    private var resizeHandleLeft: View? = null
     private var resizeHandleRight: View? = null
     private var clipboardPanel: android.widget.ScrollView? = null
     private var clipboardContent: LinearLayout? = null
@@ -135,6 +136,7 @@ class FlowboardIMEService : InputMethodService() {
     private var isDarkModeOverride: Boolean? = null
     private var isFloatingMode = false
     private var floatingY = 100 // default offset from bottom in dp
+    private var currentFloatingScale: Float = 1f
     private var isToolbarExpanded = false
     private var isMorePanelOpen = false
     
@@ -226,11 +228,13 @@ class FlowboardIMEService : InputMethodService() {
         if (isFloatingMode) {
             keyboardRoot?.background = ContextCompat.getDrawable(themedContext, R.drawable.floating_kb_bg)
             dragHandleArea?.visibility = View.VISIBLE
+            resizeHandleRight?.visibility = View.VISIBLE
             predictionRow?.visibility = View.GONE
             setupDragHandle()
         } else {
             keyboardRoot?.setBackgroundColor(ContextCompat.getColor(themedContext, R.color.kb_background))
-            dragHandleArea?.visibility = View.GONE
+            dragHandleArea?.visibility = View.VISIBLE
+            resizeHandleRight?.visibility = View.VISIBLE
             predictionRow?.visibility = View.VISIBLE
         }
 
@@ -238,9 +242,6 @@ class FlowboardIMEService : InputMethodService() {
         // Prediction Bar
         // ══════════════════════════════════════════
         predictionBar = rootView.findViewById(R.id.predictionBar)
-        resizeHandleLeft = rootView.findViewById<View>(R.id.resizeHandleLeft).apply {
-            setOnTouchListener { _, event -> handleResizeTouch(event, true) }
-        }
         resizeHandleRight = rootView.findViewById<View>(R.id.resizeHandleRight).apply {
             setOnTouchListener { _, event -> handleResizeTouch(event, false) }
         }
@@ -500,25 +501,23 @@ class FlowboardIMEService : InputMethodService() {
     private fun renderToolbar() {
         val tools = sideTools ?: return
         tools.removeAllViews()
-
         val prefs = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
-        val scale = if (!isFloatingMode) prefs.getFloat("docked_keyboard_scale", 1.3f) else 1f
+        val scale = if (!isFloatingMode) prefs.getFloat("docked_keyboard_scale", 1.3f) else currentFloatingScale
         
-        // Calculate max items based on user's explicitly requested fixed sizes
-        val maxToolbarItems = if (isFloatingMode) {
-            4
+        val displayActions = if (isFloatingMode) {
+            val floatingShortcuts = activeShortcuts.filter { it != ToolbarAction.RESIZE }
+            val count = when {
+                scale <= 0.96f -> 3
+                scale >= 1.12f -> 5
+                else -> 4
+            }
+            listOf(ToolbarAction.DELETE) + floatingShortcuts.take(count) + ToolbarAction.MORE
         } else {
-            when {
+            val maxToolbarItems = when {
                 scale <= 1.05f -> 4
                 scale >= 1.4f -> 7
                 else -> 6
             }
-        }
-        
-        val displayActions = if (isFloatingMode) {
-            val floatingShortcuts = activeShortcuts.filter { it != ToolbarAction.RESIZE }
-            listOf(ToolbarAction.DELETE) + floatingShortcuts.take(3) + ToolbarAction.MORE
-        } else {
             activeShortcuts.take(maxToolbarItems - 1) + ToolbarAction.MORE
         }
 
@@ -898,10 +897,10 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun updateFloatingWindowMode() {
-        val window = window?.window ?: return
-        val lp = window.attributes
+        val win = window?.window ?: return
+        val lp = win.attributes
         val metrics = resources.displayMetrics
-        val predictionRow = window.decorView.findViewById<View>(R.id.predictionRow)
+        val predictionRow = win.decorView.findViewById<View>(R.id.predictionRow)
         
         val root = keyboardRoot ?: return
         val density = metrics.density
@@ -917,16 +916,18 @@ class FlowboardIMEService : InputMethodService() {
         val morePanel = root.findViewById<View>(R.id.morePanel)
         val clipboardPanel = root.findViewById<View>(R.id.clipboardPanel)
 
+        val floatingControlBar = root.findViewById<View>(R.id.floatingControlBar)
+
         if (isFloatingMode) {
-            predictionRow?.visibility = View.GONE
-            resizeHandleLeft?.visibility = View.VISIBLE
-            resizeHandleRight?.visibility = View.VISIBLE
-            resizeHandleLeft?.alpha = 1f
-            resizeHandleRight?.alpha = 1f
+            val prefs = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
+            val showSuggestions = prefs.getBoolean("show_suggestions", true)
+            predictionRow?.visibility = if (showSuggestions) View.VISIBLE else View.GONE
+            btnDelete?.visibility = View.GONE
+            floatingControlBar?.visibility = View.VISIBLE
             dragHandleArea?.visibility = View.VISIBLE
+            resizeHandleRight?.visibility = View.VISIBLE
             setupDragHandle()
 
-            val prefs = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
             val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
             val gd = android.graphics.drawable.GradientDrawable()
             gd.cornerRadius = 16 * density
@@ -937,7 +938,12 @@ class FlowboardIMEService : InputMethodService() {
             outerFrame?.background = null
             root.background = gd
 
-            val kbWidth = (300 * metrics.density).toInt()
+            val prefsFloat = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
+            val savedScale = prefsFloat.getFloat("floating_scale", 1f).coerceIn(0.88f, 1.20f)
+            currentFloatingScale = savedScale
+            renderToolbar()
+            val baseKbWidth = (300 * metrics.density)
+            val kbWidth = (baseKbWidth * savedScale).toInt()
             
             lp.width = kbWidth
             lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
@@ -952,26 +958,35 @@ class FlowboardIMEService : InputMethodService() {
             
             val contentLp = root.findViewById<View>(R.id.keyboardContent)?.layoutParams as? FrameLayout.LayoutParams
             if (contentLp != null) {
-                contentLp.bottomMargin = (24 * metrics.density).toInt()
+                contentLp.bottomMargin = 0
                 root.findViewById<View>(R.id.keyboardContent)?.layoutParams = contentLp
+            }
+            root.setPadding((6 * density).toInt(), (8 * density).toInt(), (6 * density).toInt(), (6 * density).toInt())
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                setBackDisposition(BACK_DISPOSITION_WILL_DISMISS)
             }
             
             lp.flags = lp.flags or android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
             lp.gravity = Gravity.BOTTOM or Gravity.START
             val screenWidth = metrics.widthPixels
+            val screenHeight = metrics.heightPixels
             lp.x = maxOf(0, minOf((screenWidth - kbWidth) / 2, screenWidth - kbWidth))
-            lp.y = (floatingY * metrics.density).toInt()
             
-            val prefsFloat = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
-            val savedScale = prefsFloat.getFloat("floating_scale", 1f)
-            root.scaleX = savedScale
-            root.scaleY = savedScale
-            root.post {
-                root.pivotX = root.width / 2f
-                root.pivotY = root.height.toFloat()
-            }
+            root.measure(
+                View.MeasureSpec.makeMeasureSpec(kbWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            val kbHeight = root.measuredHeight
+            val maxY = maxOf(0, screenHeight - kbHeight - (20 * density).toInt())
+            lp.y = maxOf(0, minOf((floatingY * metrics.density).toInt(), maxY))
             
-            root.findViewById<com.flowboard.ime.ui.KeyboardView>(R.id.keyboardView)?.setKeyHeight(75)
+            root.scaleX = 1f
+            root.scaleY = 1f
+            
+            val kbView = root.findViewById<com.flowboard.ime.ui.KeyboardView>(R.id.keyboardView)
+            kbView?.setKeyHeight((75 * savedScale).toInt())
+            kbView?.setFontScale(savedScale)
             
             // Set proportional weights for floating mode
             btnNumbers?.layoutParams = (btnNumbers?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.5f }
@@ -981,18 +996,18 @@ class FlowboardIMEService : InputMethodService() {
             btnPeriod?.layoutParams = (btnPeriod?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.2f }
             btnSend?.layoutParams = (btnSend?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.6f }
             
-            sideTools?.layoutParams = (sideTools?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.4f }
+            sideTools?.layoutParams = (sideTools?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; height = ViewGroup.LayoutParams.MATCH_PARENT; weight = 1.4f }
             keyboardView?.layoutParams = (keyboardView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 8.6f }
             morePanel?.layoutParams = (morePanel?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 8.6f }
             clipboardPanel?.layoutParams = (clipboardPanel?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 8.6f }
         } else {
-            predictionRow?.visibility = View.VISIBLE
-            resizeHandleLeft?.visibility = View.GONE
-            resizeHandleRight?.visibility = View.GONE
-            dragHandleArea?.visibility = View.GONE
+            val prefs = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
+            val showSuggestions = prefs.getBoolean("show_suggestions", true)
+            predictionRow?.visibility = if (showSuggestions) View.VISIBLE else View.GONE
+            btnDelete?.visibility = View.VISIBLE
+            floatingControlBar?.visibility = View.GONE
             
             // Remove rounded background for docked mode
-            val prefs = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
             val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
             val outerFrame = root.parent as? View
             outerFrame?.background = null
@@ -1025,12 +1040,28 @@ class FlowboardIMEService : InputMethodService() {
             btnPeriod?.layoutParams = (btnPeriod?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (38 * density).toInt(); weight = 0f }
             btnSend?.layoutParams = (btnSend?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (50 * density).toInt(); weight = 0f }
             
-            sideTools?.layoutParams = (sideTools?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (42 * density).toInt(); weight = 0f }
+            sideTools?.layoutParams = (sideTools?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (42 * density).toInt(); height = ViewGroup.LayoutParams.MATCH_PARENT; weight = 0f }
             keyboardView?.layoutParams = (keyboardView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1f }
             morePanel?.layoutParams = (morePanel?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1f }
             clipboardPanel?.layoutParams = (clipboardPanel?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1f }
+
+            val systemNavHeight = getSystemNavigationBarHeight()
+            val baseBottomPadding = (8 * density).toInt()
+            root.setPadding(
+                root.paddingLeft,
+                root.paddingTop,
+                root.paddingRight,
+                baseBottomPadding + systemNavHeight
+            )
+            root.requestApplyInsets()
+            WindowCompat.setDecorFitsSystemWindows(win, true)
+            val controller = WindowCompat.getInsetsController(win, win.decorView)
+            controller.show(WindowInsetsCompat.Type.navigationBars())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                setBackDisposition(BACK_DISPOSITION_WILL_DISMISS)
+            }
         }
-        window.attributes = lp
+        win.attributes = lp
         updatePredictions()
     }
 
@@ -1038,8 +1069,8 @@ class FlowboardIMEService : InputMethodService() {
     private fun setupDragHandle() {
         val handle = dragHandleArea ?: return
         handle.setOnTouchListener { _, event ->
-            val window = window?.window ?: return@setOnTouchListener false
-            val lp = window.attributes
+            val win = window?.window ?: return@setOnTouchListener false
+            val lp = win.attributes
             val metrics = resources.displayMetrics
 
             when (event.action) {
@@ -1061,27 +1092,20 @@ class FlowboardIMEService : InputMethodService() {
                     val dx = (event.rawX - initialTouchX).toInt()
                     val dy = (event.rawY - initialTouchY).toInt()
 
-                    lp.x = initialX + dx
-                    lp.y = initialY - dy
-
-                    val root = keyboardRoot
-                    val scale = root?.scaleX ?: 1f
-                    val pivot = root?.pivotX ?: 0f
-                    val width = lp.width
-
                     val screenWidth = metrics.widthPixels
                     val screenHeight = metrics.heightPixels
-                    
-                    val minX = (-pivot * (1 - scale)).toInt()
-                    val maxX = (screenWidth - width * scale - pivot * (1 - scale)).toInt()
-                    
-                    lp.x = maxOf(minX, minOf(lp.x, maxX))
-                    lp.y = maxOf(0, minOf(lp.y, screenHeight - 200))
+                    val width = lp.width
+                    val root = keyboardRoot
+                    val kbHeight = root?.height ?: (250 * metrics.density).toInt()
+                    val maxY = maxOf(0, screenHeight - kbHeight - (20 * metrics.density).toInt())
+
+                    lp.x = maxOf(0, minOf(initialX + dx, screenWidth - width))
+                    lp.y = maxOf(0, minOf(initialY - dy, maxY))
 
                     val density = if (metrics.density > 0) metrics.density else 1.0f
                     floatingY = (lp.y / density).toInt()
 
-                    window.attributes = lp
+                    win.attributes = lp
                     true
                 }
                 else -> false
@@ -1090,49 +1114,50 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun handleResizeTouch(event: MotionEvent, isLeftCorner: Boolean): Boolean {
-        val window = window?.window ?: return false
+        val win = window?.window ?: return false
         val root = keyboardRoot ?: return false
         val metrics = resources.displayMetrics
-        val baseWidth = (300 * metrics.density)
+        val baseWidth = 300 * metrics.density
         if (baseWidth <= 0) return false
+
+        val lp = win.attributes
 
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 resizeInitialTouchX = event.rawX
                 resizeInitialTouchY = event.rawY
-                resizeInitialWidth = (baseWidth * root.scaleX).toInt()
+                resizeInitialWidth = lp.width
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
                 val dx = if (isLeftCorner) resizeInitialTouchX - event.rawX else event.rawX - resizeInitialTouchX
                 
-                val minWidth = (150 * metrics.density).toInt()
-                val maxWidth = metrics.widthPixels
+                val minWidth = (264 * metrics.density).toInt()
+                val maxWidth = (359 * metrics.density).toInt()
                 val targetWidth = (resizeInitialWidth + dx).toInt().coerceIn(minWidth, maxWidth)
                 
-                val scale = targetWidth / baseWidth
-                root.scaleX = scale
-                root.scaleY = scale
-                root.pivotX = if (isLeftCorner) root.width.toFloat() else 0f
-                root.pivotY = root.height.toFloat()
+                val scale = (targetWidth / baseWidth).coerceIn(0.88f, 1.20f)
+                currentFloatingScale = scale
                 
-                // Force insets to update so the touch region shrinks based on scale
-                window.decorView.requestLayout()
+                lp.width = targetWidth
+                lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                win.attributes = lp
+                
+                root.scaleX = 1f
+                root.scaleY = 1f
+                
+                val kbView = root.findViewById<com.flowboard.ime.ui.KeyboardView>(R.id.keyboardView)
+                kbView?.setKeyHeight((75 * scale).toInt())
+                kbView?.setFontScale(scale)
+                renderToolbar()
                 return true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                // Save scale to prefs
+                val scale = (lp.width / baseWidth).coerceIn(0.88f, 1.20f)
                 getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
                     .edit()
-                    .putFloat("floating_scale_width", root.scaleX)
-                    .putFloat("floating_scale_height", root.scaleY)
-                    .putFloat("floating_scale", root.scaleX)
+                    .putFloat("floating_scale", scale)
                     .apply()
-                
-                // Force an inset update so the invisible wall is removed
-                val lp = window.attributes
-                window.attributes = lp
-                
                 return true
             }
         }
@@ -1140,8 +1165,8 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun toggleMinimization() {
-        val window = window?.window ?: return
-        val lp = window.attributes
+        val win = window?.window ?: return
+        val lp = win.attributes
         val root = keyboardRoot ?: return
         val metrics = resources.displayMetrics
 
@@ -1185,7 +1210,7 @@ class FlowboardIMEService : InputMethodService() {
             root.setOnClickListener(null)
             root.isClickable = false
         }
-        window.attributes = lp
+        win.attributes = lp
     }
 
     private fun updateSpaceLabelForMode() {
@@ -1533,10 +1558,9 @@ class FlowboardIMEService : InputMethodService() {
             if (currentLen > 0) {
                 ic.deleteSurroundingText(currentLen, 0)
             }
-            ic.commitText(word, 1)
+            ic.commitText("$word ", 1)
 
             typedText.clear()
-            typedText.append(word)
         }
         if (::scoringEngine.isInitialized) {
             scoringEngine.resetTrieCache()
@@ -1684,11 +1708,6 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun updatePredictions() {
-        if (isFloatingMode) {
-            predictionBar?.visibility = View.GONE
-            return
-        }
-
         if (isNumberMode) {
             predictionBar?.visibility = View.INVISIBLE
             return
@@ -1734,8 +1753,8 @@ class FlowboardIMEService : InputMethodService() {
         val allResults = mutableListOf<Pair<String, Int>>()
 
         fun dfs(n: com.flowboard.ime.data.models.TrieNode, prefix: String, depth: Int) {
-            if (allResults.size >= 50) return // Limit candidates
-            if (depth > 10) return // Safety depth limit
+            if (allResults.size >= 100) return // Candidate pool
+            if (depth > 12) return // Safety depth limit
             if (n.isEndOfWord) {
                 allResults.add(prefix to n.frequency)
             }
@@ -1748,9 +1767,14 @@ class FlowboardIMEService : InputMethodService() {
 
         dfs(node, text, 0)
 
-        return allResults.sortedByDescending { it.second }
-            .map { it.first }
-            .take(3)
+        // Effective rank = (rank + 1) * 1.4^extraChars (smaller line index = more popular)
+        return allResults.sortedBy { (word, rank) ->
+            val extraChars = maxOf(0, word.length - text.length)
+            val lenPenalty = Math.pow(1.4, extraChars.toDouble())
+            (rank + 1) * lenPenalty
+        }
+        .map { it.first }
+        .take(3)
     }
 
     // ══════════════════════════════════════════
@@ -1819,7 +1843,7 @@ class FlowboardIMEService : InputMethodService() {
         val numberRow = rootView.findViewById<View>(R.id.numberRow)
         numberRow?.visibility = if (showNumberRow) View.VISIBLE else View.GONE
         
-        predictionRow?.visibility = if (showSuggestions && !isFloatingMode) View.VISIBLE else View.GONE
+        predictionRow?.visibility = if (showSuggestions) View.VISIBLE else View.GONE
         
         // 2. Load theme colors
         val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"

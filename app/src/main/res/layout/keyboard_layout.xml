@@ -19,20 +19,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-        <!-- Drag Handle for Floating Mode (initially GONE) -->
-        <FrameLayout
-            android:id="@+id/dragHandleArea"
-            android:layout_width="match_parent"
-            android:layout_height="18dp"
-            android:visibility="gone"
-            android:background="?android:attr/selectableItemBackground">
-            <View
-                android:layout_width="50dp"
-                android:layout_height="4dp"
-                android:layout_gravity="center"
-                android:background="#30000000"
-                android:backgroundTint="@color/text_swipe" />
-        </FrameLayout>
 
         <!-- Number Row (initially GONE, managed by preferences) -->
         <LinearLayout
@@ -272,7 +258,7 @@
             <LinearLayout
                 android:id="@+id/sideTools"
                 android:layout_width="42dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:orientation="vertical"
                 android:gravity="center_horizontal"
                 android:background="@drawable/side_tools_bg"
@@ -424,35 +410,48 @@
             </FrameLayout>
         </LinearLayout>
 
+        <!-- Dedicated Floating Control Bar (visible only in Floating Mode) -->
+        <LinearLayout
+            android:id="@+id/floatingControlBar"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="4dp"
+            android:layout_marginTop="4dp"
+            android:visibility="gone">
+
+            <!-- Drag Handle Bar (Center Area) -->
+            <FrameLayout
+                android:id="@+id/dragHandleArea"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?android:attr/selectableItemBackground">
+                <View
+                    android:layout_width="60dp"
+                    android:layout_height="6dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/prediction_key_bg"
+                    android:backgroundTint="#99888888" />
+            </FrameLayout>
+
+            <!-- Resize Handle Right (Bottom-Right) -->
+            <ImageView
+                android:id="@+id/resizeHandleRight"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_resize_modern"
+                android:scaleType="centerInside"
+                android:padding="4dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:backgroundTint="#80888888"
+                android:contentDescription="Resize Window Right" />
         </LinearLayout>
 
-        <!-- Resize Handles for Floating Mode (Visible touch zones) -->
-        <ImageView
-            android:id="@+id/resizeHandleLeft"
-            android:layout_width="48dp"
-            android:layout_height="24dp"
-            android:layout_gravity="bottom|start"
-            android:src="@drawable/ic_resize_modern"
-            android:scaleX="-1"
-            android:scaleType="centerInside"
-            android:padding="4dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:backgroundTint="#40888888"
-            android:visibility="gone"
-            android:contentDescription="Resize Window Left" />
-            
-        <ImageView
-            android:id="@+id/resizeHandleRight"
-            android:layout_width="48dp"
-            android:layout_height="24dp"
-            android:layout_gravity="bottom|end"
-            android:src="@drawable/ic_resize_modern"
-            android:scaleType="centerInside"
-            android:padding="4dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:backgroundTint="#40888888"
-            android:visibility="gone"
-            android:contentDescription="Resize Window Right" />
+        </LinearLayout>
             
     </FrameLayout>
 
