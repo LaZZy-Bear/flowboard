@@ -1,8 +1,7 @@
 package com.flowboard.ime.engine
 
 import com.flowboard.ime.data.FlowboardRepository
-import com.flowboard.ime.data.models.EngineWeights
-import com.flowboard.ime.data.models.MasterKey
+import com.flowboard.ime.data.models.MasterLayoutEntry
 import com.flowboard.ime.data.models.Profile
 import com.flowboard.ime.data.models.ProfileRules
 import com.flowboard.ime.data.models.TrieNode
@@ -11,8 +10,12 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit tests for the ScoringEngine.
+ * Unit tests for the P22 ScoringEngine (English-only).
  * Tests state selection logic for all 6 states and basic scoring behavior.
+ *
+ * States:
+ *   1 = empty, 2 = prefix len 1, 3 = prefix len 2, 4 = prefix len 3+,
+ *   7 = after normal space, 8 = after connector-word space
  */
 class ScoringEngineTest {
 
@@ -23,55 +26,66 @@ class ScoringEngineTest {
     fun setup() {
         repo.reset()
 
-        // Set up minimal data for testing
-        repo.unigram = listOf("เ", "แ", "ก", "ส", "ค", "อ", "ท", "ร", "ห", "ม")
+        // English unigram (frequency order)
+        repo.unigram = listOf("t", "a", "e", "o", "i", "n", "s", "h", "r", "l", "d", "w", "c", "u", "m", "f", "g", "p", "y", "b", "v", "k", "j", "x", "q", "z")
 
-        repo.charMap = mapOf(
-            "ก" to "C", "ข" to "C", "ค" to "C", "ง" to "C", "จ" to "C",
-            "ส" to "C", "อ" to "C", "ท" to "C", "ร" to "C", "ห" to "C", "ม" to "C",
-            "เ" to "Vp", "แ" to "Vp", "โ" to "Vp", "ใ" to "Vp", "ไ" to "Vp",
-            "ะ" to "Vf", "า" to "Vf", "ำ" to "Vf",
-            "ิ" to "Vt", "ี" to "Vt", "ึ" to "Vt", "ื" to "Vt", "ั" to "Vt",
-            "ุ" to "Vb", "ู" to "Vb",
-            "่" to "T", "้" to "T", "๊" to "T", "๋" to "T", "์" to "T",
-            "ๆ" to "O", "ฯ" to "O",
-            " " to "S"
-        )
+        // Start unigram (sentence-starting chars)
+        repo.unigramStart = listOf("t", "a", "i", "s", "w", "h", "o", "n", "m", "c", "b", "p", "y", "d", "f", "r", "e", "l", "u", "g")
 
+        // Minimal master layout (26 English letters across 9 keys)
         repo.masterLayout = mapOf(
-            "key_1" to MasterKey("ส", listOf("ซ", "ศ", "ั")),
-            "key_2" to MasterKey("เ", listOf("ย", "ฟ", "โ", "ก")),
-            "key_3" to MasterKey("ร", listOf("จ", "ช")),
-            "key_4" to MasterKey("ข", listOf("ี", "น")),
-            "key_5" to MasterKey("่", listOf("ฐ", "ึ", "ด")),
-            "key_6" to MasterKey("ม", listOf("ค", "ิ", "ง")),
-            "key_7" to MasterKey("อ", listOf("ไ", "ุ", "ป", "้", "า")),
-            "key_8" to MasterKey("ล", listOf("ะ", "ฮ")),
-            "key_9" to MasterKey("ว", listOf("ห", "ใ", "์", "ธ", "บ"))
+            "t" to MasterLayoutEntry("key_1", "tap"),
+            "h" to MasterLayoutEntry("key_1", "up"),
+            "n" to MasterLayoutEntry("key_1", "left"),
+            "d" to MasterLayoutEntry("key_1", "right"),
+
+            "a" to MasterLayoutEntry("key_2", "tap"),
+            "e" to MasterLayoutEntry("key_2", "up"),
+            "i" to MasterLayoutEntry("key_2", "left"),
+            "o" to MasterLayoutEntry("key_2", "right"),
+
+            "s" to MasterLayoutEntry("key_3", "tap"),
+            "f" to MasterLayoutEntry("key_3", "up"),
+            "l" to MasterLayoutEntry("key_3", "left"),
+            "c" to MasterLayoutEntry("key_3", "right"),
+
+            "r" to MasterLayoutEntry("key_4", "tap"),
+            "g" to MasterLayoutEntry("key_4", "up"),
+            "y" to MasterLayoutEntry("key_4", "left"),
+            "b" to MasterLayoutEntry("key_4", "right"),
+
+            "w" to MasterLayoutEntry("key_5", "tap"),
+            "p" to MasterLayoutEntry("key_5", "up"),
+            "v" to MasterLayoutEntry("key_5", "left"),
+            "k" to MasterLayoutEntry("key_5", "right"),
+
+            "m" to MasterLayoutEntry("key_6", "tap"),
+            "u" to MasterLayoutEntry("key_6", "up"),
+            "j" to MasterLayoutEntry("key_6", "left"),
+            "x" to MasterLayoutEntry("key_6", "right"),
+
+            "q" to MasterLayoutEntry("key_7", "tap"),
+            "z" to MasterLayoutEntry("key_7", "up")
         )
 
-        repo.patternPenalty = mapOf(
-            "C-Vf" to listOf("Vt", "Vb"),
-            "C-Vp" to listOf("O", "Vb", "Vf", "Vt", "T")
-        )
+        repo.charMap = emptyMap()
+        repo.bigram = emptyMap()
+        repo.trigram = emptyMap()
+        repo.wordList = emptyList()
+        repo.wordReverseMap = emptyMap()
 
-        repo.activeProfile = Profile(
-            profileName = "Test",
-            rules = ProfileRules(
-                illegalStartChars = listOf("่", "้", "๊", "๋", "ิ", "ี", "ั"),
-                illegalStartPenalty = -999.0
-            )
-        )
+        repo.activeProfile = Profile.DEFAULT
         repo.bonusDict = emptyMap()
 
-        // Build a minimal trie
+        // Build a minimal trie with English words
         val trieRoot = TrieNode()
-        insertWordInTrie(trieRoot, "กา")
-        insertWordInTrie(trieRoot, "การ")
-        insertWordInTrie(trieRoot, "กิน")
-        insertWordInTrie(trieRoot, "สร")
-        insertWordInTrie(trieRoot, "สวย")
-        repo.trieDictRoot = trieRoot
+        insertWordInTrie(trieRoot, "the")
+        insertWordInTrie(trieRoot, "they")
+        insertWordInTrie(trieRoot, "then")
+        insertWordInTrie(trieRoot, "time")
+        insertWordInTrie(trieRoot, "so")
+        insertWordInTrie(trieRoot, "some")
+        repo.trieDict = trieRoot
 
         repo.markReady()
 
@@ -81,9 +95,10 @@ class ScoringEngineTest {
     private fun insertWordInTrie(root: TrieNode, word: String) {
         var node = root
         for (c in word) {
-            node = node.getOrPut(c)
+            node = node.getOrPut(c.toString())
         }
         node.isEndOfWord = true
+        node.frequency = 10
     }
 
     // ══════════════════════════════════════════
@@ -91,7 +106,7 @@ class ScoringEngineTest {
     // ══════════════════════════════════════════
 
     @Test
-    fun `State 1 - empty text returns pure unigram`() {
+    fun `State 1 - empty text uses start unigram`() {
         val scores = engine.calculateScores("")
         assertTrue("State 1 should return scores", scores.isNotEmpty())
         assertTrue("Engine status should mention State 1", engine.engineStatus.contains("State 1"))
@@ -99,39 +114,49 @@ class ScoringEngineTest {
 
     @Test
     fun `State 2 - single char prefix`() {
-        val scores = engine.calculateScores("ก")
+        val scores = engine.calculateScores("t")
         assertTrue("State 2 should return scores", scores.isNotEmpty())
         assertTrue("Engine status should mention State 2", engine.engineStatus.contains("State 2"))
     }
 
     @Test
     fun `State 3 - two char prefix`() {
-        val scores = engine.calculateScores("กา")
-        // "กา" is a word, so prefix is empty after tokenization → State 5
-        // Let's use a non-word prefix instead
-        val scores2 = engine.calculateScores("กข")
-        assertTrue("Should return scores", scores2.isNotEmpty())
+        val scores = engine.calculateScores("th")
+        assertTrue("State 3 should return scores", scores.isNotEmpty())
+        assertTrue("Engine status should mention State 3", engine.engineStatus.contains("State 3"))
     }
 
     @Test
     fun `State 4 - three or more char prefix`() {
-        val scores = engine.calculateScores("กขค")
+        val scores = engine.calculateScores("the")
         assertTrue("State 4 should return scores", scores.isNotEmpty())
+        assertTrue("Engine status should mention State 4", engine.engineStatus.contains("State 4"))
     }
 
     @Test
-    fun `State 7 - after space`() {
-        val scores = engine.calculateScores("กา ")
+    fun `State 7 - after normal word space`() {
+        val scores = engine.calculateScores("time ")
         assertTrue("State 7 should return scores", scores.isNotEmpty())
         assertTrue("Engine status should mention State 7", engine.engineStatus.contains("State 7"))
     }
 
     @Test
-    fun `State 5 - completed word in trie`() {
-        // "กา" is a word in our test trie → prefix empty → State 5
-        val scores = engine.calculateScores("กา")
-        assertTrue("Should return scores", scores.isNotEmpty())
-        assertTrue("Engine status should mention State 5", engine.engineStatus.contains("State 5"))
+    fun `State 8 - after connector word space`() {
+        val scores = engine.calculateScores("the ")
+        assertTrue("State 8 should return scores", scores.isNotEmpty())
+        assertTrue("Engine status should mention State 8", engine.engineStatus.contains("State 8"))
+    }
+
+    @Test
+    fun `State 8 triggers for connector 'a'`() {
+        val scores = engine.calculateScores("I saw a ")
+        assertTrue("Engine status should mention State 8", engine.engineStatus.contains("State 8"))
+    }
+
+    @Test
+    fun `State 7 triggers for non-connector word`() {
+        val scores = engine.calculateScores("run ")
+        assertTrue("Engine status should mention State 7", engine.engineStatus.contains("State 7"))
     }
 
     // ══════════════════════════════════════════
@@ -139,22 +164,15 @@ class ScoringEngineTest {
     // ══════════════════════════════════════════
 
     @Test
-    fun `illegal start chars get penalized in State 1`() {
+    fun `scores are non-negative for all chars`() {
         val scores = engine.calculateScores("")
-        // Tone marks should be heavily penalized at start of text
-        val toneScore = scores["่"] ?: 0.0
-        assertTrue("Tone mark should have negative score at start", toneScore < 0)
+        for ((char, score) in scores) {
+            assertTrue("Score for '$char' should be >= 0 but was $score", score >= 0.0)
+        }
     }
 
     @Test
-    fun `unigram scores are non-negative for normal chars`() {
-        val scores = engine.calculateScores("")
-        val gaScore = scores["ก"] ?: 0.0
-        assertTrue("Common consonant should have positive score", gaScore > 0)
-    }
-
-    @Test
-    fun `scores contain all unigram characters`() {
+    fun `all unigram chars appear in State 1 scores`() {
         val scores = engine.calculateScores("")
         for (c in repo.unigram) {
             assertTrue("Unigram char '$c' should be in scores", scores.containsKey(c))
@@ -162,10 +180,44 @@ class ScoringEngineTest {
     }
 
     @Test
+    fun `trie provides dict scores in State 2`() {
+        // Type "t" → trie should give 'h' as high probability (path t-h in trie)
+        val scores = engine.calculateScores("t")
+        assertTrue("Should have scores after 't'", scores.isNotEmpty())
+        // 'h' should score decently because "the"/"they"/"then" all start with "th"
+        val hScore = scores["h"] ?: 0.0
+        assertTrue("'h' should score > 0 after 't' (dict lookup)", hScore > 0)
+    }
+
+    @Test
     fun `reset trie cache does not crash`() {
-        engine.calculateScores("กา")
+        engine.calculateScores("th")
         engine.resetTrieCache()
-        val scores = engine.calculateScores("ก")
+        val scores = engine.calculateScores("t")
         assertTrue("Should still work after cache reset", scores.isNotEmpty())
+    }
+
+    @Test
+    fun `OOV text returns graceful fallback scores`() {
+        // Type "zzz" — no valid trie path → OOV decay → fall back to trigram/unigram
+        val scores = engine.calculateScores("zzz")
+        assertTrue("OOV text should still produce some scores", scores.isNotEmpty())
+    }
+
+    @Test
+    fun `isDoubleCharValid returns false for empty text`() {
+        assertFalse(engine.isDoubleCharValid("", "t"))
+    }
+
+    @Test
+    fun `isDoubleCharValid returns false for first char of word`() {
+        // Only 1 char typed → no sticky on first char
+        assertFalse(engine.isDoubleCharValid("t", "t"))
+    }
+
+    @Test
+    fun `isDoubleCharValid returns true for valid double`() {
+        val result = engine.isDoubleCharValid("th", "e")
+        assertTrue("Adding 'e' after 'th' is valid in trie", result)
     }
 }

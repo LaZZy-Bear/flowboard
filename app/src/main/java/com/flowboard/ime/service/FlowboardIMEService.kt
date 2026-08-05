@@ -156,8 +156,8 @@ class FlowboardIMEService : InputMethodService() {
     /** The complete text typed in the current input session */
     private val typedText = StringBuilder()
 
-    /** Whether the keyboard is showing the Alt (missing chars) layer */
-    private var isMissingMode = false
+    /** Whether the keyboard is showing the Alt (missing chars) layer — always false for EN-only */
+    private val isMissingMode = false
 
     /** Whether shift/caps is active */
     private var isShiftActive = false
@@ -446,7 +446,6 @@ class FlowboardIMEService : InputMethodService() {
             typedText.clear()
             typedTextHistory.clear()
         }
-        isMissingMode = false
         isShiftActive = false
         isNumberMode = false
         symbolPageIndex = 0
@@ -756,12 +755,12 @@ class FlowboardIMEService : InputMethodService() {
                     topMargin = (4 * density).toInt()
                 }
                 text = when (action) {
-                    ToolbarAction.HANDEDNESS -> "สลับข้าง"
-                    ToolbarAction.THEME -> "เปลี่ยนธีม"
-                    ToolbarAction.FLOATING -> "แป้นลอย"
-                    ToolbarAction.CLIPBOARD -> "คลิปบอร์ด"
-                    ToolbarAction.UNDO -> "เลิกทำ"
-                    ToolbarAction.RESIZE -> "ปรับขนาด"
+                    ToolbarAction.HANDEDNESS -> "Switch Hand"
+                    ToolbarAction.THEME -> "Theme"
+                    ToolbarAction.FLOATING -> "Float"
+                    ToolbarAction.CLIPBOARD -> "Clipboard"
+                    ToolbarAction.UNDO -> "Undo"
+                    ToolbarAction.RESIZE -> "Resize"
                     else -> ""
                 }
                 textSize = 12f
@@ -850,7 +849,7 @@ class FlowboardIMEService : InputMethodService() {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
-                text = "คลิปบอร์ดว่างเปล่า (Empty)"
+                text = "Clipboard is empty"
                 textSize = 14f
                 setTextColor(ContextCompat.getColor(context, R.color.text_swipe))
                 gravity = Gravity.CENTER
@@ -1171,19 +1170,15 @@ class FlowboardIMEService : InputMethodService() {
         window.attributes = lp
     }
 
-    private fun getLanguageLabel(): String {
-        return if (repo.activeLang == "TH") "ไทย" else "EN"
-    }
-
     private fun updateSpaceLabelForMode() {
         val mainText = keyboardRoot?.findViewById<TextView>(R.id.btnSpaceText)
         val downText = keyboardRoot?.findViewById<TextView>(R.id.btnSpaceDownText)
         
         if (isNumberMode) {
             mainText?.text = "0"
-            downText?.text = getLanguageLabel()
+            downText?.text = "EN"
         } else {
-            mainText?.text = getLanguageLabel()
+            mainText?.text = "EN"
             downText?.text = "0"
         }
     }
@@ -1208,14 +1203,10 @@ class FlowboardIMEService : InputMethodService() {
             btnShiftText?.visibility = View.GONE
             btnShiftIcon?.visibility = View.VISIBLE
             
-            val color = if (repo.activeLang == "TH") {
-                if (isMissingMode) colors.accent else colors.textTap
-            } else {
-                when (languageManager.shiftState) {
-                    LanguageManager.ShiftState.OFF -> colors.textTap
-                    LanguageManager.ShiftState.SHIFT_ONCE -> colors.accent
-                    LanguageManager.ShiftState.CAPS_LOCK -> colors.accent
-                }
+            val color = when (languageManager.shiftState) {
+                LanguageManager.ShiftState.OFF -> colors.textTap
+                LanguageManager.ShiftState.SHIFT_ONCE -> colors.accent
+                LanguageManager.ShiftState.CAPS_LOCK -> colors.accent
             }
             btnShiftIcon?.imageTintList = ColorStateList.valueOf(color)
         }
@@ -1225,9 +1216,7 @@ class FlowboardIMEService : InputMethodService() {
         isNumberMode = !isNumberMode
         symbolPageIndex = 0
         
-        btnNumbers?.text = if (isNumberMode) {
-            if (repo.activeLang == "TH") "ก" else "Aa"
-        } else "?12"
+        btnNumbers?.text = if (isNumberMode) "Aa" else "?12"
         
         val prefs = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
         val showSuggestions = prefs.getBoolean("show_suggestions", true)
@@ -1252,18 +1241,7 @@ class FlowboardIMEService : InputMethodService() {
     private fun getKeyId(keySlots: KeySlots): String? {
         val down = keySlots.down
         if (down.isEmpty()) return null
-        val num = when (down) {
-            "1", "๑" -> 1
-            "2", "๒" -> 2
-            "3", "๓" -> 3
-            "4", "๔" -> 4
-            "5", "๕" -> 5
-            "6", "๖" -> 6
-            "7", "๗" -> 7
-            "8", "๘" -> 8
-            "9", "๙" -> 9
-            else -> null
-        }
+        val num = down.toIntOrNull()
         return if (num != null) "key_$num" else null
     }
 
@@ -1402,10 +1380,7 @@ class FlowboardIMEService : InputMethodService() {
             repo.stickyChar = null
         }
 
-        if (repo.activeLang == "TH" && isMissingMode) {
-            isMissingMode = false
-            updateShiftButtonTint()
-        } else if (repo.activeLang == "EN" && languageManager.shiftState == LanguageManager.ShiftState.OFF) {
+        if (languageManager.shiftState == LanguageManager.ShiftState.OFF) {
             // Re-render if shift state auto-reset from SHIFT_ONCE
             updateShiftButtonTint()
             refreshLayout()
@@ -1481,23 +1456,9 @@ class FlowboardIMEService : InputMethodService() {
 
     private fun handleGlobeClick() {
         playClick(0)
-        val newLang = languageManager.toggleLanguage()
-        profileManager.refreshProfile() // Switch default/chat based on new lang
-        
-        isMissingMode = false
-        isNumberMode = false
-        
-        // Update language indicator
-        val langStr = if (newLang == "TH") "ไทย" else "EN"
-        android.widget.Toast.makeText(this, langStr, android.widget.Toast.LENGTH_SHORT).show()
-        
-        btnNumbers?.text = "?12"
-        updateSpaceLabelForMode()
-        updateShiftButtonTint()
-        
-        scoringEngine.resetTrieCache()
-        refreshLayout()
-        updatePredictions()
+        // Show system IME picker so user can switch to another keyboard
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.showInputMethodPicker()
     }
 
     private fun switchToNextIME() {
@@ -1573,11 +1534,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun toggleAltMode() {
-        if (repo.activeLang == "TH") {
-            isMissingMode = !isMissingMode
-        } else {
-            languageManager.cycleShift()
-        }
+        languageManager.cycleShift()
         refreshLayout()
         updateShiftButtonTint()
     }
@@ -1611,12 +1568,7 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         val scores = scoringEngine.calculateScores(textSnapshot)
-        val layout = if (repo.activeLang == "TH" && isMissingMode) {
-            val normalLayout = layoutManager.assignLayout(scores)
-            layoutManager.assignMissingLayout(normalLayout)
-        } else {
-            layoutManager.assignLayout(scores)
-        }
+        val layout = layoutManager.assignLayout(scores)
 
         val displayLayout = layout.mapValues { (_, slots) ->
             KeySlots(
@@ -1628,7 +1580,7 @@ class FlowboardIMEService : InputMethodService() {
             )
         }
 
-        keyboardView?.isAltMode = (repo.activeLang == "TH" && isMissingMode)
+        keyboardView?.isAltMode = false
         keyboardView?.updateLayout(displayLayout)
     }
 
@@ -1737,9 +1689,7 @@ class FlowboardIMEService : InputMethodService() {
         val root = repo.trieDict ?: return results
         var node = root
         for (c in text) {
-            val nodeKey = if (repo.activeLang == "EN") c.toString() else repo.charReverseMap[c.toString()]
-            if (nodeKey == null) return results
-            node = node[nodeKey] ?: return results
+            node = node[c.toString()] ?: return results
         }
 
         val allResults = mutableListOf<Pair<String, Int>>()
@@ -1753,8 +1703,7 @@ class FlowboardIMEService : InputMethodService() {
             for (entry in n.children.entries) {
                 val key = entry.key
                 val child = entry.value
-                val realChar = if (repo.activeLang == "EN") key else repo.charMap[key] ?: ""
-                dfs(child, prefix + realChar, depth + 1)
+                dfs(child, prefix + key, depth + 1)
             }
         }
 

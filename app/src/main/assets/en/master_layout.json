@@ -1,0 +1,146 @@
+{
+  "a": {
+    "homeKey": "key_1",
+    "defaultSlot": "right"
+  },
+  "b": {
+    "homeKey": "key_7",
+    "defaultSlot": "tap"
+  },
+  "c": {
+    "homeKey": "key_9",
+    "defaultSlot": "tap"
+  },
+  "?": {
+    "homeKey": "key_1",
+    "defaultSlot": "left"
+  },
+  "e": {
+    "homeKey": "key_7",
+    "defaultSlot": "left"
+  },
+  "d": {
+    "homeKey": "key_8",
+    "defaultSlot": "right"
+  },
+  "f": {
+    "homeKey": "key_6",
+    "defaultSlot": "right"
+  },
+  "!": {
+    "homeKey": "key_2",
+    "defaultSlot": "right"
+  },
+  "i": {
+    "homeKey": "key_3",
+    "defaultSlot": "right"
+  },
+  "g": {
+    "homeKey": "key_2",
+    "defaultSlot": "tap"
+  },
+  "j": {
+    "homeKey": "key_8",
+    "defaultSlot": "left"
+  },
+  "/": {
+    "homeKey": "key_4",
+    "defaultSlot": "left"
+  },
+  "o": {
+    "homeKey": "key_7",
+    "defaultSlot": "up"
+  },
+  "k": {
+    "homeKey": "key_7",
+    "defaultSlot": "right"
+  },
+  "l": {
+    "homeKey": "key_2",
+    "defaultSlot": "up"
+  },
+  "@": {
+    "homeKey": "key_4",
+    "defaultSlot": "right"
+  },
+  "n": {
+    "homeKey": "key_5",
+    "defaultSlot": "tap"
+  },
+  "m": {
+    "homeKey": "key_3",
+    "defaultSlot": "up"
+  },
+  "u": {
+    "homeKey": "key_9",
+    "defaultSlot": "up"
+  },
+  "v": {
+    "homeKey": "key_4",
+    "defaultSlot": "tap"
+  },
+  "r": {
+    "homeKey": "key_6",
+    "defaultSlot": "tap"
+  },
+  "p": {
+    "homeKey": "key_8",
+    "defaultSlot": "tap"
+  },
+  "q": {
+    "homeKey": "key_1",
+    "defaultSlot": "tap"
+  },
+  "-": {
+    "homeKey": "key_1",
+    "defaultSlot": "up"
+  },
+  "s": {
+    "homeKey": "key_4",
+    "defaultSlot": "up"
+  },
+  "w": {
+    "homeKey": "key_5",
+    "defaultSlot": "left"
+  },
+  "x": {
+    "homeKey": "key_6",
+    "defaultSlot": "up"
+  },
+  ",": {
+    "homeKey": "key_5",
+    "defaultSlot": "up"
+  },
+  "t": {
+    "homeKey": "key_2",
+    "defaultSlot": "left"
+  },
+  "y": {
+    "homeKey": "key_9",
+    "defaultSlot": "left"
+  },
+  "z": {
+    "homeKey": "key_3",
+    "defaultSlot": "left"
+  },
+  ":": {
+    "homeKey": "key_6",
+    "defaultSlot": "left"
+  },
+  "h": {
+    "homeKey": "key_5",
+    "defaultSlot": "right"
+  },
+  "'": {
+    "homeKey": "key_3",
+    "defaultSlot": "tap"
+  },
+  ".": {
+    "homeKey": "key_8",
+    "defaultSlot": "up"
+  },
+  "\"": {
+    "homeKey": "key_9",
+    "defaultSlot": "right"
+  }
+}

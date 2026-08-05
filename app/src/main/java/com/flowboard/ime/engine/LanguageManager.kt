@@ -3,32 +3,25 @@ package com.flowboard.ime.engine
 import com.flowboard.ime.data.FlowboardRepository
 
 /**
- * Manages language switching, shift/caps lock state, and case application.
+ * Manages shift/caps lock state and character case application.
+ *
+ * English-only. Language switching removed (no more toggleLanguage).
+ * This class now acts purely as a shift/case state manager.
  */
 class LanguageManager(private val repo: FlowboardRepository) {
 
     enum class ShiftState { OFF, SHIFT_ONCE, CAPS_LOCK }
-    
+
     var shiftState: ShiftState = ShiftState.OFF
         private set
-
-    /**
-     * Toggle between TH and EN. Returns the new active language.
-     */
-    fun toggleLanguage(): String {
-        val newLang = if (repo.activeLang == "TH") "EN" else "TH"
-        repo.setLanguage(newLang)
-        shiftState = ShiftState.OFF  // reset shift on lang change
-        return newLang
-    }
 
     private var lastShiftTapTime: Long = 0L
 
     /**
-     * Cycle shift state (EN only):
-     * - OFF -> SHIFT_ONCE
-     * - SHIFT_ONCE -> CAPS_LOCK (if pressed within 0.8s) or OFF (if pressed after 0.8s)
-     * - CAPS_LOCK -> OFF
+     * Cycle shift state:
+     * - OFF → SHIFT_ONCE
+     * - SHIFT_ONCE → CAPS_LOCK (if pressed within 0.8s) or OFF (if pressed after 0.8s)
+     * - CAPS_LOCK → OFF
      */
     fun cycleShift(): ShiftState {
         val now = System.currentTimeMillis()
@@ -38,11 +31,7 @@ class LanguageManager(private val repo: FlowboardRepository) {
         shiftState = when (shiftState) {
             ShiftState.OFF -> ShiftState.SHIFT_ONCE
             ShiftState.SHIFT_ONCE -> {
-                if (delta < 800) {
-                    ShiftState.CAPS_LOCK
-                } else {
-                    ShiftState.OFF
-                }
+                if (delta < 800) ShiftState.CAPS_LOCK else ShiftState.OFF
             }
             ShiftState.CAPS_LOCK -> ShiftState.OFF
         }
@@ -50,10 +39,9 @@ class LanguageManager(private val repo: FlowboardRepository) {
     }
 
     /**
-     * Get case to display character without consuming state.
+     * Get display case for a character without consuming the shift state.
      */
     fun getDisplayCase(char: String): String {
-        if (repo.activeLang != "EN") return char
         return when (shiftState) {
             ShiftState.OFF -> char.lowercase()
             ShiftState.SHIFT_ONCE, ShiftState.CAPS_LOCK -> char.uppercase()
@@ -61,24 +49,18 @@ class LanguageManager(private val repo: FlowboardRepository) {
     }
 
     /**
-     * Apply case to character based on shift state (EN only).
-     * Automatically resets SHIFT_ONCE back to OFF.
+     * Apply case to a character based on current shift state.
+     * SHIFT_ONCE automatically resets to OFF after one character.
      */
     fun applyCase(char: String): String {
-        if (repo.activeLang != "EN") return char
         return when (shiftState) {
             ShiftState.OFF -> char.lowercase()
             ShiftState.SHIFT_ONCE -> {
-                shiftState = ShiftState.OFF  // auto-reset after one char
-                lastShiftTapTime = 0L       // reset tap time to prevent accidental double-tap logic on next tap
+                shiftState = ShiftState.OFF
+                lastShiftTapTime = 0L  // Reset tap time to prevent accidental CAPS_LOCK
                 char.uppercase()
             }
             ShiftState.CAPS_LOCK -> char.uppercase()
         }
     }
-
-    /**
-     * Is alt/missing mode available? (Thai only)
-     */
-    fun isAltModeAvailable(): Boolean = repo.activeLang == "TH"
 }
