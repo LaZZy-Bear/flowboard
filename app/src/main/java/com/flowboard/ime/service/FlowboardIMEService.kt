@@ -19,6 +19,8 @@ import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.view.ContextThemeWrapper
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import android.provider.Settings
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
@@ -208,6 +210,18 @@ class FlowboardIMEService : InputMethodService() {
         keyboardRoot = rootView.findViewById(R.id.keyboardRoot)
         dragHandleArea = rootView.findViewById(R.id.dragHandleArea)
         predictionRow = rootView.findViewById(R.id.predictionRow)
+
+        val density = resources.displayMetrics.density
+        val baseBottomPadding = if (isFloatingMode) (4 * density).toInt() else (8 * density).toInt()
+        val initialNavHeight = if (!isFloatingMode) getSystemNavigationBarHeight() else 0
+        keyboardRoot?.setPadding(
+            (6 * density).toInt(),
+            (8 * density).toInt(),
+            (6 * density).toInt(),
+            baseBottomPadding + initialNavHeight
+        )
+
+        setupNavigationBarPadding(rootView)
 
         if (isFloatingMode) {
             keyboardRoot?.background = ContextCompat.getDrawable(themedContext, R.drawable.floating_kb_bg)
@@ -1871,5 +1885,36 @@ class FlowboardIMEService : InputMethodService() {
         
         btnSend?.backgroundTintList = accentTintList
         rootView.findViewById<ImageView>(R.id.btnSendIcon)?.imageTintList = ColorStateList.valueOf(colors.sendText)
+    }
+
+    private fun getSystemNavigationBarHeight(): Int {
+        val resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        return if (resourceId > 0) resources.getDimensionPixelSize(resourceId) else 0
+    }
+
+    private fun setupNavigationBarPadding(rootView: View) {
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
+            val navInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val systemNavHeight = getSystemNavigationBarHeight()
+            val bottomInset = if (!isFloatingMode) {
+                maxOf(navInsets.bottom, systemNavHeight)
+            } else 0
+
+            keyboardRoot?.let { root ->
+                val density = resources.displayMetrics.density
+                val baseBottomPadding = if (isFloatingMode) (4 * density).toInt() else (8 * density).toInt()
+                val currentLeftPadding = root.paddingLeft.takeIf { it > 0 } ?: (6 * density).toInt()
+                val currentRightPadding = root.paddingRight.takeIf { it > 0 } ?: (6 * density).toInt()
+                val currentTopPadding = root.paddingTop.takeIf { it > 0 } ?: (8 * density).toInt()
+                root.setPadding(
+                    currentLeftPadding,
+                    currentTopPadding,
+                    currentRightPadding,
+                    baseBottomPadding + bottomInset
+                )
+            }
+            insets
+        }
+        rootView.requestApplyInsets()
     }
 }
