@@ -1681,15 +1681,11 @@ class FlowboardIMEService : InputMethodService() {
         }
         
         val basePredictionHeight = 42
-        predictionRow?.layoutParams = predictionRow?.layoutParams?.apply {
-            height = (basePredictionHeight * minorScale * density).toInt()
-        }
+        predictionRow?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.height = (basePredictionHeight * minorScale * density).toInt() } }
         
         val baseBottomBarHeight = 50
         val bottomBar = keyboardRoot?.findViewById<View>(R.id.bottomBar)
-        bottomBar?.layoutParams = bottomBar?.layoutParams?.apply {
-            height = (baseBottomBarHeight * minorScale * density).toInt()
-        }
+        bottomBar?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.height = (baseBottomBarHeight * minorScale * density).toInt() } }
         
         val sideToolsView = keyboardRoot?.findViewById<View>(R.id.sideTools)
         sideToolsView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.height = totalGridHeight } }
