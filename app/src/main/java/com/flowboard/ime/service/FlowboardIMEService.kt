@@ -1,39 +1,40 @@
 package com.flowboard.ime.service
 
 import android.annotation.SuppressLint
-import android.inputmethodservice.InputMethodService
-import android.util.Log
-import android.view.View
-import android.view.MotionEvent
-import android.view.Gravity
-import android.view.ViewGroup
-import android.view.LayoutInflater
-import android.content.Context
 import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
-import android.view.inputmethod.InputMethodManager
-import android.view.inputmethod.InputMethodSubtype
 import android.content.res.ColorStateList
 import android.content.res.Configuration
+import android.graphics.Color
+import android.inputmethodservice.InputMethodService
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.util.TypedValue
 import android.view.ContextThemeWrapper
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.view.inputmethod.InputMethodSubtype
+import android.widget.FrameLayout
+import android.widget.GridLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
-import android.provider.Settings
-import android.view.inputmethod.EditorInfo
-import android.widget.FrameLayout
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import com.flowboard.ime.MainActivity
 import com.flowboard.ime.R
 import com.flowboard.ime.data.FlowboardRepository
-import android.view.DragEvent
-import android.widget.GridLayout
-
 import com.flowboard.ime.data.models.KeySlots
 import com.flowboard.ime.engine.LanguageManager
 import com.flowboard.ime.engine.LayoutManager
@@ -41,13 +42,13 @@ import com.flowboard.ime.engine.ProfileManager
 import com.flowboard.ime.engine.ScoringEngine
 import com.flowboard.ime.ui.KeyboardView
 import com.flowboard.ime.ui.SwipeDetector
+import com.flowboard.ime.util.ThemeManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -128,7 +129,6 @@ class FlowboardIMEService : InputMethodService() {
 
     // Height Adjustment Overlay Views
     private var heightAdjustLayout: LinearLayout? = null
-    private var heightSeekBar: android.widget.SeekBar? = null
     private var btnCloseHeightAdjust: ImageView? = null
 
     // Control Panel States
@@ -137,7 +137,6 @@ class FlowboardIMEService : InputMethodService() {
     private var isFloatingMode = false
     private var floatingY = 100 // default offset from bottom in dp
     private var currentFloatingScale: Float = 1f
-    private var isToolbarExpanded = false
     private var isMorePanelOpen = false
     
     // Undo & Minimization States
@@ -156,9 +155,6 @@ class FlowboardIMEService : InputMethodService() {
     private var resizeInitialTouchX = 0f
     private var resizeInitialTouchY = 0f
     private var resizeInitialWidth = 0
-    private var resizeInitialHeight = 0
-    private var resizeInitialWindowX = 0
-    private var resizeInitialWindowY = 0
 
     /** The complete text typed in the current input session */
     private val typedText = StringBuilder()
@@ -207,7 +203,7 @@ class FlowboardIMEService : InputMethodService() {
         
         val themedContext = getThemedContext()
         val inflater = LayoutInflater.from(themedContext)
-        val rootView = inflater.inflate(R.layout.keyboard_layout, null)
+        val rootView = inflater.inflate(R.layout.keyboard_layout, null, false)
 
         keyboardRoot = rootView.findViewById(R.id.keyboardRoot)
         dragHandleArea = rootView.findViewById(R.id.dragHandleArea)
@@ -259,19 +255,20 @@ class FlowboardIMEService : InputMethodService() {
         btnDelete = rootView.findViewById<ImageView>(R.id.btnDelete).apply {
             setOnClickListener { handleDelete() }
             var deleteRunnable: Runnable? = null
-            val handler = android.os.Handler(android.os.Looper.getMainLooper())
+            val handler = Handler(Looper.getMainLooper())
             setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         v.isPressed = true
                         handleDelete()
-                        deleteRunnable = object : Runnable {
+                        val r = object : Runnable {
                             override fun run() {
                                 handleDelete()
                                 handler.postDelayed(this, 50)
                             }
                         }
-                        handler.postDelayed(deleteRunnable!!, 400)
+                        deleteRunnable = r
+                        handler.postDelayed(r, 400)
                         true
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -349,6 +346,7 @@ class FlowboardIMEService : InputMethodService() {
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> v.isPressed = false
                 }
                 spaceSwipeDetector.onTouchEvent(event)
+                v.performClick()
                 true
             }
         }
@@ -368,6 +366,8 @@ class FlowboardIMEService : InputMethodService() {
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> v.isPressed = false
                 }
                 periodSwipeDetector.onTouchEvent(event)
+                v.performClick()
+                true
             }
         }
 
@@ -383,42 +383,42 @@ class FlowboardIMEService : InputMethodService() {
         val btnSizeMedium = rootView.findViewById<android.widget.Button>(R.id.btnSizeMedium)
         val btnSizeLarge = rootView.findViewById<android.widget.Button>(R.id.btnSizeLarge)
 
-        val prefs = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
         // Ensure default is 1.2f if not set
         var currentScale = prefs.getFloat("docked_keyboard_scale", 1.2f)
         applyDockedScale(currentScale)
 
         fun updateActiveButton() {
-            btnSizeSmall?.backgroundTintList = android.content.res.ColorStateList.valueOf(if (currentScale <= 1.05f) android.graphics.Color.DKGRAY else android.graphics.Color.LTGRAY)
-            btnSizeSmall?.setTextColor(if (currentScale <= 1.05f) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+            btnSizeSmall?.backgroundTintList = ColorStateList.valueOf(if (currentScale <= 1.05f) Color.DKGRAY else Color.LTGRAY)
+            btnSizeSmall?.setTextColor(if (currentScale <= 1.05f) Color.WHITE else Color.BLACK)
             
             val isMedium = currentScale > 1.05f && currentScale < 1.4f
-            btnSizeMedium?.backgroundTintList = android.content.res.ColorStateList.valueOf(if (isMedium) android.graphics.Color.DKGRAY else android.graphics.Color.LTGRAY)
-            btnSizeMedium?.setTextColor(if (isMedium) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+            btnSizeMedium?.backgroundTintList = ColorStateList.valueOf(if (isMedium) Color.DKGRAY else Color.LTGRAY)
+            btnSizeMedium?.setTextColor(if (isMedium) Color.WHITE else Color.BLACK)
             
-            btnSizeLarge?.backgroundTintList = android.content.res.ColorStateList.valueOf(if (currentScale >= 1.4f) android.graphics.Color.DKGRAY else android.graphics.Color.LTGRAY)
-            btnSizeLarge?.setTextColor(if (currentScale >= 1.4f) android.graphics.Color.WHITE else android.graphics.Color.BLACK)
+            btnSizeLarge?.backgroundTintList = ColorStateList.valueOf(if (currentScale >= 1.4f) Color.DKGRAY else Color.LTGRAY)
+            btnSizeLarge?.setTextColor(if (currentScale >= 1.4f) Color.WHITE else Color.BLACK)
         }
 
         updateActiveButton()
 
         btnSizeSmall?.setOnClickListener {
             currentScale = 1.0f
-            prefs.edit().putFloat("docked_keyboard_scale", currentScale).commit()
+            prefs.edit().putFloat("docked_keyboard_scale", currentScale).apply()
             applyDockedScale(currentScale)
             updateActiveButton()
         }
         
         btnSizeMedium?.setOnClickListener {
             currentScale = 1.2f
-            prefs.edit().putFloat("docked_keyboard_scale", currentScale).commit()
+            prefs.edit().putFloat("docked_keyboard_scale", currentScale).apply()
             applyDockedScale(currentScale)
             updateActiveButton()
         }
         
         btnSizeLarge?.setOnClickListener {
             currentScale = 1.5f
-            prefs.edit().putFloat("docked_keyboard_scale", currentScale).commit()
+            prefs.edit().putFloat("docked_keyboard_scale", currentScale).apply()
             applyDockedScale(currentScale)
             updateActiveButton()
         }
@@ -488,7 +488,7 @@ class FlowboardIMEService : InputMethodService() {
         Log.d(TAG, "onDestroy")
         try {
             unregisterReceiver(settingsReceiver)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // ignore
         }
         serviceScope.cancel()
@@ -501,7 +501,7 @@ class FlowboardIMEService : InputMethodService() {
     private fun renderToolbar() {
         val tools = sideTools ?: return
         tools.removeAllViews()
-        val prefs = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
         val scale = if (!isFloatingMode) prefs.getFloat("docked_keyboard_scale", 1.3f) else currentFloatingScale
         
         val displayActions = if (isFloatingMode) {
@@ -541,12 +541,12 @@ class FlowboardIMEService : InputMethodService() {
                 )
                 setImageResource(iconRes)
                 
-                val prefs = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
-                val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
-                val colors = com.flowboard.ime.util.ThemeManager.getThemeColors(context, activeTheme, isEffectiveDarkMode())
+                val p = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+                val activeTheme = p.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
+                val colors = ThemeManager.getThemeColors(context, activeTheme, isEffectiveDarkMode())
                 imageTintList = ColorStateList.valueOf(colors.textTap)
                 
-                val outValue = android.util.TypedValue()
+                val outValue = TypedValue()
                 getThemedContext().theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)
                 setBackgroundResource(outValue.resourceId)
                 
@@ -561,24 +561,23 @@ class FlowboardIMEService : InputMethodService() {
                     executeToolbarAction(action)
                 }
 
-
-
-
                 if (action == ToolbarAction.DELETE) {
                     var deleteRunnable: Runnable? = null
-                    val handler = android.os.Handler(android.os.Looper.getMainLooper())
+                    val handler = Handler(Looper.getMainLooper())
+                    @SuppressLint("ClickableViewAccessibility")
                     setOnTouchListener { v, event ->
                         when (event.action) {
                             MotionEvent.ACTION_DOWN -> {
                                 v.isPressed = true
                                 handleDelete()
-                                deleteRunnable = object : Runnable {
+                                val r = object : Runnable {
                                     override fun run() {
                                         handleDelete()
                                         handler.postDelayed(this, 50)
                                     }
                                 }
-                                handler.postDelayed(deleteRunnable!!, 400)
+                                deleteRunnable = r
+                                handler.postDelayed(r, 400)
                                 true
                             }
                             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -598,16 +597,16 @@ class FlowboardIMEService : InputMethodService() {
                     
                     setOnDragListener { v, event ->
                         when (event.action) {
-                            DragEvent.ACTION_DRAG_STARTED -> true
-                            DragEvent.ACTION_DRAG_ENTERED -> {
+                            android.view.DragEvent.ACTION_DRAG_STARTED -> true
+                            android.view.DragEvent.ACTION_DRAG_ENTERED -> {
                                 v.alpha = 0.5f
                                 true
                             }
-                            DragEvent.ACTION_DRAG_EXITED -> {
+                            android.view.DragEvent.ACTION_DRAG_EXITED -> {
                                 v.alpha = 1.0f
                                 true
                             }
-                            DragEvent.ACTION_DROP -> {
+                            android.view.DragEvent.ACTION_DROP -> {
                                 v.alpha = 1.0f
                                 val actionStr = event.clipData.getItemAt(0).text.toString()
                                 val droppedAction = ToolbarAction.valueOf(actionStr)
@@ -623,7 +622,7 @@ class FlowboardIMEService : InputMethodService() {
                                 }
                                 true
                             }
-                            DragEvent.ACTION_DRAG_ENDED -> {
+                            android.view.DragEvent.ACTION_DRAG_ENDED -> {
                                 v.alpha = 1.0f
                                 true
                             }
@@ -643,7 +642,7 @@ class FlowboardIMEService : InputMethodService() {
                 setHandedness(isLeftHanded)
             }
             ToolbarAction.THEME -> {
-                val intent = Intent(this, com.flowboard.ime.MainActivity::class.java).apply {
+                val intent = Intent(this, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra("OPEN_PAGE", "themes.html")
                 }
@@ -740,7 +739,7 @@ class FlowboardIMEService : InputMethodService() {
                 val padding = (8 * density).toInt()
                 setPadding(padding, padding, padding, padding)
                 
-                val outValue = android.util.TypedValue()
+                val outValue = TypedValue()
                 context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
                 setBackgroundResource(outValue.resourceId)
             }
@@ -771,6 +770,7 @@ class FlowboardIMEService : InputMethodService() {
                 ).apply {
                     topMargin = (4 * density).toInt()
                 }
+                @Suppress("SetTextI18n")
                 text = when (action) {
                     ToolbarAction.HANDEDNESS -> "Switch Hand"
                     ToolbarAction.THEME -> "Theme"
@@ -812,7 +812,7 @@ class FlowboardIMEService : InputMethodService() {
 
 
     private fun updateClipboardPanel() {
-        val container = clipboardContent as? android.view.ViewGroup ?: return
+        val container = clipboardContent ?: return
         container.removeAllViews()
         
         // Ensure primary clip is in history if missing
@@ -857,7 +857,6 @@ class FlowboardIMEService : InputMethodService() {
                     }
                 }
                 
-                // Add an outline or elevation if needed, but prediction_key_bg is fine
                 container.addView(card)
             }
         } else {
@@ -866,6 +865,7 @@ class FlowboardIMEService : InputMethodService() {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+                @Suppress("SetTextI18n")
                 text = "Clipboard is empty"
                 textSize = 14f
                 setTextColor(ContextCompat.getColor(context, R.color.text_swipe))
@@ -876,6 +876,7 @@ class FlowboardIMEService : InputMethodService() {
             container.addView(tv)
         }
     }
+
     private fun getThemedContext(): Context {
         val baseContext = if (isDarkModeOverride != null) {
             val config = Configuration(resources.configuration)
@@ -896,32 +897,33 @@ class FlowboardIMEService : InputMethodService() {
         return currentNightMode == Configuration.UI_MODE_NIGHT_YES
     }
 
+    @Suppress("DEPRECATION")
     private fun updateFloatingWindowMode() {
         val win = window?.window ?: return
         val lp = win.attributes
         val metrics = resources.displayMetrics
-        val predictionRow = win.decorView.findViewById<View>(R.id.predictionRow)
+        val predictionRowView = win.decorView.findViewById<View>(R.id.predictionRow)
         
         val root = keyboardRoot ?: return
         val density = metrics.density
-        val btnNumbers = root.findViewById<View>(R.id.btnNumbers)
-        val btnShift = root.findViewById<View>(R.id.btnShift)
-        val btnGlobe = root.findViewById<View>(R.id.btnGlobe)
-        val btnSpace = root.findViewById<View>(R.id.btnSpace)
-        val btnPeriod = root.findViewById<View>(R.id.btnPeriod)
-        val btnSend = root.findViewById<View>(R.id.btnSend)
+        val btnNumbersView = root.findViewById<View>(R.id.btnNumbers)
+        val btnShiftView = root.findViewById<View>(R.id.btnShift)
+        val btnGlobeView = root.findViewById<View>(R.id.btnGlobe)
+        val btnSpaceView = root.findViewById<View>(R.id.btnSpace)
+        val btnPeriodView = root.findViewById<View>(R.id.btnPeriod)
+        val btnSendView = root.findViewById<View>(R.id.btnSend)
         
-        val sideTools = root.findViewById<View>(R.id.sideTools)
-        val keyboardView = root.findViewById<View>(R.id.keyboardView)
-        val morePanel = root.findViewById<View>(R.id.morePanel)
-        val clipboardPanel = root.findViewById<View>(R.id.clipboardPanel)
+        val sideToolsView = root.findViewById<View>(R.id.sideTools)
+        val kbView = root.findViewById<KeyboardView>(R.id.keyboardView)
+        val morePanelView = root.findViewById<View>(R.id.morePanel)
+        val clipboardPanelView = root.findViewById<View>(R.id.clipboardPanel)
 
         val floatingControlBar = root.findViewById<View>(R.id.floatingControlBar)
 
         if (isFloatingMode) {
-            val prefs = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
+            val prefs = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
             val showSuggestions = prefs.getBoolean("show_suggestions", true)
-            predictionRow?.visibility = if (showSuggestions) View.VISIBLE else View.GONE
+            predictionRowView?.visibility = if (showSuggestions) View.VISIBLE else View.GONE
             btnDelete?.visibility = View.GONE
             floatingControlBar?.visibility = View.VISIBLE
             dragHandleArea?.visibility = View.VISIBLE
@@ -931,14 +933,14 @@ class FlowboardIMEService : InputMethodService() {
             val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
             val gd = android.graphics.drawable.GradientDrawable()
             gd.cornerRadius = 16 * density
-            gd.setColor(com.flowboard.ime.util.ThemeManager.getThemeColors(this, activeTheme, isEffectiveDarkMode()).keyboardBackground)
+            gd.setColor(ThemeManager.getThemeColors(this, activeTheme, isEffectiveDarkMode()).keyboardBackground)
             
             // Apply background to the root so it scales with the keyboard
             val outerFrame = root.parent as? View
             outerFrame?.background = null
             root.background = gd
 
-            val prefsFloat = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
+            val prefsFloat = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
             val savedScale = prefsFloat.getFloat("floating_scale", 1f).coerceIn(0.88f, 1.20f)
             currentFloatingScale = savedScale
             renderToolbar()
@@ -984,26 +986,25 @@ class FlowboardIMEService : InputMethodService() {
             root.scaleX = 1f
             root.scaleY = 1f
             
-            val kbView = root.findViewById<com.flowboard.ime.ui.KeyboardView>(R.id.keyboardView)
             kbView?.setKeyHeight((75 * savedScale).toInt())
             kbView?.setFontScale(savedScale)
             
             // Set proportional weights for floating mode
-            btnNumbers?.layoutParams = (btnNumbers?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.5f }
-            btnShift?.layoutParams = (btnShift?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.2f }
-            btnGlobe?.layoutParams = (btnGlobe?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.2f }
-            btnSpace?.layoutParams = (btnSpace?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 3.3f }
-            btnPeriod?.layoutParams = (btnPeriod?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.2f }
-            btnSend?.layoutParams = (btnSend?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.6f }
+            btnNumbersView?.layoutParams = (btnNumbersView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.5f }
+            btnShiftView?.layoutParams = (btnShiftView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.2f }
+            btnGlobeView?.layoutParams = (btnGlobeView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.2f }
+            btnSpaceView?.layoutParams = (btnSpaceView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 3.3f }
+            btnPeriodView?.layoutParams = (btnPeriodView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.2f }
+            btnSendView?.layoutParams = (btnSendView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1.6f }
             
-            sideTools?.layoutParams = (sideTools?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; height = ViewGroup.LayoutParams.MATCH_PARENT; weight = 1.4f }
-            keyboardView?.layoutParams = (keyboardView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 8.6f }
-            morePanel?.layoutParams = (morePanel?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 8.6f }
-            clipboardPanel?.layoutParams = (clipboardPanel?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 8.6f }
+            sideToolsView?.layoutParams = (sideToolsView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; height = ViewGroup.LayoutParams.MATCH_PARENT; weight = 1.4f }
+            kbView?.layoutParams = (kbView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 8.6f }
+            morePanelView?.layoutParams = (morePanelView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 8.6f }
+            clipboardPanelView?.layoutParams = (clipboardPanelView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 8.6f }
         } else {
-            val prefs = getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
+            val prefs = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
             val showSuggestions = prefs.getBoolean("show_suggestions", true)
-            predictionRow?.visibility = if (showSuggestions) View.VISIBLE else View.GONE
+            predictionRowView?.visibility = if (showSuggestions) View.VISIBLE else View.GONE
             btnDelete?.visibility = View.VISIBLE
             floatingControlBar?.visibility = View.GONE
             
@@ -1011,7 +1012,7 @@ class FlowboardIMEService : InputMethodService() {
             val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
             val outerFrame = root.parent as? View
             outerFrame?.background = null
-            root.setBackgroundColor(com.flowboard.ime.util.ThemeManager.getThemeColors(this, activeTheme, isEffectiveDarkMode()).keyboardBackground)
+            root.setBackgroundColor(ThemeManager.getThemeColors(this, activeTheme, isEffectiveDarkMode()).keyboardBackground)
             
             // Reset scale down transformations back to original (1f)
             root.scaleX = 1f
@@ -1019,9 +1020,9 @@ class FlowboardIMEService : InputMethodService() {
             val dockedScale = prefs.getFloat("docked_keyboard_scale", 1.3f)
             applyDockedScale(dockedScale)
             
-            lp.width = android.view.ViewGroup.LayoutParams.MATCH_PARENT
-            lp.height = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-            lp.gravity = android.view.Gravity.BOTTOM
+            lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+            lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            lp.gravity = Gravity.BOTTOM
             lp.flags = lp.flags and android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS.inv()
             lp.x = 0
             lp.y = 0
@@ -1033,17 +1034,17 @@ class FlowboardIMEService : InputMethodService() {
             }
             
             // Restore fixed widths for docked mode
-            btnNumbers?.layoutParams = (btnNumbers?.layoutParams as? android.widget.LinearLayout.LayoutParams)?.apply { width = (46 * density).toInt(); weight = 0f }
-            btnShift?.layoutParams = (btnShift?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (38 * density).toInt(); weight = 0f }
-            btnGlobe?.layoutParams = (btnGlobe?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (38 * density).toInt(); weight = 0f }
-            btnSpace?.layoutParams = (btnSpace?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1f }
-            btnPeriod?.layoutParams = (btnPeriod?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (38 * density).toInt(); weight = 0f }
-            btnSend?.layoutParams = (btnSend?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (50 * density).toInt(); weight = 0f }
+            btnNumbersView?.layoutParams = (btnNumbersView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (46 * density).toInt(); weight = 0f }
+            btnShiftView?.layoutParams = (btnShiftView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (38 * density).toInt(); weight = 0f }
+            btnGlobeView?.layoutParams = (btnGlobeView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (38 * density).toInt(); weight = 0f }
+            btnSpaceView?.layoutParams = (btnSpaceView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1f }
+            btnPeriodView?.layoutParams = (btnPeriodView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (38 * density).toInt(); weight = 0f }
+            btnSendView?.layoutParams = (btnSendView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (50 * density).toInt(); weight = 0f }
             
-            sideTools?.layoutParams = (sideTools?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (42 * density).toInt(); height = ViewGroup.LayoutParams.MATCH_PARENT; weight = 0f }
-            keyboardView?.layoutParams = (keyboardView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1f }
-            morePanel?.layoutParams = (morePanel?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1f }
-            clipboardPanel?.layoutParams = (clipboardPanel?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1f }
+            sideToolsView?.layoutParams = (sideToolsView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = (42 * density).toInt(); height = ViewGroup.LayoutParams.MATCH_PARENT; weight = 0f }
+            kbView?.layoutParams = (kbView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1f }
+            morePanelView?.layoutParams = (morePanelView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1f }
+            clipboardPanelView?.layoutParams = (clipboardPanelView?.layoutParams as? LinearLayout.LayoutParams)?.apply { width = 0; weight = 1f }
 
             val systemNavHeight = getSystemNavigationBarHeight()
             val baseBottomPadding = (8 * density).toInt()
@@ -1113,6 +1114,7 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun handleResizeTouch(event: MotionEvent, isLeftCorner: Boolean): Boolean {
         val win = window?.window ?: return false
         val root = keyboardRoot ?: return false
@@ -1130,7 +1132,7 @@ class FlowboardIMEService : InputMethodService() {
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
-                val dx = if (isLeftCorner) resizeInitialTouchX - event.rawX else event.rawX - resizeInitialTouchX
+                val dx = event.rawX - resizeInitialTouchX
                 
                 val minWidth = (264 * metrics.density).toInt()
                 val maxWidth = (359 * metrics.density).toInt()
@@ -1146,7 +1148,7 @@ class FlowboardIMEService : InputMethodService() {
                 root.scaleX = 1f
                 root.scaleY = 1f
                 
-                val kbView = root.findViewById<com.flowboard.ime.ui.KeyboardView>(R.id.keyboardView)
+                val kbView = root.findViewById<KeyboardView>(R.id.keyboardView)
                 kbView?.setKeyHeight((75 * scale).toInt())
                 kbView?.setFontScale(scale)
                 renderToolbar()
@@ -1154,7 +1156,7 @@ class FlowboardIMEService : InputMethodService() {
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 val scale = (lp.width / baseWidth).coerceIn(0.88f, 1.20f)
-                getSharedPreferences("flowboard_settings", android.content.Context.MODE_PRIVATE)
+                getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
                     .edit()
                     .putFloat("floating_scale", scale)
                     .apply()
@@ -1395,8 +1397,8 @@ class FlowboardIMEService : InputMethodService() {
                 val scaledHeight = (root.height * root.scaleY).toInt()
                 outInsets.touchableRegion.set(loc[0], loc[1], loc[0] + scaledWidth, loc[1] + scaledHeight)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in onComputeInsets", e)
+        } catch (_: Exception) {
+            Log.e(TAG, "Error in onComputeInsets")
         }
     }
 
@@ -1656,12 +1658,12 @@ class FlowboardIMEService : InputMethodService() {
         keyboardView?.setFontScale(scale)
         
         // Scale bottom bar text sizes
-        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnSpaceText)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f * scale)
-        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnSpaceDownText)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f * scale)
-        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnPeriodText)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 20f * scale)
-        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnPeriodCommaText)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10f * scale)
-        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnNumbers)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f * scale)
-        keyboardRoot?.findViewById<android.widget.TextView>(R.id.btnShiftText)?.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f * scale)
+        keyboardRoot?.findViewById<TextView>(R.id.btnSpaceText)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * scale)
+        keyboardRoot?.findViewById<TextView>(R.id.btnSpaceDownText)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f * scale)
+        keyboardRoot?.findViewById<TextView>(R.id.btnPeriodText)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f * scale)
+        keyboardRoot?.findViewById<TextView>(R.id.btnPeriodCommaText)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f * scale)
+        keyboardRoot?.findViewById<TextView>(R.id.btnNumbers)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * scale)
+        keyboardRoot?.findViewById<TextView>(R.id.btnShiftText)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * scale)
         
         val keyHeightPx = (scaledKeyHeightDp * density).toInt()
         val gapPx = (6 * density).toInt()
@@ -1699,8 +1701,8 @@ class FlowboardIMEService : InputMethodService() {
         val softWindow = window?.window
         if (softWindow != null && !isFloatingMode) {
             softWindow.setLayout(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
             )
             updateFullscreenMode()
             updateInputViewShown()
@@ -1781,6 +1783,7 @@ class FlowboardIMEService : InputMethodService() {
     // Profile & Handedness
     // ══════════════════════════════════════════
 
+    @Suppress("unused")
     fun switchToProfile(profilePath: String) {
         serviceScope.launch {
             val mode = if (profilePath.contains("chat")) ProfileManager.ProfileMode.CHAT else ProfileManager.ProfileMode.DEFAULT
@@ -1848,13 +1851,12 @@ class FlowboardIMEService : InputMethodService() {
         // 2. Load theme colors
         val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
         val isSystemDark = isEffectiveDarkMode()
-        val colors = com.flowboard.ime.util.ThemeManager.getThemeColors(themedContext, activeTheme, isSystemDark)
+        val colors = ThemeManager.getThemeColors(themedContext, activeTheme, isSystemDark)
         
         // 3. Apply colors to views
         val keyBgTintList = ColorStateList.valueOf(colors.keyBackground)
         val textTapColor = colors.textTap
         val textSwipeColor = colors.textSwipe
-        val accentColor = colors.accent
         val accentTintList = ColorStateList.valueOf(colors.accent)
         val toolBgTintList = ColorStateList.valueOf(colors.toolBackground)
         
@@ -1933,6 +1935,7 @@ class FlowboardIMEService : InputMethodService() {
         rootView.findViewById<ImageView>(R.id.btnSendIcon)?.imageTintList = ColorStateList.valueOf(colors.sendText)
     }
 
+    @SuppressLint("DiscouragedApi", "InternalInsetResource")
     private fun getSystemNavigationBarHeight(): Int {
         val resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
         return if (resourceId > 0) resources.getDimensionPixelSize(resourceId) else 0
@@ -1956,7 +1959,7 @@ class FlowboardIMEService : InputMethodService() {
                     currentLeftPadding,
                     currentTopPadding,
                     currentRightPadding,
-                    baseBottomPadding + bottomInset
+                    baseBottomPadding + systemNavHeight
                 )
             }
             insets
