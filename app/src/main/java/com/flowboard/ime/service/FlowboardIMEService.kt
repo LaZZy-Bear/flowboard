@@ -1747,8 +1747,9 @@ class FlowboardIMEService : InputMethodService() {
         val results = mutableListOf<String>()
 
         val root = repo.trieDict ?: return results
+        val lowerText = text.lowercase()
         var node = root
-        for (c in text) {
+        for (c in lowerText) {
             node = node[c.toString()] ?: return results
         }
 
@@ -1767,15 +1768,26 @@ class FlowboardIMEService : InputMethodService() {
             }
         }
 
-        dfs(node, text, 0)
+        dfs(node, lowerText, 0)
+
+        val isAllCaps = text.length > 1 && text.all { it.isUpperCase() }
+        val isFirstUpper = text.isNotEmpty() && text[0].isUpperCase()
+
+        fun applyCasing(word: String): String {
+            return when {
+                isAllCaps -> word.uppercase()
+                isFirstUpper -> word.replaceFirstChar { it.uppercase() }
+                else -> word
+            }
+        }
 
         // Effective rank = (rank + 1) * 1.4^extraChars (smaller line index = more popular)
         return allResults.sortedBy { (word, rank) ->
-            val extraChars = maxOf(0, word.length - text.length)
+            val extraChars = maxOf(0, word.length - lowerText.length)
             val lenPenalty = Math.pow(1.4, extraChars.toDouble())
             (rank + 1) * lenPenalty
         }
-        .map { it.first }
+        .map { applyCasing(it.first) }
         .take(3)
     }
 
