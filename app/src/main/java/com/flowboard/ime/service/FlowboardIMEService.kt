@@ -192,7 +192,7 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
-    @SuppressLint("ClickableViewAccessibility")
+    @SuppressLint("ClickableViewAccessibility", "InflateParams")
     override fun onCreateInputView(): View {
         Log.d(TAG, "onCreateInputView")
         
@@ -243,7 +243,7 @@ class FlowboardIMEService : InputMethodService() {
         // ══════════════════════════════════════════
         predictionBar = rootView.findViewById(R.id.predictionBar)
         resizeHandleRight = rootView.findViewById<View>(R.id.resizeHandleRight).apply {
-            setOnTouchListener { _, event -> handleResizeTouch(event, false) }
+            setOnTouchListener { _, event -> handleResizeTouch(event) }
         }
         clipboardPanel = rootView.findViewById(R.id.clipboardPanel)
         clipboardContent = rootView.findViewById(R.id.clipboardContent)
@@ -1119,8 +1119,7 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
-    @Suppress("UNUSED_PARAMETER")
-    private fun handleResizeTouch(event: MotionEvent, isLeftCorner: Boolean): Boolean {
+    private fun handleResizeTouch(event: MotionEvent): Boolean {
         val win = window?.window ?: return false
         val root = keyboardRoot ?: return false
         val metrics = resources.displayMetrics
@@ -1446,7 +1445,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun handleDelete() {
-        playClick(android.view.KeyEvent.KEYCODE_DEL)
+        playClick(KeyEvent.KEYCODE_DEL)
         repo.lastActionKeyId = null
         repo.lastActionSlot = null
         repo.lastActionChar = null
@@ -1500,17 +1499,17 @@ class FlowboardIMEService : InputMethodService() {
         if (imeAction != EditorInfo.IME_ACTION_NONE && imeAction != EditorInfo.IME_ACTION_UNSPECIFIED) {
             val handled = ic.performEditorAction(imeAction)
             if (!handled) {
-                ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER))
-                ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER))
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
             }
         } else if (isMultiline && !noEnterAction) {
-            ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER))
-            ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER))
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
         } else {
             val handled = ic.performEditorAction(EditorInfo.IME_ACTION_DONE)
             if (!handled) {
-                ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_ENTER))
-                ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_ENTER))
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
             }
         }
 
@@ -1698,8 +1697,10 @@ class FlowboardIMEService : InputMethodService() {
         renderToolbar()
         
         // Force IME window to resize its background to wrap the new content height
-        keyboardRoot?.requestLayout()
-        (keyboardRoot?.parent as? View)?.requestLayout()
+        keyboardRoot?.let {
+            it.requestLayout()
+            (it.parent as? View)?.requestLayout()
+        }
         
         val softWindow = window?.window
         if (softWindow != null && !isFloatingMode) {
