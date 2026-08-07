@@ -1,7 +1,8 @@
 package com.flowboard.ime
 
 import android.annotation.SuppressLint
-import android.content.Context
+import android.content.Context.INPUT_METHOD_SERVICE
+import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
@@ -10,6 +11,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,6 +24,7 @@ class MainActivity : AppCompatActivity() {
 
         webView = findViewById(R.id.webView)
         webView.webViewClient = object : WebViewClient() {
+            @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
             override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                 if (url != null && url.startsWith("file:///android_asset/")) {
                     view?.loadUrl(url)
@@ -42,6 +45,8 @@ class MainActivity : AppCompatActivity() {
         webView.loadUrl("file:///android_asset/web/$page")
     }
 
+    @Deprecated("Deprecated in Java")
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
         if (webView.canGoBack()) {
             webView.goBack()
@@ -51,7 +56,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun isKeyboardEnabled(): Boolean {
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         return imm.enabledInputMethodList.any { it.packageName == packageName }
     }
 
@@ -66,10 +71,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun selectKeyboard() {
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showInputMethodPicker()
     }
 
+    @Suppress("unused")
     class KeyboardSettingsInterface(private val activity: MainActivity) {
 
         @JavascriptInterface
@@ -86,14 +92,14 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun getSetting(key: String, defaultVal: Boolean): Boolean {
-            val prefs = activity.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+            val prefs = activity.getSharedPreferences("flowboard_settings", MODE_PRIVATE)
             return prefs.getBoolean(key, defaultVal)
         }
 
         @JavascriptInterface
         fun saveSetting(key: String, value: Boolean) {
-            val prefs = activity.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
-            prefs.edit().putBoolean(key, value).apply()
+            val prefs = activity.getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+            prefs.edit { putBoolean(key, value) }
             
             // Broadcast changes to active keyboard service
             val intent = Intent("com.flowboard.ime.ACTION_SETTINGS_CHANGED")
@@ -102,14 +108,14 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun getStringSetting(key: String, defaultVal: String): String {
-            val prefs = activity.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+            val prefs = activity.getSharedPreferences("flowboard_settings", MODE_PRIVATE)
             return prefs.getString(key, defaultVal) ?: defaultVal
         }
 
         @JavascriptInterface
         fun saveStringSetting(key: String, value: String) {
-            val prefs = activity.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
-            prefs.edit().putString(key, value).apply()
+            val prefs = activity.getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+            prefs.edit { putString(key, value) }
             
             // Broadcast changes to active keyboard service
             val intent = Intent("com.flowboard.ime.ACTION_SETTINGS_CHANGED")
@@ -118,14 +124,14 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun getActiveTheme(): String {
-            val prefs = activity.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+            val prefs = activity.getSharedPreferences("flowboard_settings", MODE_PRIVATE)
             return prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
         }
 
         @JavascriptInterface
         fun setTheme(themeName: String) {
-            val prefs = activity.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
-            prefs.edit().putString("active_theme", themeName).apply()
+            val prefs = activity.getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+            prefs.edit { putString("active_theme", themeName) }
             
             // Broadcast theme change to active keyboard service
             val intent = Intent("com.flowboard.ime.ACTION_SETTINGS_CHANGED")
@@ -134,14 +140,14 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun isPremium(): Boolean {
-            val prefs = activity.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+            val prefs = activity.getSharedPreferences("flowboard_settings", MODE_PRIVATE)
             return prefs.getBoolean("is_premium", false)
         }
 
         @JavascriptInterface
         fun setPremium(premium: Boolean) {
-            val prefs = activity.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
-            prefs.edit().putBoolean("is_premium", premium).apply()
+            val prefs = activity.getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+            prefs.edit { putBoolean("is_premium", premium) }
             
             // Broadcast premium status to active keyboard service
             val intent = Intent("com.flowboard.ime.ACTION_SETTINGS_CHANGED")
