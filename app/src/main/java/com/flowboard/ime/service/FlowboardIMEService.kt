@@ -81,6 +81,8 @@ class FlowboardIMEService : InputMethodService() {
             context?.let { ctx ->
                 AssetLoader(ctx).updatePersonalizationState(ctx, repo)
             }
+            loadSettings()
+            setHandedness(if (isFloatingMode) isFloatingLeftHanded else isDockedLeftHanded)
             setInputView(onCreateInputView())
         }
     }
@@ -139,12 +141,41 @@ class FlowboardIMEService : InputMethodService() {
     private var btnCloseHeightAdjust: ImageView? = null
 
     // Control Panel States
-    private var isLeftHanded = false
+    private var isDockedLeftHanded = false
+    private var isFloatingLeftHanded = false
     private var isDarkModeOverride: Boolean? = null
     private var isFloatingMode = false
     private var floatingY = 100 // default offset from bottom in dp
     private var currentFloatingScale: Float = 1f
     private var isMorePanelOpen = false
+
+    private fun loadSettings() {
+        val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+        isDockedLeftHanded = prefs.getBoolean("docked_side_tools_left", false)
+        isFloatingLeftHanded = prefs.getBoolean("floating_side_tools_left", false)
+        loadActiveShortcuts()
+    }
+
+    private fun saveActiveShortcuts() {
+        val str = activeShortcuts.joinToString(",") { it.name }
+        getSharedPreferences("flowboard_settings", MODE_PRIVATE).edit {
+            putString("active_shortcuts", str)
+        }
+    }
+
+    private fun loadActiveShortcuts() {
+        val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+        val str = prefs.getString("active_shortcuts", null)
+        if (!str.isNullOrEmpty()) {
+            val loaded = str.split(",").mapNotNull { name ->
+                try { ToolbarAction.valueOf(name.trim()) } catch (_: Exception) { null }
+            }
+            if (loaded.isNotEmpty()) {
+                activeShortcuts.clear()
+                activeShortcuts.addAll(loaded)
+            }
+        }
+    }
     
     // Undo & Minimization States
     private val typedTextHistory = mutableListOf<String>()
@@ -183,6 +214,8 @@ class FlowboardIMEService : InputMethodService() {
         layoutManager = LayoutManager(repo)
         languageManager = LanguageManager(repo)
         profileManager = ProfileManager(repo)
+
+        loadSettings()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(settingsReceiver, IntentFilter("com.flowboard.ime.ACTION_SETTINGS_CHANGED"), RECEIVER_NOT_EXPORTED)
@@ -445,7 +478,7 @@ class FlowboardIMEService : InputMethodService() {
         updatePredictions()
         updateSpaceLabelForMode()
         updateShiftButtonTint()
-        setHandedness(isLeftHanded)
+        setHandedness(if (isFloatingMode) isFloatingLeftHanded else isDockedLeftHanded)
 
         applySettingsAndTheme(rootView, themedContext)
 
@@ -455,6 +488,8 @@ class FlowboardIMEService : InputMethodService() {
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         Log.d(TAG, "onStartInputView (restarting=$restarting)")
+
+        loadSettings()
 
         if (::scoringEngine.isInitialized) {
             scoringEngine.resetTrieCache()
@@ -475,7 +510,7 @@ class FlowboardIMEService : InputMethodService() {
         @Suppress("SetTextI18n")
         btnNumbers?.text = "?12"
 
-        setHandedness(isLeftHanded)
+        setHandedness(if (isFloatingMode) isFloatingLeftHanded else isDockedLeftHanded)
 
         refreshLayout()
         updatePredictions()
@@ -622,6 +657,7 @@ class FlowboardIMEService : InputMethodService() {
                                         activeShortcuts[existingIndex] = activeShortcuts[targetSlot]
                                     }
                                     activeShortcuts[targetSlot] = droppedAction
+                                    saveActiveShortcuts()
                                     renderToolbar()
                                     renderMorePanel()
                                 }
@@ -643,8 +679,19 @@ class FlowboardIMEService : InputMethodService() {
     private fun executeToolbarAction(action: ToolbarAction) {
         when (action) {
             ToolbarAction.HANDEDNESS -> {
-                isLeftHanded = !isLeftHanded
-                setHandedness(isLeftHanded)
+                if (isFloatingMode) {
+                    isFloatingLeftHanded = !isFloatingLeftHanded
+                    getSharedPreferences("flowboard_settings", MODE_PRIVATE).edit {
+                        putBoolean("floating_side_tools_left", isFloatingLeftHanded)
+                    }
+                    setHandedness(isFloatingLeftHanded)
+                } else {
+                    isDockedLeftHanded = !isDockedLeftHanded
+                    getSharedPreferences("flowboard_settings", MODE_PRIVATE).edit {
+                        putBoolean("docked_side_tools_left", isDockedLeftHanded)
+                    }
+                    setHandedness(isDockedLeftHanded)
+                }
             }
             ToolbarAction.THEME -> {
                 val intent = Intent(this, MainActivity::class.java).apply {
@@ -910,6 +957,7 @@ class FlowboardIMEService : InputMethodService() {
         val predictionRowView = win.decorView.findViewById<View>(R.id.predictionRow)
         
         val root = keyboardRoot ?: return
+        setHandedness(if (isFloatingMode) isFloatingLeftHanded else isDockedLeftHanded)
         val density = metrics.density
         val btnNumbersView = root.findViewById<View>(R.id.btnNumbers)
         val btnShiftView = root.findViewById<View>(R.id.btnShift)
@@ -1829,6 +1877,41 @@ class FlowboardIMEService : InputMethodService() {
             val density = resources.displayMetrics.density
             root.setPadding((6 * density).toInt(), topPadding, (6 * density).toInt(), bottomPadding)
         }
+
+        updateDeleteButtonPosition()
+    }
+
+    private fun updateDeleteButtonPosition() {
+        val row = predictionRow as? LinearLayout ?: return
+        val del = btnDelete ?: return
+
+        val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+        val followSideTools = prefs.getBoolean("delete_btn_follow_side_tools", true)
+        val fixedSide = prefs.getString("delete_btn_fixed_side", "right") ?: "right"
+
+        val deleteOnLeft = if (followSideTools) {
+            isDockedLeftHanded
+        } else {
+            fixedSide == "left"
+        }
+
+        row.removeView(del)
+        val density = resources.displayMetrics.density
+        val lp = del.layoutParams as? LinearLayout.LayoutParams ?: LinearLayout.LayoutParams((44 * density).toInt(), (36 * density).toInt())
+        val margin = (8 * density).toInt()
+
+        if (deleteOnLeft) {
+            row.gravity = Gravity.CENTER_VERTICAL or Gravity.START
+            row.addView(del, 0)
+            lp.marginStart = 0
+            lp.marginEnd = margin
+        } else {
+            row.gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            row.addView(del)
+            lp.marginStart = margin
+            lp.marginEnd = 0
+        }
+        del.layoutParams = lp
     }
 
     private fun isEffectiveDarkMode(): Boolean {

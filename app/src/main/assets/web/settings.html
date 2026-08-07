@@ -229,6 +229,22 @@
                 </div>
             </div>
 
+            <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+            <!-- Side Bar & Delete Button Menu Item -->
+            <div id="sidebar-layout-btn" class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors cursor-pointer">
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                        <span class="material-symbols-outlined">tune</span>
+                    </div>
+                    <div>
+                        <h3 class="text-title-md font-title-md">Side Bar &amp; Delete Button</h3>
+                        <p class="text-body-md font-body-md text-on-surface-variant">Docked side, floating side &amp; delete button position</p>
+                    </div>
+                </div>
+                <span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+            </div>
+
         </div>
 
         <!-- Inline Ad -->
@@ -266,6 +282,78 @@
         </a>
 
     </nav>
+
+    <!-- Sub-page Overlay for Side Bar & Delete Button -->
+    <div id="sidebar-subpage" class="fixed inset-0 bg-background z-50 transform translate-x-full transition-transform duration-300 flex flex-col pb-safe">
+        <!-- Sub-page Header -->
+        <header class="bg-surface dark:bg-surface-dim flex items-center gap-3 w-full px-screen-margin py-3 max-w-full sticky top-0 z-40 border-b border-surface-variant/40">
+            <button id="sidebar-back-btn" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container-high transition-colors text-on-surface">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </button>
+            <h1 class="text-headline-md font-headline-md font-semibold text-primary">Side Bar &amp; Delete Button</h1>
+        </header>
+
+        <!-- Sub-page Content -->
+        <main class="flex-1 overflow-y-auto px-screen-margin py-6 space-y-6">
+            <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-variant overflow-hidden">
+                <!-- Docked Side Bar -->
+                <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                    <div class="flex items-center gap-4 flex-1">
+                        <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                            <span class="material-symbols-outlined">dock</span>
+                        </div>
+                        <div>
+                            <h3 class="text-title-md font-title-md">Docked Side Bar</h3>
+                            <p class="text-body-md font-body-md text-on-surface-variant">Position in docked mode</p>
+                        </div>
+                    </div>
+                    <select id="docked-side-select" class="bg-surface-container border border-surface-variant text-on-surface rounded-lg px-3 py-1.5 text-body-md focus:outline-none focus:border-primary">
+                        <option value="right">Right</option>
+                        <option value="left">Left</option>
+                    </select>
+                </div>
+
+                <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+                <!-- Floating Side Bar -->
+                <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                    <div class="flex items-center gap-4 flex-1">
+                        <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                            <span class="material-symbols-outlined">picture_in_picture</span>
+                        </div>
+                        <div>
+                            <h3 class="text-title-md font-title-md">Floating Side Bar</h3>
+                            <p class="text-body-md font-body-md text-on-surface-variant">Position in floating mode</p>
+                        </div>
+                    </div>
+                    <select id="floating-side-select" class="bg-surface-container border border-surface-variant text-on-surface rounded-lg px-3 py-1.5 text-body-md focus:outline-none focus:border-primary">
+                        <option value="right">Right</option>
+                        <option value="left">Left</option>
+                    </select>
+                </div>
+
+                <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+                <!-- Delete Button Position -->
+                <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                    <div class="flex items-center gap-4 flex-1">
+                        <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                            <span class="material-symbols-outlined">backspace</span>
+                        </div>
+                        <div>
+                            <h3 class="text-title-md font-title-md">Delete Button Position</h3>
+                            <p class="text-body-md font-body-md text-on-surface-variant">Follow side bar or fixed position</p>
+                        </div>
+                    </div>
+                    <select id="delete-mode-select" class="bg-surface-container border border-surface-variant text-on-surface rounded-lg px-3 py-1.5 text-body-md focus:outline-none focus:border-primary">
+                        <option value="follow">Follow Side Bar</option>
+                        <option value="right">Fixed Right</option>
+                        <option value="left">Fixed Left</option>
+                    </select>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <script>
         // Check activation status of keyboard
@@ -370,7 +458,71 @@
                         });
                     }
                 });
+
+                // Sub-page navigation
+                const subpage = document.getElementById('sidebar-subpage');
+                const openBtn = document.getElementById('sidebar-layout-btn');
+                const backBtn = document.getElementById('sidebar-back-btn');
+
+                if (openBtn && subpage) {
+                    openBtn.addEventListener('click', () => {
+                        subpage.classList.remove('translate-x-full');
+                        history.pushState({ subpage: 'sidebar' }, '');
+                    });
+                }
+
+                const closeSubpage = () => {
+                    if (subpage) subpage.classList.add('translate-x-full');
+                };
+
+                if (backBtn) {
+                    backBtn.addEventListener('click', () => {
+                        history.back();
+                    });
+                }
+
+                window.addEventListener('popstate', () => {
+                    closeSubpage();
+                });
                 
+                // Docked side bar
+                const dockedSideSelect = document.getElementById('docked-side-select');
+                if (dockedSideSelect) {
+                    const isLeft = Android.getSetting('docked_side_tools_left', false);
+                    dockedSideSelect.value = isLeft ? 'left' : 'right';
+                    dockedSideSelect.addEventListener('change', function() {
+                        Android.saveSetting('docked_side_tools_left', this.value === 'left');
+                    });
+                }
+
+                // Floating side bar
+                const floatingSideSelect = document.getElementById('floating-side-select');
+                if (floatingSideSelect) {
+                    const isLeft = Android.getSetting('floating_side_tools_left', false);
+                    floatingSideSelect.value = isLeft ? 'left' : 'right';
+                    floatingSideSelect.addEventListener('change', function() {
+                        Android.saveSetting('floating_side_tools_left', this.value === 'left');
+                    });
+                }
+
+                // Delete button mode
+                const deleteModeSelect = document.getElementById('delete-mode-select');
+                if (deleteModeSelect) {
+                    const follow = Android.getSetting('delete_btn_follow_side_tools', true);
+                    const fixedSide = Android.getStringSetting ? Android.getStringSetting('delete_btn_fixed_side', 'right') : 'right';
+                    deleteModeSelect.value = follow ? 'follow' : fixedSide;
+                    deleteModeSelect.addEventListener('change', function() {
+                        if (this.value === 'follow') {
+                            Android.saveSetting('delete_btn_follow_side_tools', true);
+                        } else {
+                            Android.saveSetting('delete_btn_follow_side_tools', false);
+                            if (Android.saveStringSetting) {
+                                Android.saveStringSetting('delete_btn_fixed_side', this.value);
+                            }
+                        }
+                    });
+                }
+
                 checkKeyboardStatus();
             }
         });

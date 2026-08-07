@@ -101,6 +101,22 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun getStringSetting(key: String, defaultVal: String): String {
+            val prefs = activity.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+            return prefs.getString(key, defaultVal) ?: defaultVal
+        }
+
+        @JavascriptInterface
+        fun saveStringSetting(key: String, value: String) {
+            val prefs = activity.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+            prefs.edit().putString(key, value).apply()
+            
+            // Broadcast changes to active keyboard service
+            val intent = Intent("com.flowboard.ime.ACTION_SETTINGS_CHANGED")
+            activity.sendBroadcast(intent)
+        }
+
+        @JavascriptInterface
         fun getActiveTheme(): String {
             val prefs = activity.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
             return prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
