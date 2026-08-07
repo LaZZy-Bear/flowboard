@@ -1,8 +1,6 @@
 package com.flowboard.ime
 
 import android.annotation.SuppressLint
-import android.content.Context.INPUT_METHOD_SERVICE
-import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
