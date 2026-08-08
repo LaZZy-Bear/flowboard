@@ -9,7 +9,10 @@ import android.content.IntentFilter
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Typeface
 import android.inputmethodservice.InputMethodService
+import com.flowboard.ime.data.ClipboardItem
+import com.flowboard.ime.data.ClipboardManagerHelper
 import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
@@ -119,8 +122,13 @@ class FlowboardIMEService : InputMethodService() {
     private var sideTools: LinearLayout? = null
     private var dragHandleArea: View? = null
     private var resizeHandleRight: View? = null
-    private var clipboardPanel: android.widget.ScrollView? = null
+    private var clipboardPanel: View? = null
     private var clipboardContent: LinearLayout? = null
+    private lateinit var clipboardHelper: ClipboardManagerHelper
+    private var quickPasteBar: View? = null
+    private var quickPasteText: TextView? = null
+    private var quickPasteDismiss: View? = null
+    private var btnClearUnpinned: TextView? = null
     private var keyboardRoot: View? = null
 
     // Bottom Bar
@@ -145,6 +153,7 @@ class FlowboardIMEService : InputMethodService() {
     private var isFloatingLeftHanded = false
     private var isDarkModeOverride: Boolean? = null
     private var isFloatingMode = false
+    private var floatingX = -1 // default offset from left in dp (-1 means auto-center)
     private var floatingY = 100 // default offset from bottom in dp
     private var currentFloatingScale: Float = 1f
     private var isMorePanelOpen = false
@@ -153,6 +162,9 @@ class FlowboardIMEService : InputMethodService() {
         val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
         isDockedLeftHanded = prefs.getBoolean("docked_side_tools_left", false)
         isFloatingLeftHanded = prefs.getBoolean("floating_side_tools_left", false)
+        isFloatingMode = prefs.getBoolean("is_floating_mode", false)
+        floatingX = prefs.getInt("floating_x", -1)
+        floatingY = prefs.getInt("floating_y", 100)
         loadActiveShortcuts()
     }
 
@@ -217,6 +229,24 @@ class FlowboardIMEService : InputMethodService() {
 
         loadSettings()
 
+        clipboardHelper = ClipboardManagerHelper(this)
+        val clipMgr = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
+        clipMgr?.addPrimaryClipChangedListener {
+            val primaryClip = clipMgr.primaryClip
+            if (primaryClip != null && primaryClip.itemCount > 0) {
+                val clipText = primaryClip.getItemAt(0)?.coerceToText(this)?.toString()
+                if (!clipText.isNullOrBlank()) {
+                    val newItem = clipboardHelper.addClip(clipText)
+                    if (newItem != null) {
+                        showQuickPasteChip(newItem.text)
+                        if (clipboardPanel?.visibility == View.VISIBLE) {
+                            updateClipboardPanel()
+                        }
+                    }
+                }
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(settingsReceiver, IntentFilter("com.flowboard.ime.ACTION_SETTINGS_CHANGED"), RECEIVER_NOT_EXPORTED)
         } else {
@@ -275,11 +305,26 @@ class FlowboardIMEService : InputMethodService() {
         // Prediction Bar
         // ══════════════════════════════════════════
         predictionBar = rootView.findViewById(R.id.predictionBar)
+        quickPasteBar = rootView.findViewById(R.id.quickPasteBar)
+        quickPasteText = rootView.findViewById(R.id.quickPasteText)
+        quickPasteDismiss = rootView.findViewById<View>(R.id.quickPasteDismiss)?.apply {
+            setOnClickListener {
+                quickPasteBar?.visibility = View.GONE
+                updateDeleteButtonPosition()
+                updatePredictions()
+            }
+        }
         resizeHandleRight = rootView.findViewById<View>(R.id.resizeHandleRight).apply {
             setOnTouchListener { _, event -> handleResizeTouch(event) }
         }
         clipboardPanel = rootView.findViewById(R.id.clipboardPanel)
         clipboardContent = rootView.findViewById(R.id.clipboardContent)
+        btnClearUnpinned = rootView.findViewById<TextView>(R.id.btnClearUnpinned)?.apply {
+            setOnClickListener {
+                clipboardHelper.clearUnpinned()
+                updateClipboardPanel()
+            }
+        }
         pred1 = rootView.findViewById<TextView>(R.id.pred1).apply {
             setOnClickListener { usePrediction(this) }
         }
@@ -423,7 +468,9 @@ class FlowboardIMEService : InputMethodService() {
         val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
         // Ensure default is 1.2f if not set
         var currentScale = prefs.getFloat("docked_keyboard_scale", 1.2f)
-        applyDockedScale(currentScale)
+        if (!isFloatingMode) {
+            applyDockedScale(currentScale)
+        }
 
         fun updateActiveButton() {
             btnSizeSmall?.backgroundTintList = ColorStateList.valueOf(if (currentScale <= 1.05f) Color.DKGRAY else Color.LTGRAY)
@@ -702,6 +749,9 @@ class FlowboardIMEService : InputMethodService() {
             }
             ToolbarAction.FLOATING -> {
                 isFloatingMode = !isFloatingMode
+                getSharedPreferences("flowboard_settings", MODE_PRIVATE).edit {
+                    putBoolean("is_floating_mode", isFloatingMode)
+                }
                 updateFloatingWindowMode()
                 renderToolbar()
             }
@@ -862,71 +912,160 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
+    private fun showQuickPasteChip(text: String) {
+        val qpBar = quickPasteBar ?: return
+        val predBar = predictionBar ?: return
+        val txt = quickPasteText ?: return
+
+        txt.text = text
+        predBar.visibility = View.GONE
+        qpBar.visibility = View.VISIBLE
+
+        qpBar.setOnClickListener {
+            currentInputConnection?.commitText(text, 1)
+            qpBar.visibility = View.GONE
+            updateDeleteButtonPosition()
+            updatePredictions()
+        }
+    }
 
     private fun updateClipboardPanel() {
         val container = clipboardContent ?: return
         container.removeAllViews()
-        
-        // Ensure primary clip is in history if missing
-        val clipboard = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
-        val item = clipboard?.primaryClip?.getItemAt(0)
-        val currentClip = item?.coerceToText(this)?.toString()
-        if (!currentClip.isNullOrEmpty() && !clipboardHistory.contains(currentClip)) {
-            clipboardHistory.add(0, currentClip)
-        }
-        
-        if (clipboardHistory.isNotEmpty()) {
-            for (textToPaste in clipboardHistory) {
-                val card = FrameLayout(getThemedContext()).apply {
-                    val margin = (4 * resources.displayMetrics.density).toInt()
-                    layoutParams = ViewGroup.MarginLayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    ).apply {
-                        setMargins(margin, margin, margin, margin)
-                    }
-                    setBackgroundResource(R.drawable.prediction_key_bg)
-                    
-                    val tv = TextView(context).apply {
-                        layoutParams = FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                        )
-                        text = textToPaste
-                        textSize = 15f
-                        maxLines = 3
-                        ellipsize = TextUtils.TruncateAt.END
-                        setTextColor(ContextCompat.getColor(context, R.color.text_tap))
-                        val padding = (12 * resources.displayMetrics.density).toInt()
-                        setPadding(padding, padding, padding, padding)
-                    }
-                    addView(tv)
-                    
-                    setOnClickListener {
-                        currentInputConnection?.commitText(textToPaste, 1)
-                        clipboardPanel?.visibility = View.GONE
-                        keyboardView?.visibility = View.VISIBLE
-                    }
-                }
-                
-                container.addView(card)
-            }
-        } else {
-            val tv = TextView(getThemedContext()).apply {
-                layoutParams = ViewGroup.LayoutParams(
+
+        val items = clipboardHelper.getItems()
+
+        if (items.isEmpty()) {
+            val emptyTv = TextView(getThemedContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                @Suppress("SetTextI18n")
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = (32 * resources.displayMetrics.density).toInt()
+                }
                 text = "Clipboard is empty"
                 textSize = 14f
-                setTextColor(ContextCompat.getColor(context, R.color.text_swipe))
                 gravity = Gravity.CENTER
-                val padding = (24 * resources.displayMetrics.density).toInt()
-                setPadding(padding, padding, padding, padding)
+                setTextColor(ContextCompat.getColor(context, R.color.text_icon))
             }
-            container.addView(tv)
+            container.addView(emptyTv)
+            return
         }
+
+        val pinnedItems = items.filter { it.isPinned }
+        val recentItems = items.filter { !it.isPinned }
+
+        val density = resources.displayMetrics.density
+
+        if (pinnedItems.isNotEmpty()) {
+            val pinnedHeader = TextView(getThemedContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins((8 * density).toInt(), (4 * density).toInt(), (8 * density).toInt(), (4 * density).toInt())
+                }
+                text = "Pinned"
+                textSize = 12f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(ContextCompat.getColor(context, R.color.text_tap))
+            }
+            container.addView(pinnedHeader)
+
+            for (clip in pinnedItems) {
+                container.addView(createClipboardItemCard(clip))
+            }
+        }
+
+        if (recentItems.isNotEmpty()) {
+            val recentHeader = TextView(getThemedContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins((8 * density).toInt(), if (pinnedItems.isNotEmpty()) (12 * density).toInt() else (4 * density).toInt(), (8 * density).toInt(), (4 * density).toInt())
+                }
+                text = "Recent"
+                textSize = 12f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(ContextCompat.getColor(context, R.color.text_tap))
+            }
+            container.addView(recentHeader)
+
+            for (clip in recentItems) {
+                container.addView(createClipboardItemCard(clip))
+            }
+        }
+    }
+
+    private fun createClipboardItemCard(clip: ClipboardItem): View {
+        val ctx = getThemedContext()
+        val density = resources.displayMetrics.density
+
+        val card = LinearLayout(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins((2 * density).toInt(), (3 * density).toInt(), (2 * density).toInt(), (3 * density).toInt())
+            }
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundResource(R.drawable.prediction_key_bg)
+            setPadding((12 * density).toInt(), (8 * density).toInt(), (6 * density).toInt(), (8 * density).toInt())
+        }
+
+        val textTv = TextView(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+            text = clip.text
+            textSize = 14f
+            maxLines = 3
+            ellipsize = TextUtils.TruncateAt.END
+            setTextColor(ContextCompat.getColor(context, R.color.text_tap))
+        }
+
+        val pinBtn = ImageView(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams((32 * density).toInt(), (32 * density).toInt())
+            setImageResource(if (clip.isPinned) R.drawable.ic_pin else R.drawable.ic_pin_outline)
+            setPadding((6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt())
+            setColorFilter(if (clip.isPinned) Color.parseColor("#FFB300") else ContextCompat.getColor(context, R.color.text_icon))
+            contentDescription = if (clip.isPinned) "Unpin" else "Pin"
+            setOnClickListener {
+                clipboardHelper.togglePin(clip.id)
+                updateClipboardPanel()
+            }
+        }
+
+        val delBtn = ImageView(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams((32 * density).toInt(), (32 * density).toInt()).apply {
+                marginStart = (2 * density).toInt()
+            }
+            setImageResource(R.drawable.ic_backspace)
+            setPadding((6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt())
+            setColorFilter(ContextCompat.getColor(context, R.color.text_icon))
+            contentDescription = "Delete"
+            setOnClickListener {
+                clipboardHelper.deleteItem(clip.id)
+                updateClipboardPanel()
+            }
+        }
+
+        card.addView(textTv)
+        card.addView(pinBtn)
+        card.addView(delBtn)
+
+        card.setOnClickListener {
+            currentInputConnection?.commitText(clip.text, 1)
+            clipboardPanel?.visibility = View.GONE
+            keyboardView?.visibility = View.VISIBLE
+            renderToolbar()
+        }
+
+        return card
     }
 
     private fun getThemedContext(): Context {
@@ -1026,34 +1165,45 @@ class FlowboardIMEService : InputMethodService() {
             lp.gravity = Gravity.BOTTOM or Gravity.START
             val screenWidth = metrics.widthPixels
             val screenHeight = metrics.heightPixels
-            lp.x = maxOf(0, minOf((screenWidth - kbWidth) / 2, screenWidth - kbWidth))
+            val maxX = maxOf(0, screenWidth - kbWidth)
             
+            kbView?.setKeyHeight((75 * savedScale).toInt())
+            kbView?.setFontScale(savedScale)
+            
+            // Set proportional weights for floating mode BEFORE measuring
+            btnNumbersView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1.5f; it.layoutParams = lp } }
+            btnShiftView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1.2f; it.layoutParams = lp } }
+            btnGlobeView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1.2f; it.layoutParams = lp } }
+            btnSpaceView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 3.3f; it.layoutParams = lp } }
+            btnPeriodView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1.2f; it.layoutParams = lp } }
+            btnSendView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1.6f; it.layoutParams = lp } }
+            
+            sideToolsView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.height = ViewGroup.LayoutParams.MATCH_PARENT; lp.weight = 1.4f; it.layoutParams = lp } }
+            kbView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 8.6f; it.layoutParams = lp } }
+            morePanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 8.6f; it.layoutParams = lp } }
+            clipboardPanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 8.6f; it.layoutParams = lp } }
+
+            root.findViewById<View>(R.id.bottomBar)?.requestLayout()
+            root.findViewById<View>(R.id.mainArea)?.requestLayout()
+            root.requestLayout()
+
             root.measure(
                 View.MeasureSpec.makeMeasureSpec(kbWidth, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
             )
             val kbHeight = root.measuredHeight
             val maxY = maxOf(0, screenHeight - kbHeight - (20 * density).toInt())
-            lp.y = maxOf(0, minOf((floatingY * metrics.density).toInt(), maxY))
+            
+            val targetX = if (floatingX >= 0) (floatingX * density).toInt() else (screenWidth - kbWidth) / 2
+            lp.x = maxOf(0, minOf(targetX, maxX))
+            lp.y = maxOf(0, minOf((floatingY * density).toInt(), maxY))
+
+            if (floatingX < 0) {
+                floatingX = (lp.x / density).toInt()
+            }
             
             root.scaleX = 1f
             root.scaleY = 1f
-            
-            kbView?.setKeyHeight((75 * savedScale).toInt())
-            kbView?.setFontScale(savedScale)
-            
-            // Set proportional weights for floating mode
-            btnNumbersView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1.5f } }
-            btnShiftView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1.2f } }
-            btnGlobeView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1.2f } }
-            btnSpaceView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 3.3f } }
-            btnPeriodView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1.2f } }
-            btnSendView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1.6f } }
-            
-            sideToolsView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.height = ViewGroup.LayoutParams.MATCH_PARENT; lp.weight = 1.4f } }
-            kbView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 8.6f } }
-            morePanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 8.6f } }
-            clipboardPanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 8.6f } }
         } else {
             val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
             val showSuggestions = prefs.getBoolean("show_suggestions", true)
@@ -1087,17 +1237,21 @@ class FlowboardIMEService : InputMethodService() {
             }
             
             // Restore fixed widths for docked mode
-            btnNumbersView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (46 * density).toInt(); lp.weight = 0f } }
-            btnShiftView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (38 * density).toInt(); lp.weight = 0f } }
-            btnGlobeView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (38 * density).toInt(); lp.weight = 0f } }
-            btnSpaceView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1f } }
-            btnPeriodView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (38 * density).toInt(); lp.weight = 0f } }
-            btnSendView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (50 * density).toInt(); lp.weight = 0f } }
+            btnNumbersView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (46 * density).toInt(); lp.weight = 0f; it.layoutParams = lp } }
+            btnShiftView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (38 * density).toInt(); lp.weight = 0f; it.layoutParams = lp } }
+            btnGlobeView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (38 * density).toInt(); lp.weight = 0f; it.layoutParams = lp } }
+            btnSpaceView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1f; it.layoutParams = lp } }
+            btnPeriodView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (38 * density).toInt(); lp.weight = 0f; it.layoutParams = lp } }
+            btnSendView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (50 * density).toInt(); lp.weight = 0f; it.layoutParams = lp } }
             
-            sideToolsView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (42 * density).toInt(); lp.height = ViewGroup.LayoutParams.MATCH_PARENT; lp.weight = 0f } }
-            kbView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1f } }
-            morePanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1f } }
-            clipboardPanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1f } }
+            sideToolsView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (42 * density).toInt(); lp.height = ViewGroup.LayoutParams.MATCH_PARENT; lp.weight = 0f; it.layoutParams = lp } }
+            kbView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1f; it.layoutParams = lp } }
+            morePanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1f; it.layoutParams = lp } }
+            clipboardPanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1f; it.layoutParams = lp } }
+
+            root.findViewById<View>(R.id.bottomBar)?.requestLayout()
+            root.findViewById<View>(R.id.mainArea)?.requestLayout()
+            root.requestLayout()
 
             val systemNavHeight = getSystemNavigationBarHeight()
             val baseBottomPadding = (8 * density).toInt()
@@ -1151,15 +1305,24 @@ class FlowboardIMEService : InputMethodService() {
                     val width = lp.width
                     val root = keyboardRoot
                     val kbHeight = root?.height ?: (250 * metrics.density).toInt()
+                    val maxX = maxOf(0, screenWidth - width)
                     val maxY = maxOf(0, screenHeight - kbHeight - (20 * metrics.density).toInt())
 
-                    lp.x = maxOf(0, minOf(initialX + dx, screenWidth - width))
+                    lp.x = maxOf(0, minOf(initialX + dx, maxX))
                     lp.y = maxOf(0, minOf(initialY - dy, maxY))
 
                     val density = if (metrics.density > 0) metrics.density else 1.0f
+                    floatingX = (lp.x / density).toInt()
                     floatingY = (lp.y / density).toInt()
 
                     win.attributes = lp
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    getSharedPreferences("flowboard_settings", MODE_PRIVATE).edit {
+                        putInt("floating_x", floatingX)
+                        putInt("floating_y", floatingY)
+                    }
                     true
                 }
                 else -> false
@@ -1208,8 +1371,15 @@ class FlowboardIMEService : InputMethodService() {
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 val scale = (lp.width / baseWidth).coerceIn(0.88f, 1.20f)
+                val maxX = maxOf(0, metrics.widthPixels - lp.width)
+                lp.x = maxOf(0, minOf(lp.x, maxX))
+                win.attributes = lp
+                val density = if (metrics.density > 0) metrics.density else 1.0f
+                floatingX = (lp.x / density).toInt()
                 getSharedPreferences("flowboard_settings", MODE_PRIVATE).edit {
                     putFloat("floating_scale", scale)
+                    putInt("floating_x", floatingX)
+                    putInt("floating_y", floatingY)
                 }
                 return true
             }
@@ -1758,6 +1928,17 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun updatePredictions() {
+        if (quickPasteBar?.visibility == View.VISIBLE) {
+            val text = typedText.toString().trim()
+            if (text.isNotEmpty()) {
+                quickPasteBar?.visibility = View.GONE
+                updateDeleteButtonPosition()
+            } else {
+                predictionBar?.visibility = View.GONE
+                return
+            }
+        }
+
         if (isNumberMode) {
             predictionBar?.visibility = View.INVISIBLE
             return

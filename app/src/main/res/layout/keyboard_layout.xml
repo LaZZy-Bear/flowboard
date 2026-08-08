@@ -143,59 +143,108 @@
                 android:background="@drawable/prediction_key_bg" />
         </LinearLayout>
 
-        <!-- ═══ Prediction Row (Contains Predictions + Delete Button) ═══ -->
+        <!-- ═══ Prediction Row (Contains Predictions + Quick Paste Chip + Delete Button) ═══ -->
         <LinearLayout
             android:id="@+id/predictionRow"
             android:layout_width="match_parent"
             android:layout_height="42dp"
             android:orientation="horizontal"
-            android:gravity="center_vertical|end"
+            android:gravity="center_vertical"
             android:layout_marginBottom="4dp"
             android:paddingHorizontal="2dp">
 
-            <LinearLayout
-                android:id="@+id/predictionBar"
+            <FrameLayout
+                android:id="@+id/predictionArea"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:layout_weight="1">
 
-                <TextView
-                    android:id="@+id/pred1"
-                    android:layout_width="0dp"
+                <!-- Quick Paste Chip Bar (Initially GONE) -->
+                <LinearLayout
+                    android:id="@+id/quickPasteBar"
+                    android:layout_width="wrap_content"
                     android:layout_height="36dp"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:textSize="15sp"
-                    android:textColor="@color/text_tap"
+                    android:layout_gravity="center"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:background="@drawable/prediction_key_bg"
-                    android:layout_marginEnd="4dp"
-                    android:fontFamily="sans-serif-medium" />
+                    android:paddingHorizontal="12dp"
+                    android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/pred2"
-                    android:layout_width="0dp"
-                    android:layout_height="36dp"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:textSize="15sp"
-                    android:textColor="@color/text_tap"
-                    android:background="@drawable/prediction_key_bg"
-                    android:layout_marginEnd="4dp"
-                    android:fontFamily="sans-serif-medium" />
+                    <ImageView
+                        android:id="@+id/quickPasteIcon"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_clipboard"
+                        android:tint="@color/text_tap"
+                        android:contentDescription="Quick Paste" />
 
-                <TextView
-                    android:id="@+id/pred3"
-                    android:layout_width="0dp"
-                    android:layout_height="36dp"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:textSize="15sp"
-                    android:textColor="@color/text_tap"
-                    android:background="@drawable/prediction_key_bg"
-                    android:fontFamily="sans-serif-medium" />
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/quickPasteText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:ellipsize="end"
+                        android:maxLength="35"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_tap"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <ImageView
+                        android:id="@+id/quickPasteDismiss"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        android:tint="@color/text_icon"
+                        android:padding="3dp"
+                        android:contentDescription="Dismiss" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/predictionBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/pred1"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:textSize="15sp"
+                        android:textColor="@color/text_tap"
+                        android:background="@drawable/prediction_key_bg"
+                        android:layout_marginEnd="4dp"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:id="@+id/pred2"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:textSize="15sp"
+                        android:textColor="@color/text_tap"
+                        android:background="@drawable/prediction_key_bg"
+                        android:layout_marginEnd="4dp"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <TextView
+                        android:id="@+id/pred3"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:textSize="15sp"
+                        android:textColor="@color/text_tap"
+                        android:background="@drawable/prediction_key_bg"
+                        android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+            </FrameLayout>
 
             <ImageView
                 android:id="@+id/btnDelete"
@@ -237,23 +286,62 @@
             </GridLayout>
 
             <!-- Clipboard Panel Container (initially GONE) -->
-            <ScrollView
+            <LinearLayout
                 android:id="@+id/clipboardPanel"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:padding="8dp"
+                android:orientation="vertical"
                 android:visibility="gone">
+
+                <!-- Header Bar with Clear Unpinned -->
                 <LinearLayout
-                    android:id="@+id/clipboardContent"
+                    android:id="@+id/clipboardHeader"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    
-                    >
-                    <!-- Dynamically populated clipboard items -->
+                    android:layout_height="36dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Clipboard"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_tap" />
+
+                    <TextView
+                        android:id="@+id/btnClearUnpinned"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:gravity="center"
+                        android:text="Clear All"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_icon"
+                        android:background="@drawable/tool_key_bg"
+                        android:paddingHorizontal="10dp" />
                 </LinearLayout>
-            </ScrollView>
+
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:paddingHorizontal="2dp"
+                    android:paddingBottom="4dp">
+
+                    <LinearLayout
+                        android:id="@+id/clipboardContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        <!-- Dynamically populated clipboard items -->
+                    </LinearLayout>
+                </ScrollView>
+            </LinearLayout>
 
             <!-- Side Tools Panel (Control Panel) -->
             <LinearLayout
