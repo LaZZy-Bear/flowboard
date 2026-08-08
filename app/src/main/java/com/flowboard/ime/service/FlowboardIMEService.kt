@@ -38,6 +38,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
+import androidx.core.graphics.toColorInt
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -191,7 +192,6 @@ class FlowboardIMEService : InputMethodService() {
     
     // Undo & Minimization States
     private val typedTextHistory = mutableListOf<String>()
-    private val clipboardHistory = mutableListOf<String>()
     private var lastDragHandleClickTime = 0L
     private var isMinimized = false
     private var isCommiting = false
@@ -929,6 +929,7 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
+    @Suppress("SetTextI18n")
     private fun updateClipboardPanel() {
         val container = clipboardContent ?: return
         container.removeAllViews()
@@ -1032,7 +1033,7 @@ class FlowboardIMEService : InputMethodService() {
             layoutParams = LinearLayout.LayoutParams((32 * density).toInt(), (32 * density).toInt())
             setImageResource(if (clip.isPinned) R.drawable.ic_pin else R.drawable.ic_pin_outline)
             setPadding((6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt())
-            setColorFilter(if (clip.isPinned) Color.parseColor("#FFB300") else ContextCompat.getColor(context, R.color.text_icon))
+            setColorFilter(if (clip.isPinned) "#FFB300".toColorInt() else ContextCompat.getColor(context, R.color.text_icon))
             contentDescription = if (clip.isPinned) "Unpin" else "Pin"
             setOnClickListener {
                 clipboardHelper.togglePin(clip.id)
