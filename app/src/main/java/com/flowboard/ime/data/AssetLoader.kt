@@ -45,13 +45,13 @@ class AssetLoader(private val context: Context) {
         val startTime = System.currentTimeMillis()
 
         // Shared
-        val charMapJob = async(Dispatchers.IO) { loadStringMap("$DIR_SHARED/char_map.json") }
+        val charMapJob = async(Dispatchers.IO) { loadStringMap() }
         val symbolPage1Job = async(Dispatchers.IO) { loadSymbolPage("$DIR_SHARED/symbol_page_1.json") }
         val symbolPage2Job = async(Dispatchers.IO) { loadSymbolPage("$DIR_SHARED/symbol_page_2.json") }
 
         // EN Critical
         val unigramJob = async(Dispatchers.IO) { loadStringList("$DIR_EN/unigram.json") }
-        val masterJob = async(Dispatchers.IO) { loadMasterLayout("$DIR_EN/master_layout.json") }
+        val masterJob = async(Dispatchers.IO) { loadMasterLayout() }
 
         repo.charMap = charMapJob.await()
         repo.symbolPage1 = symbolPage1Job.await()
@@ -69,7 +69,7 @@ class AssetLoader(private val context: Context) {
 
         val bigramJob = async(Dispatchers.IO) { loadStringListMap("$DIR_EN/bigram.json") }
         val trigramJob = async(Dispatchers.IO) { loadStringListMap("$DIR_EN/trigram.json") }
-        val trieJob = async(Dispatchers.IO) { loadCompressedTrie("$DIR_EN/trie_dict_compressed.json") }
+        val trieJob = async(Dispatchers.IO) { loadCompressedTrie() }
         val wordListJob = async(Dispatchers.IO) { loadStringList("$DIR_EN/word_list.json") }
         val cwbJob = async(Dispatchers.IO) { loadClusteredWordBigram("$DIR_EN/clustered_word_bigram.json") }
         val unigramStartJob = async(Dispatchers.IO) { loadStringList("$DIR_EN/unigram_start.json") }
@@ -99,10 +99,10 @@ class AssetLoader(private val context: Context) {
         Log.d(TAG, "Phase C: Loading deferred data...")
         val startTime = System.currentTimeMillis()
 
-        val trieDictOOVJob = async(Dispatchers.IO) { loadCompressedTrieOrNull("$DIR_EN/trie_dict_oov.json") }
+        val trieDictOOVJob = async(Dispatchers.IO) { loadCompressedTrieOrNull() }
         val clusteredTrigramJob = async(Dispatchers.IO) { loadClusteredWordBigram("$DIR_EN/clustered_word_trigram_en.json") }
-        val stcJob = async(Dispatchers.IO) { loadSentenceTopicClusters("$DIR_EN/sentence_topic_clusters.json") }
-        val personalProfileJob = async(Dispatchers.IO) { loadPersonalProfile("$DIR_EN/my_personal_profile.json") }
+        val stcJob = async(Dispatchers.IO) { loadSentenceTopicClusters() }
+        val personalProfileJob = async(Dispatchers.IO) { loadPersonalProfile() }
 
         val oovTrie = trieDictOOVJob.await()
         repo.trieDictOOV = oovTrie
@@ -171,7 +171,7 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    private fun loadStringMap(path: String): Map<String, String> {
+    private fun loadStringMap(path: String = "$DIR_SHARED/char_map.json"): Map<String, String> {
         return try {
             val text = readAssetText(path)
             json.decodeFromString<Map<String, String>>(text)
@@ -196,7 +196,7 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    private fun loadMasterLayout(path: String): Map<String, MasterLayoutEntry> {
+    private fun loadMasterLayout(path: String = "$DIR_EN/master_layout.json"): Map<String, MasterLayoutEntry> {
         return try {
             val text = readAssetText(path)
             json.decodeFromString<Map<String, MasterLayoutEntry>>(text)
@@ -228,7 +228,7 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    private fun loadCompressedTrie(path: String): TrieNode {
+    private fun loadCompressedTrie(path: String = "$DIR_EN/trie_dict_compressed.json"): TrieNode {
         return try {
             val text = readAssetText(path)
             val obj = json.parseToJsonElement(text).jsonObject
@@ -239,7 +239,7 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    private fun loadCompressedTrieOrNull(path: String): TrieNode? {
+    private fun loadCompressedTrieOrNull(path: String = "$DIR_EN/trie_dict_oov.json"): TrieNode? {
         return try {
             val text = readAssetText(path)
             val obj = json.parseToJsonElement(text).jsonObject
@@ -311,7 +311,7 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    private fun loadSentenceTopicClusters(path: String): SentenceTopicClusters {
+    private fun loadSentenceTopicClusters(path: String = "$DIR_EN/sentence_topic_clusters.json"): SentenceTopicClusters {
         return try {
             val text = readAssetText(path)
             val root = json.parseToJsonElement(text).jsonObject
@@ -342,7 +342,7 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    private fun loadPersonalProfile(path: String): PersonalProfile {
+    private fun loadPersonalProfile(path: String = "$DIR_EN/my_personal_profile.json"): PersonalProfile {
         return try {
             val text = readAssetText(path)
             val root = json.parseToJsonElement(text).jsonObject
