@@ -29,6 +29,7 @@ import java.io.InputStream
  * - Phase B (Normal):   bigram, trigram, trie_dict, word_list, clustered_bigram, unigram_start, profile_chat
  * - Phase C (Deferred): trie_dict_oov, clustered_trigram, sentence_topic_clusters, my_personal_profile → markFullyLoaded()
  */
+@Suppress("UNUSED_PARAMETER")
 class AssetLoader(private val context: Context) {
 
     companion object {
