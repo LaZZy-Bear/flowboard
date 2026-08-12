@@ -99,7 +99,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
             if (triEntry != null) {
                 for ((nextWord, count) in triEntry) {
                     if (nextWord.length > prefixLen && (prefixLen == 0 || nextWord.lowercase().startsWith(prefix))) {
-                        val targetChar = nextWord[prefixLen].lowercase().toString()
+                        val targetChar = nextWord[prefixLen].lowercase()
                         val bonus = countToPairBonus(count)
                         if (bonus > 0.0) {
                             finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
@@ -117,7 +117,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
             if (biEntry != null) {
                 for ((nextWord, count) in biEntry) {
                     if (nextWord.length > prefixLen && (prefixLen == 0 || nextWord.lowercase().startsWith(prefix))) {
-                        val targetChar = nextWord[prefixLen].lowercase().toString()
+                        val targetChar = nextWord[prefixLen].lowercase()
                         val bonus = countToPairBonus(count)
                         if (bonus > 0.0) {
                             finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
@@ -162,7 +162,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         for ((word, count) in topWords) {
             if (word.length <= prefixLen) continue
             if (prefixLen > 0 && !word.lowercase().startsWith(prefix)) continue
-            val targetChar = word[prefixLen].lowercase().toString()
+            val targetChar = word[prefixLen].lowercase()
             val bonus = countToFreqBonus(count)
             if (bonus > 0.0) {
                 finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus

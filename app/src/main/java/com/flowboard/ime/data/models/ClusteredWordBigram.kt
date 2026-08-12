@@ -15,7 +15,5 @@ data class ClusteredWordBigram(
 
 sealed class WordBigramEntry {
     data class DirectList(val ids: List<Int>) : WordBigramEntry()
-    data class GroupRef(val group: String, val extras: List<Int> = emptyList()) : WordBigramEntry() {
-        val extra: Int? get() = extras.firstOrNull()
-    }
+    data class GroupRef(val group: String, val extras: List<Int> = emptyList()) : WordBigramEntry()
 }

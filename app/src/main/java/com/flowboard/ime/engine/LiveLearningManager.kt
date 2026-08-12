@@ -7,7 +7,6 @@ import com.flowboard.ime.data.models.PersonalProfile
 import com.flowboard.ime.data.models.TrieNode
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -163,11 +162,11 @@ class LiveLearningManager(private val context: Context) {
 
     private fun isWordInTrie(root: TrieNode?, word: String): Boolean {
         if (root == null || word.isEmpty()) return false
-        var current: TrieNode? = root
+        var current: TrieNode = root
         for (ch in word) {
-            current = current?.get(ch.toString()) ?: return false
+            current = current.get(ch.toString()) ?: return false
         }
-        return current?.isEndOfWord == true
+        return current.isEndOfWord
     }
 
     /**

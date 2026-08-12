@@ -101,12 +101,6 @@ object TestDataFactory {
         return json.decodeFromString<Map<String, MasterLayoutEntry>>(text)
     }
 
-    private fun loadProfile(file: File): Profile {
-        if (!file.exists()) return Profile.DEFAULT
-        val text = file.readText()
-        return json.decodeFromString<Profile>(text)
-    }
-
     private fun loadCompressedTrie(file: File): TrieNode {
         if (!file.exists()) return TrieNode()
         val text = file.readText()

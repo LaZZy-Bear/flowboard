@@ -1,7 +1,6 @@
 package com.flowboard.ime.engine
 
 import com.flowboard.ime.data.FlowboardRepository
-import com.flowboard.ime.data.SentenceTopicClusters
 import com.flowboard.ime.data.models.ClusteredWordBigram
 import com.flowboard.ime.data.models.EngineWeights
 import com.flowboard.ime.data.models.TrieNode
@@ -367,7 +366,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             val clusterWordIds: List<Int>? = if (isDetailed) {
                 clusters[wId.toString()]
             } else {
-                val clusterId = wordMap?.get(wId.toString()) ?: continue
+                val clusterId = wordMap[wId.toString()] ?: continue
                 clusters[clusterId.toString()]
             }
 

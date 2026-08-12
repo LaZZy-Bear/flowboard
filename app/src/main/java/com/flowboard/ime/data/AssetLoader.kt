@@ -72,7 +72,6 @@ class AssetLoader(private val context: Context) {
         val wordListJob = async(Dispatchers.IO) { loadStringList("$DIR_EN/word_list.json") }
         val cwbJob = async(Dispatchers.IO) { loadClusteredWordBigram("$DIR_EN/clustered_word_bigram.json") }
         val unigramStartJob = async(Dispatchers.IO) { loadStringList("$DIR_EN/unigram_start.json") }
-        val chatProfJob = async(Dispatchers.IO) { loadProfile("$DIR_EN/profile_chat.json") }
 
         repo.bigram = bigramJob.await()
         repo.trigram = trigramJob.await()

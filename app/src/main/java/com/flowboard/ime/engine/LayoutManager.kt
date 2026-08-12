@@ -204,7 +204,6 @@ class LayoutManager(private val repo: FlowboardRepository) {
                         if (occupant.isEmpty()) {
                             weakestSlot = slot
                             weakestChar = ""
-                            minScore = -1.0
                             break
                         } else {
                             val occupantScore = scores[occupant] ?: 0.0
