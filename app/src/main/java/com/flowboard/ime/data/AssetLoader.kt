@@ -227,16 +227,6 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    private fun loadProfile(path: String): Profile {
-        return try {
-            val text = readAssetText(path)
-            json.decodeFromString<Profile>(text)
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to load $path: ${e.message}")
-            Profile.DEFAULT
-        }
-    }
-
     private fun loadCompressedTrie(path: String): TrieNode {
         return try {
             val text = readAssetText(path)
