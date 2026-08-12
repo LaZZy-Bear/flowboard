@@ -49,6 +49,7 @@ import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.KeySlots
 import com.flowboard.ime.engine.LanguageManager
 import com.flowboard.ime.engine.LayoutManager
+import com.flowboard.ime.engine.LiveLearningManager
 import com.flowboard.ime.engine.ProfileManager
 import com.flowboard.ime.engine.ScoringEngine
 import com.flowboard.ime.ui.KeyboardView
@@ -218,6 +219,8 @@ class FlowboardIMEService : InputMethodService() {
     /** Which symbol page is active (0 = Core, 1 = Pro) */
     private var symbolPageIndex = 0
 
+    private val liveLearningManager by lazy { LiveLearningManager(this) }
+
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "onCreate")
@@ -228,6 +231,7 @@ class FlowboardIMEService : InputMethodService() {
         profileManager = ProfileManager(repo)
 
         loadSettings()
+        liveLearningManager.loadProfile()
 
         clipboardHelper = ClipboardManagerHelper(this)
         val clipMgr = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
@@ -568,11 +572,19 @@ class FlowboardIMEService : InputMethodService() {
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         Log.d(TAG, "onFinishInputView")
+        liveLearningManager.saveProfileIfDirty()
+    }
+
+    override fun onWindowHidden() {
+        super.onWindowHidden()
+        Log.d(TAG, "onWindowHidden")
+        liveLearningManager.saveProfileIfDirty()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "onDestroy")
+        liveLearningManager.saveProfileIfDirty()
         try {
             unregisterReceiver(settingsReceiver)
         } catch (_: Exception) {
@@ -1646,6 +1658,7 @@ class FlowboardIMEService : InputMethodService() {
             repo.lastActionSlot = null
             repo.lastActionChar = null
             repo.stickyChar = null
+            liveLearningManager.recordWordTyped(synchronized(typedText) { typedText.toString() })
         }
 
         if (languageManager.shiftState == LanguageManager.ShiftState.OFF) {
@@ -1784,7 +1797,7 @@ class FlowboardIMEService : InputMethodService() {
                 ic.deleteSurroundingText(currentLen, 0)
             }
             ic.commitText("$word ", 1)
-
+            liveLearningManager.recordWordTyped(typedText.toString() + " " + word)
             typedText.clear()
         }
         if (::scoringEngine.isInitialized) {

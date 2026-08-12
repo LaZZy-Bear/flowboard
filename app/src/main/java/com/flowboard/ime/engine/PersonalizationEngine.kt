@@ -56,19 +56,23 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
     fun applyPersonalization(
         finalScores: HashMap<String, Double>,
         activeWordsArray: List<String>,
+        activePrefix: String,
         state: Int
     ) {
         val profile = repo.personalProfile
         if (profile.isEmpty) return
 
+        val prefix = activePrefix.lowercase()
+        val prefixLen = prefix.length
+
+        // System 1: Personal word pair boosts (bigram/trigram) — active across all typing states
+        applyPersonalWordPairs(finalScores, activeWordsArray, profile, prefix, prefixLen)
+
+        // System 2: Uncertain gap — boost frequent personal words in word-start states
         val isWordStart = state == 1 || state == 7 || state == 8
-        if (!isWordStart) return
-
-        // System 1: Personal word pair boosts (bigram/trigram)
-        applyPersonalWordPairs(finalScores, activeWordsArray, profile)
-
-        // System 2: Uncertain gap — boost frequent personal words
-        applyFrequentWordsIfUncertain(finalScores, profile)
+        if (isWordStart) {
+            applyFrequentWordsIfUncertain(finalScores, profile, prefix, prefixLen)
+        }
     }
 
     // ═══════════════════════════════════════
@@ -78,7 +82,9 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
     private fun applyPersonalWordPairs(
         finalScores: HashMap<String, Double>,
         activeWordsArray: List<String>,
-        profile: PersonalProfile
+        profile: PersonalProfile,
+        prefix: String,
+        prefixLen: Int
     ) {
         if (activeWordsArray.isEmpty()) return
 
@@ -92,11 +98,11 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
             val triEntry = profile.trigram[triKey]
             if (triEntry != null) {
                 for ((nextWord, count) in triEntry) {
-                    if (nextWord.isNotEmpty()) {
-                        val firstChar = nextWord[0].toString()
+                    if (nextWord.length > prefixLen && (prefixLen == 0 || nextWord.lowercase().startsWith(prefix))) {
+                        val targetChar = nextWord[prefixLen].lowercase().toString()
                         val bonus = countToPairBonus(count)
                         if (bonus > 0.0) {
-                            finalScores[firstChar] = (finalScores[firstChar] ?: 0.0) + bonus
+                            finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
                             found = true
                         }
                     }
@@ -105,16 +111,16 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         }
 
         // Fallback to bigram (1-word history) if trigram didn't fire
-        if (!found) {
+        if (!found && activeWordsArray.isNotEmpty()) {
             val w1 = activeWordsArray.last()
             val biEntry = profile.bigram[w1]
             if (biEntry != null) {
                 for ((nextWord, count) in biEntry) {
-                    if (nextWord.isNotEmpty()) {
-                        val firstChar = nextWord[0].toString()
+                    if (nextWord.length > prefixLen && (prefixLen == 0 || nextWord.lowercase().startsWith(prefix))) {
+                        val targetChar = nextWord[prefixLen].lowercase().toString()
                         val bonus = countToPairBonus(count)
                         if (bonus > 0.0) {
-                            finalScores[firstChar] = (finalScores[firstChar] ?: 0.0) + bonus
+                            finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
                         }
                     }
                 }
@@ -126,6 +132,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         count >= 16 -> PAIR_HIGH
         count >= 6  -> PAIR_MID
         count >= 3  -> PAIR_LOW
+        count >= 1  -> PAIR_LOW * 0.7
         else        -> 0.0
     }
 
@@ -135,7 +142,9 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
 
     private fun applyFrequentWordsIfUncertain(
         finalScores: HashMap<String, Double>,
-        profile: PersonalProfile
+        profile: PersonalProfile,
+        prefix: String,
+        prefixLen: Int
     ) {
         if (profile.wordFreq.isEmpty()) return
 
@@ -151,11 +160,12 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
             .take(30)
 
         for ((word, count) in topWords) {
-            if (word.isEmpty()) continue
-            val firstChar = word[0].toString()
+            if (word.length <= prefixLen) continue
+            if (prefixLen > 0 && !word.lowercase().startsWith(prefix)) continue
+            val targetChar = word[prefixLen].lowercase().toString()
             val bonus = countToFreqBonus(count)
             if (bonus > 0.0) {
-                finalScores[firstChar] = (finalScores[firstChar] ?: 0.0) + bonus
+                finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
             }
         }
     }
@@ -165,6 +175,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         count >= 15 -> FREQ_HIGH
         count >= 6  -> FREQ_MID
         count >= 3  -> FREQ_LOW
+        count >= 1  -> FREQ_LOW * 0.7
         else        -> 0.0
     }
 }

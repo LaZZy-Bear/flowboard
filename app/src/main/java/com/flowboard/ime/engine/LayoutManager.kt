@@ -102,6 +102,7 @@ class LayoutManager(private val repo: FlowboardRepository) {
                     topWinner = defTapObj
                     localCandidates = candidates.filter { it != defTapObj }.toMutableList()
                     localCandidates.add(0, defTapObj)
+                    charactersByHomeKey[keyId] = localCandidates
                 }
             }
 

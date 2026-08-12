@@ -37,12 +37,12 @@ class ScoringEngine(private val repo: FlowboardRepository) {
          * ENGINE_WEIGHTS — directly from P22 scoring.js ENGINE_WEIGHTS constant.
          */
         private val STATE_WEIGHTS = mapOf(
-            1 to EngineWeights(U = 89, B = 28, T = 0,  D = 46, WB = 33, WT = 38,  STC = 0),
-            2 to EngineWeights(U = 0,  B = 22, T = 95, D = 9,  WB = 0,  WT = 0,   STC = 16),
-            3 to EngineWeights(U = 0,  B = 10, T = 86, D = 16, WB = 0,  WT = 0,   STC = 27),
-            4 to EngineWeights(U = 0,  B = 1,  T = 9,  D = 72, WB = 0,  WT = 0,   STC = 34),
-            7 to EngineWeights(U = 53, B = 4,  T = 38, D = 31, WB = 93, WT = 99,  STC = 34),
-            8 to EngineWeights(U = 18, B = 0,  T = 36, D = 17, WB = 78, WT = 100, STC = 0)
+            1 to EngineWeights(U = 44, B = 43, T = 17, D = 51, WB = 30, WT = 31, STC = 21),
+            2 to EngineWeights(U = 0,  B = 25, T = 94, D = 13, WB = 100, WT = 100, STC = 62),
+            3 to EngineWeights(U = 0,  B = 14, T = 68, D = 12, WB = 100, WT = 100, STC = 12),
+            4 to EngineWeights(U = 0,  B = 2,  T = 3,  D = 33, WB = 100, WT = 88,  STC = 56),
+            7 to EngineWeights(U = 0,  B = 23, T = 1,  D = 6,  WB = 31,  WT = 93,  STC = 60),
+            8 to EngineWeights(U = 0,  B = 0,  T = 56, D = 3,  WB = 22,  WT = 100, STC = 10)
         )
 
         /**
@@ -125,9 +125,9 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         val sB = getBigramScores(last1)
         val sT = getTrigramScores(last2)
         val sD = getDictScores(activePrefix, sT, sB, sU)
-        val sWB = getWordBigramScores(activeWordsArray)
-        val sWT = getWordTrigramScores(activeWordsArray)
-        val sSTC = if (state == 8) getSTCScores(activeWordsArray) else emptyMap()
+        val sWB = getWordBigramScores(activeWordsArray, activePrefix)
+        val sWT = getWordTrigramScores(activeWordsArray, activePrefix)
+        val sSTC = if (state == 8 || activePrefix.isNotEmpty()) getSTCScores(activeWordsArray, activePrefix) else emptyMap()
 
         // ── OOV Decay: if prefix yields no dict hits, transfer D weight to T ──
         val hasDictScores = sD.isNotEmpty()
@@ -189,7 +189,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
         // ── Personalization (additive layer, after base scores) ──
         if (repo.isPersonalizationEnabled) {
-            personalizationEngine.applyPersonalization(finalScores, activeWordsArray, state)
+            personalizationEngine.applyPersonalization(finalScores, activeWordsArray, activePrefix, state)
         }
 
         return finalScores
@@ -300,10 +300,10 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     }
 
     /**
-     * Word Bigram: predict next word's first character from the last completed word.
-     * Uses clusteredBigram (1-word history).
+     * Word Bigram: predict next word's character based on current activePrefix.
+     * Uses clusteredBigram (1-word history). Multi-position prefix tracking ported from P22 V22.2.0.
      */
-    private fun getWordBigramScores(wordsArray: List<String>): Map<String, Double> {
+    private fun getWordBigramScores(wordsArray: List<String>, activePrefix: String): Map<String, Double> {
         if (wordsArray.isEmpty()) return emptyMap()
         val cwb = repo.clusteredBigram
         if (cwb.bigram.isEmpty()) return emptyMap()
@@ -312,14 +312,14 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         val wordId = repo.wordReverseMap[lastWord] ?: return emptyMap()
         val nodeData = cwb.bigram[wordId.toString()] ?: return emptyMap()
 
-        return resolveClusteredWordIds(nodeData, cwb)
+        return resolveClusteredWordIds(nodeData, cwb, activePrefix)
     }
 
     /**
-     * Word Trigram: predict next word's first character from the last 2 completed words.
-     * Uses clusteredTrigram (2-word history). New in P22.
+     * Word Trigram: predict next word's character based on current activePrefix.
+     * Uses clusteredTrigram (2-word history). Multi-position prefix tracking ported from P22 V22.2.0.
      */
-    private fun getWordTrigramScores(wordsArray: List<String>): Map<String, Double> {
+    private fun getWordTrigramScores(wordsArray: List<String>, activePrefix: String): Map<String, Double> {
         if (wordsArray.size < 2) return emptyMap()
         val cwt = repo.clusteredTrigram
         if (cwt.bigram.isEmpty()) return emptyMap()
@@ -332,15 +332,14 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         val key = "${w1Id}_${w2Id}"
         val nodeData = cwt.bigram[key] ?: return emptyMap()
 
-        return resolveClusteredWordIds(nodeData, cwt)
+        return resolveClusteredWordIds(nodeData, cwt, activePrefix)
     }
 
     /**
-     * Sentence Topic Cluster: domain co-occurrence scores, active only in State 8.
-     * Looks back up to 4 content words (2 for non-determiners) to find a topic cluster.
-     * Ported from P22 getSTCScores() in scoring.js.
+     * Sentence Topic Cluster: domain co-occurrence scores, active in State 8 and typing states.
+     * Multi-position prefix tracking ported from P22 getSTCScores() in scoring.js.
      */
-    private fun getSTCScores(activeWordsArray: List<String>): Map<String, Double> {
+    private fun getSTCScores(activeWordsArray: List<String>, activePrefix: String): Map<String, Double> {
         val raw = HashMap<String, Double>()
         val stc = repo.sentenceTopicClusters
         if (activeWordsArray.size < 2 || stc.isEmpty) return raw
@@ -354,6 +353,8 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         val isDeepDeterminer = (lastWordBeforeSpace == "the" || lastWordBeforeSpace == "a" || lastWordBeforeSpace == "an")
         val maxLookbackDepth = if (isDeepDeterminer) 4 else 2
 
+        val prefix = activePrefix.lowercase()
+        val prefixLen = prefix.length
         var checkedCount = 0
 
         // Walk backwards through previous words, skipping connectors
@@ -374,10 +375,12 @@ class ScoringEngine(private val repo: FlowboardRepository) {
                 val depthFactor = 1.0 - (checkedCount * 0.2)
                 clusterWordIds.forEachIndexed { rankIdx, relId ->
                     val relWord = repo.wordList.getOrNull(relId) ?: return@forEachIndexed
-                    if (relWord.isNotEmpty()) {
-                        val firstChar = relWord[0].toString()
-                        val pts = (9 - rankIdx) * depthFactor
-                        raw[firstChar] = (raw[firstChar] ?: 0.0) + pts
+                    if (relWord.isNotEmpty() && (prefixLen == 0 || relWord.startsWith(prefix))) {
+                        if (relWord.length > prefixLen) {
+                            val targetChar = relWord[prefixLen].toString()
+                            val pts = (9 - rankIdx) * depthFactor
+                            raw[targetChar] = (raw[targetChar] ?: 0.0) + pts
+                        }
                     }
                 }
                 checkedCount++
@@ -494,25 +497,34 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
     private val personalizationEngine by lazy { PersonalizationEngine(repo) }
 
-    private fun resolveClusteredWordIds(nodeData: WordBigramEntry, cwb: ClusteredWordBigram): Map<String, Double> {
+    private fun resolveClusteredWordIds(
+        nodeData: WordBigramEntry,
+        cwb: ClusteredWordBigram,
+        activePrefix: String
+    ): Map<String, Double> {
         val nextWordIDs: List<Int> = when (nodeData) {
             is WordBigramEntry.DirectList -> nodeData.ids
             is WordBigramEntry.GroupRef -> {
                 val groupIds = cwb.groups[nodeData.group] ?: emptyList()
-                if (nodeData.extra != null) {
-                    groupIds.toMutableList().also { it.add(nodeData.extra) }
+                if (nodeData.extras.isNotEmpty()) {
+                    groupIds.toMutableList().also { it.addAll(nodeData.extras) }
                 } else groupIds
             }
         }
 
+        val prefix = activePrefix.lowercase()
+        val prefixLen = prefix.length
         val raw = HashMap<String, Double>()
+
         for (i in nextWordIDs.indices) {
             val nextWord = repo.wordList.getOrNull(nextWordIDs[i]) ?: continue
-            if (nextWord.isNotEmpty()) {
-                val firstChar = nextWord[0].toString()
-                val score = ((nextWordIDs.size - i) * 10).toDouble()
-                if ((raw[firstChar] ?: 0.0) < score) {
-                    raw[firstChar] = score
+            if (nextWord.isNotEmpty() && (prefixLen == 0 || nextWord.startsWith(prefix))) {
+                if (nextWord.length > prefixLen) {
+                    val targetChar = nextWord[prefixLen].toString()
+                    val score = ((nextWordIDs.size - i) * 10).toDouble()
+                    if ((raw[targetChar] ?: 0.0) < score) {
+                        raw[targetChar] = score
+                    }
                 }
             }
         }

@@ -161,8 +161,13 @@ object TestDataFactory {
                 bigram[k] = WordBigramEntry.DirectList(v.map { it.jsonPrimitive.int })
             } else if (v is JsonObject) {
                 val g = v["g"]?.jsonPrimitive?.content ?: ""
-                val extra = v["+"]?.jsonPrimitive?.int
-                bigram[k] = WordBigramEntry.GroupRef(g, extra)
+                val plusElement = v["+"]
+                val extras = when (plusElement) {
+                    is JsonArray -> plusElement.map { it.jsonPrimitive.int }
+                    is JsonPrimitive -> listOf(plusElement.int)
+                    else -> emptyList()
+                }
+                bigram[k] = WordBigramEntry.GroupRef(g, extras)
             }
         }
 
