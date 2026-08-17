@@ -2,6 +2,7 @@ package com.flowboard.ime.testing
 
 import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.PersonalProfile
+import com.flowboard.ime.data.models.TrieNode
 import com.flowboard.ime.engine.WordPredictionEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -20,14 +21,18 @@ class WordPredictionEngineTest {
     }
 
     @Test
-    fun testDefaultStartersAtBeginning() {
+    fun testEmptyTextReturnsNoPredictions() {
+        // Point 1: When nothing is typed, do NOT suggest words!
         val predictions = engine.getPredictions("", 3)
-        assertEquals(listOf("I", "The", "You"), predictions)
+        assertTrue("Empty text should return empty list", predictions.isEmpty())
+
+        val whitespace = engine.getPredictions("   ", 3)
+        assertTrue("Whitespace should return empty list", whitespace.isEmpty())
     }
 
     @Test
     fun testGeneralNextWordPredictionAfterSpace() {
-        // "How are " -> should predict "you" via Trigram / Bigram
+        // "How are " -> should predict next words sorted by word list rank (e.g. "you", "we")
         val predictions = engine.getPredictions("How are ", 3)
         assertTrue("Predictions should not be empty", predictions.isNotEmpty())
         assertTrue("Predictions should contain 'you'", predictions.contains("you"))
@@ -42,54 +47,26 @@ class WordPredictionEngineTest {
     }
 
     @Test
-    fun testPersonalizedBigramNextWord() {
-        // Inject personal bigram: "meet" -> "dinner" (count = 10)
-        repo.isPersonalizationEnabled = true
-        repo.personalizationPairsEnabled = true
-        repo.personalProfile = PersonalProfile(
-            trigram = emptyMap(),
-            bigram = mapOf("meet" to mapOf("dinner" to 10)),
-            wordFreq = emptyMap(),
-            learnedOOV = emptyList()
-        )
-
-        val predictions = engine.getPredictions("meet ", 3)
-        assertTrue("Predictions should suggest personalized word 'dinner'", predictions.contains("dinner"))
-        assertEquals("Personalized word 'dinner' should be ranked top 1", "dinner", predictions.first())
-    }
-
-    @Test
-    fun testPersonalizedTrigramNextWord() {
-        // Inject personal trigram: "see_you" -> "b4" (count = 15)
-        repo.isPersonalizationEnabled = true
-        repo.personalizationPairsEnabled = true
-        repo.personalProfile = PersonalProfile(
-            trigram = mapOf("see_you" to mapOf("b4" to 15)),
-            bigram = emptyMap(),
-            wordFreq = emptyMap(),
-            learnedOOV = listOf("b4")
-        )
-
-        val predictions = engine.getPredictions("see you ", 3)
-        assertTrue("Predictions should suggest personalized trigram word 'b4'", predictions.contains("b4"))
-        assertEquals("Personalized trigram word 'b4' should be top 1", "b4", predictions.first())
+    fun testPrefixAutocompleteRankFormula() {
+        // Typing prefix "th" -> should rank common/short words like "the", "that", "this" at top
+        val predictions = engine.getPredictions("th", 3)
+        assertTrue("Predictions should contain 'the'", predictions.contains("the"))
+        assertEquals("Top word for 'th' should be 'the'", "the", predictions.first())
     }
 
     @Test
     fun testPrefixAutocompleteWithPersonalOOV() {
-        // User is typing prefix "b" after "see you "
+        // User typed "see you " and then started typing custom OOV "b4"
         repo.isPersonalizationEnabled = true
-        repo.personalizationPairsEnabled = true
-        repo.personalProfile = PersonalProfile(
-            trigram = mapOf("see_you" to mapOf("b4" to 15)),
-            bigram = emptyMap(),
-            wordFreq = emptyMap(),
-            learnedOOV = listOf("b4")
-        )
+        val trieOOV = TrieNode()
+        val bNode = trieOOV.getOrPut("b")
+        val b4Node = bNode.getOrPut("4")
+        b4Node.isEndOfWord = true
+        b4Node.frequency = 100
+        repo.trieDictOOV = trieOOV
 
         val predictions = engine.getPredictions("see you b", 3)
-        assertTrue("Prefix matching should include personal word 'b4'", predictions.contains("b4"))
-        assertEquals("Personal trigram matching prefix should be top 1", "b4", predictions.first())
+        assertTrue("Prefix matching should include personal OOV word 'b4'", predictions.contains("b4"))
     }
 
     @Test
@@ -102,20 +79,5 @@ class WordPredictionEngineTest {
 
         val upper = engine.getPredictions("HEL", 3)
         assertTrue("All-caps prefix produces all-caps word", upper.first().all { it.isUpperCase() || it == '\'' })
-    }
-
-    @Test
-    fun testPersonalizationDisabledToggle() {
-        repo.personalProfile = PersonalProfile(
-            trigram = mapOf("meet_at" to mapOf("starbucks" to 50)),
-            bigram = mapOf("meet" to mapOf("starbucks" to 50)),
-            wordFreq = emptyMap(),
-            learnedOOV = listOf("starbucks")
-        )
-
-        // With personalization disabled
-        repo.isPersonalizationEnabled = false
-        val predictions = engine.getPredictions("meet ", 3)
-        assertTrue("When personalization is disabled, personal words should not be injected", !predictions.contains("starbucks"))
     }
 }

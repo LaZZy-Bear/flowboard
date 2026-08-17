@@ -5,16 +5,13 @@ import com.flowboard.ime.data.models.TrieNode
 import com.flowboard.ime.data.models.WordBigramEntry
 
 /**
- * Word Prediction Engine — Generates next-word predictions and prefix completions.
+ * Word Prediction Engine
  *
- * Combines 7 ranking tiers:
- * 1. Personalization Trigram (live learned 2-word context)
- * 2. Personalization Bigram (live learned 1-word context)
- * 3. Personal Learned OOV Trie & Frequent Words (live vocabulary)
- * 4. Clustered Word Trigram (P22 2-word history database)
- * 5. Clustered Word Bigram (P22 1-word history database)
- * 6. Sentence Topic Clusters (STC domain vocabulary after connectors)
- * 7. Main Trie Dictionary DFS (prefix search with frequency & length penalty)
+ * 1. Empty text -> Returns empty list (Do NOT suggest when nothing has been typed).
+ * 2. Next Word Prediction (after space) -> Ranked by lowest index in word_list.json.
+ *    Uses Clustered Trigram -> Clustered Bigram -> STC -> (fallback to Personalize ONLY if main system unknown).
+ * 3. Prefix Autocomplete (while typing) -> Ranked by (wordIndex + 1) * 1.4^extraChars.
+ *    Learned OOV words from Personalize are included in candidate pool so user can tap custom words.
  */
 class WordPredictionEngine(private val repo: FlowboardRepository) {
 
@@ -28,98 +25,75 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             "have", "has", "had", "do", "does", "did", "can", "could", "will", "would", "should",
             "and", "or", "but", "so", "as", "if", "than"
         )
-
-        private val DEFAULT_STARTERS = listOf("I", "The", "You")
     }
 
     /**
      * Generate up to [maxCount] word suggestions based on the full text before cursor.
      */
     fun getPredictions(fullText: String, maxCount: Int = 3): List<String> {
+        // Point 1: Do NOT suggest when nothing has been typed yet
         val trimmed = fullText.trimEnd { it == '\t' || it == '\r' }
-        val isSpace = trimmed.isNotEmpty() && trimmed.last() == ' '
-        val isStartOfText = trimmed.isEmpty()
+        if (trimmed.isEmpty()) {
+            return emptyList()
+        }
 
-        // Extract tokens
+        val isSpace = trimmed.endsWith(' ')
         val rawTokens = trimmed.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+        if (rawTokens.isEmpty()) {
+            return emptyList()
+        }
 
         val activePrefix: String
         val contextWords: List<String>
 
-        if (isSpace || isStartOfText) {
+        if (isSpace) {
             activePrefix = ""
             contextWords = rawTokens
         } else {
-            activePrefix = rawTokens.lastOrNull() ?: ""
-            contextWords = if (rawTokens.isNotEmpty()) rawTokens.dropLast(1) else emptyList()
+            activePrefix = rawTokens.last()
+            contextWords = rawTokens.dropLast(1)
         }
 
         val cleanContext = contextWords.map { cleanWord(it) }.filter { it.isNotEmpty() }
         val prefix = cleanWord(activePrefix)
 
-        val candidates = LinkedHashSet<String>()
-
-        if (prefix.isEmpty()) {
+        val results: List<String> = if (prefix.isEmpty()) {
             // ──────────────────────────────────────────
             // Mode A: Next Word Prediction (after space)
             // ──────────────────────────────────────────
-            predictNextWords(cleanContext, candidates, maxCount)
+            predictNextWords(cleanContext, maxCount)
         } else {
             // ──────────────────────────────────────────
             // Mode B: Prefix Autocomplete (while typing)
             // ──────────────────────────────────────────
-            autocompletePrefix(cleanContext, prefix, candidates, maxCount)
+            autocompletePrefix(prefix, maxCount)
         }
 
-        if (candidates.size < maxCount && prefix.isEmpty() && cleanContext.isEmpty()) {
-            candidates.addAll(DEFAULT_STARTERS)
-        }
+        if (results.isEmpty()) return emptyList()
 
         // Apply casing
         val isAllCaps = activePrefix.length > 1 && activePrefix.all { it.isUpperCase() }
         val isFirstUpper = activePrefix.isNotEmpty() && activePrefix[0].isUpperCase()
-        val isSentenceStart = isSentenceBeginning(trimmed)
 
-        return candidates.take(maxCount).map { word ->
-            applyCasing(word, isAllCaps, isFirstUpper || (prefix.isEmpty() && isSentenceStart))
+        return results.take(maxCount).map { word ->
+            applyCasing(word, isAllCaps, isFirstUpper)
         }
     }
 
-    private fun predictNextWords(
-        contextWords: List<String>,
-        candidates: LinkedHashSet<String>,
-        maxCount: Int
-    ) {
-        val profile = repo.personalProfile
-        val isPersonEnabled = repo.isPersonalizationEnabled
+    /**
+     * Next Word Prediction:
+     * 1. Query Clustered Trigram (2-word context)
+     * 2. Query Clustered Bigram (1-word context)
+     * 3. Query Sentence Topic Clusters (STC)
+     * 4. Fallback to Personalize ONLY if main system has no predictions for this context
+     * Rank candidates by lowest index in word_list.json!
+     */
+    private fun predictNextWords(contextWords: List<String>, maxCount: Int): List<String> {
+        if (contextWords.isEmpty()) return emptyList()
 
-        // 1. Personal Trigram (2-word context)
-        if (isPersonEnabled && repo.personalizationPairsEnabled && contextWords.size >= 2) {
-            val w1 = contextWords[contextWords.size - 2]
-            val w2 = contextWords[contextWords.size - 1]
-            val triKey = "${w1}_${w2}"
-            val triMap = profile.trigram[triKey]
-            if (triMap != null) {
-                triMap.entries.sortedByDescending { it.value }.forEach { (nextWord, _) ->
-                    if (nextWord.isNotEmpty()) candidates.add(nextWord)
-                    if (candidates.size >= maxCount) return
-                }
-            }
-        }
+        val results = LinkedHashSet<String>()
 
-        // 2. Personal Bigram (1-word context)
-        if (isPersonEnabled && repo.personalizationPairsEnabled && contextWords.isNotEmpty()) {
-            val w1 = contextWords.last()
-            val biMap = profile.bigram[w1]
-            if (biMap != null) {
-                biMap.entries.sortedByDescending { it.value }.forEach { (nextWord, _) ->
-                    if (nextWord.isNotEmpty()) candidates.add(nextWord)
-                    if (candidates.size >= maxCount) return
-                }
-            }
-        }
-
-        // 3. General Clustered Trigram (2-word context)
+        // 1. General Clustered Trigram (2-word context)
         if (contextWords.size >= 2) {
             val w1 = contextWords[contextWords.size - 2]
             val w2 = contextWords[contextWords.size - 1]
@@ -130,144 +104,122 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
                 val nodeData = repo.clusteredTrigram.bigram[key]
                 if (nodeData != null) {
                     val words = resolveNodeWords(nodeData, repo.clusteredTrigram)
+                        .sortedBy { repo.wordReverseMap[it] ?: Int.MAX_VALUE }
                     for (word in words) {
-                        if (word.isNotEmpty()) candidates.add(word)
-                        if (candidates.size >= maxCount) return
+                        if (word.isNotEmpty()) results.add(word)
+                        if (results.size >= maxCount) return results.toList()
                     }
                 }
             }
         }
 
-        // 4. General Clustered Bigram (1-word context)
-        if (contextWords.isNotEmpty()) {
-            val w1 = contextWords.last()
-            val w1Id = repo.wordReverseMap[w1]
-            if (w1Id != null) {
-                val nodeData = repo.clusteredBigram.bigram[w1Id.toString()]
-                if (nodeData != null) {
-                    val words = resolveNodeWords(nodeData, repo.clusteredBigram)
-                    for (word in words) {
-                        if (word.isNotEmpty()) candidates.add(word)
-                        if (candidates.size >= maxCount) return
-                    }
+        // 2. General Clustered Bigram (1-word context)
+        val w1 = contextWords.last()
+        val w1Id = repo.wordReverseMap[w1]
+        if (w1Id != null) {
+            val nodeData = repo.clusteredBigram.bigram[w1Id.toString()]
+            if (nodeData != null) {
+                val words = resolveNodeWords(nodeData, repo.clusteredBigram)
+                    .sortedBy { repo.wordReverseMap[it] ?: Int.MAX_VALUE }
+                for (word in words) {
+                    if (word.isNotEmpty()) results.add(word)
+                    if (results.size >= maxCount) return results.toList()
                 }
             }
         }
 
-        // 5. Sentence Topic Clusters (STC)
+        // 3. Sentence Topic Clusters (STC)
         if (contextWords.size >= 2) {
             val stcWords = getSTCWords(contextWords)
+                .sortedBy { repo.wordReverseMap[it] ?: Int.MAX_VALUE }
             for (word in stcWords) {
-                if (word.isNotEmpty()) candidates.add(word)
-                if (candidates.size >= maxCount) return
+                if (word.isNotEmpty()) results.add(word)
+                if (results.size >= maxCount) return results.toList()
             }
         }
 
-        // 6. Personal Frequent Words
-        if (isPersonEnabled && repo.personalizationFreqEnabled && profile.wordFreq.isNotEmpty()) {
-            profile.wordFreq.entries.sortedByDescending { it.value }.forEach { (word, _) ->
-                if (word.isNotEmpty()) candidates.add(word)
-                if (candidates.size >= maxCount) return
+        // 4. Fallback to Personalize ONLY if main system found nothing and personalize is enabled
+        if (results.isEmpty() && repo.isPersonalizationEnabled) {
+            val profile = repo.personalProfile
+            if (contextWords.size >= 2) {
+                val pw1 = contextWords[contextWords.size - 2]
+                val pw2 = contextWords[contextWords.size - 1]
+                val triKey = "${pw1}_${pw2}"
+                profile.trigram[triKey]?.keys?.let { results.addAll(it) }
+            }
+            if (results.isEmpty()) {
+                profile.bigram[w1]?.keys?.let { results.addAll(it) }
             }
         }
+
+        return results.take(maxCount).toList()
     }
 
-    private fun autocompletePrefix(
-        contextWords: List<String>,
-        prefix: String,
-        candidates: LinkedHashSet<String>,
-        maxCount: Int
-    ) {
-        val profile = repo.personalProfile
-        val isPersonEnabled = repo.isPersonalizationEnabled
+    /**
+     * Prefix Autocomplete (while typing):
+     * Matches all words starting with prefix from:
+     * - Main Trie dictionary
+     * - Learned OOV Trie (if personalize enabled)
+     * Ranks them by: (wordIndex + 1) * 1.4^extraChars
+     */
+    private fun autocompletePrefix(prefix: String, maxCount: Int): List<String> {
+        val root = repo.trieDict ?: return emptyList()
+        val allResults = mutableListOf<Pair<String, Int>>()
 
-        // 1. Personal Trigram & Bigram matches with prefix
-        if (isPersonEnabled && repo.personalizationPairsEnabled) {
-            if (contextWords.size >= 2) {
-                val w1 = contextWords[contextWords.size - 2]
-                val w2 = contextWords[contextWords.size - 1]
-                val triKey = "${w1}_${w2}"
-                profile.trigram[triKey]?.entries
-                    ?.filter { it.key.startsWith(prefix) }
-                    ?.sortedByDescending { it.value }
-                    ?.forEach { (word, _) ->
-                        candidates.add(word)
-                        if (candidates.size >= maxCount) return
-                    }
-            }
-            if (contextWords.isNotEmpty()) {
-                val w1 = contextWords.last()
-                profile.bigram[w1]?.entries
-                    ?.filter { it.key.startsWith(prefix) }
-                    ?.sortedByDescending { it.value }
-                    ?.forEach { (word, _) ->
-                        candidates.add(word)
-                        if (candidates.size >= maxCount) return
-                    }
-            }
+        // 1. Traverse Main Trie to find all completions
+        var node: TrieNode? = root
+        for (ch in prefix) {
+            node = node?.get(ch.toString())
+            if (node == null) break
         }
 
-        // 2. Personal Learned OOV Trie matching prefix
-        if (isPersonEnabled && repo.trieDictOOV != null) {
-            val oovMatches = searchTrie(repo.trieDictOOV, prefix)
-            for (word in oovMatches) {
-                candidates.add(word)
-                if (candidates.size >= maxCount) return
-            }
-        }
-
-        // 3. Personal Frequent Words matching prefix
-        if (isPersonEnabled && repo.personalizationFreqEnabled && profile.wordFreq.isNotEmpty()) {
-            profile.wordFreq.entries
-                .filter { it.key.startsWith(prefix) }
-                .sortedByDescending { it.value }
-                .forEach { (word, _) ->
-                    candidates.add(word)
-                    if (candidates.size >= maxCount) return
+        if (node != null) {
+            fun dfs(n: TrieNode, word: String, depth: Int) {
+                if (allResults.size >= 200 || depth > 12) return
+                if (n.isEndOfWord) {
+                    val wordIndex = n.frequency // _w in trie is word_list index
+                    allResults.add(word to wordIndex)
                 }
-        }
-
-        // 4. General Clustered Trigram / Bigram matches with prefix
-        if (contextWords.size >= 2) {
-            val w1 = contextWords[contextWords.size - 2]
-            val w2 = contextWords[contextWords.size - 1]
-            val w1Id = repo.wordReverseMap[w1]
-            val w2Id = repo.wordReverseMap[w2]
-            if (w1Id != null && w2Id != null) {
-                val nodeData = repo.clusteredTrigram.bigram["${w1Id}_${w2Id}"]
-                if (nodeData != null) {
-                    val words = resolveNodeWords(nodeData, repo.clusteredTrigram).filter { it.startsWith(prefix) }
-                    for (word in words) {
-                        candidates.add(word)
-                        if (candidates.size >= maxCount) return
-                    }
+                for ((key, child) in n.children) {
+                    dfs(child, word + key, depth + 1)
                 }
             }
+            dfs(node, prefix, 0)
         }
 
-        if (contextWords.isNotEmpty()) {
-            val w1 = contextWords.last()
-            val w1Id = repo.wordReverseMap[w1]
-            if (w1Id != null) {
-                val nodeData = repo.clusteredBigram.bigram[w1Id.toString()]
-                if (nodeData != null) {
-                    val words = resolveNodeWords(nodeData, repo.clusteredBigram).filter { it.startsWith(prefix) }
-                    for (word in words) {
-                        candidates.add(word)
-                        if (candidates.size >= maxCount) return
+        // 2. Learned OOV Trie matching prefix (if personalize is enabled)
+        if (repo.isPersonalizationEnabled && repo.trieDictOOV != null) {
+            var oovNode: TrieNode? = repo.trieDictOOV
+            for (ch in prefix) {
+                oovNode = oovNode?.get(ch.toString())
+                if (oovNode == null) break
+            }
+            if (oovNode != null) {
+                fun dfsOOV(n: TrieNode, word: String, depth: Int) {
+                    if (depth > 12) return
+                    if (n.isEndOfWord) {
+                        // For OOV words, give competitive index so exact/close matches appear
+                        val oovIndex = repo.wordReverseMap[word] ?: 500
+                        allResults.add(word to oovIndex)
+                    }
+                    for ((key, child) in n.children) {
+                        dfsOOV(child, word + key, depth + 1)
                     }
                 }
+                dfsOOV(oovNode, prefix, 0)
             }
         }
 
-        // 5. Main Trie Dictionary DFS search
-        if (repo.trieDict != null) {
-            val trieMatches = searchTrieRanked(repo.trieDict, prefix)
-            for (word in trieMatches) {
-                candidates.add(word)
-                if (candidates.size >= maxCount) return
+        // 3. Point 3: Sort by exact equation (wordIndex + 1) * 1.4^extraChars
+        return allResults
+            .distinctBy { it.first }
+            .sortedBy { (word, wordIndex) ->
+                val extraChars = maxOf(0, word.length - prefix.length)
+                val lenPenalty = Math.pow(1.4, extraChars.toDouble())
+                (wordIndex + 1) * lenPenalty
             }
-        }
+            .map { it.first }
+            .take(maxCount)
     }
 
     private fun resolveNodeWords(
@@ -322,61 +274,8 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         return results
     }
 
-    private fun searchTrie(root: TrieNode?, prefix: String): List<String> {
-        if (root == null || prefix.isEmpty()) return emptyList()
-        var node: TrieNode = root
-        for (ch in prefix) {
-            node = node.get(ch.toString()) ?: return emptyList()
-        }
-        val results = mutableListOf<String>()
-        fun dfs(curr: TrieNode, currentWord: String) {
-            if (results.size >= 10) return
-            if (curr.isEndOfWord) results.add(currentWord)
-            for ((key, child) in curr.children) {
-                dfs(child, currentWord + key)
-            }
-        }
-        dfs(node, prefix)
-        return results
-    }
-
-    private fun searchTrieRanked(root: TrieNode?, prefix: String): List<String> {
-        if (root == null || prefix.isEmpty()) return emptyList()
-        var node: TrieNode = root
-        for (ch in prefix) {
-            node = node.get(ch.toString()) ?: return emptyList()
-        }
-
-        val allResults = mutableListOf<Pair<String, Int>>()
-
-        fun dfs(n: TrieNode, word: String, depth: Int) {
-            if (allResults.size >= 20 || depth > 12) return
-            if (n.isEndOfWord) {
-                allResults.add(word to n.frequency)
-            }
-            for ((key, child) in n.children) {
-                dfs(child, word + key, depth + 1)
-            }
-        }
-
-        dfs(node, prefix, 0)
-
-        return allResults.sortedBy { (word, rank) ->
-            val extraChars = maxOf(0, word.length - prefix.length)
-            val lenPenalty = Math.pow(1.4, extraChars.toDouble())
-            (rank + 1) * lenPenalty
-        }.map { it.first }
-    }
-
     private fun cleanWord(word: String): String {
         return word.lowercase().replace(Regex("[^a-z0-9']"), "")
-    }
-
-    private fun isSentenceBeginning(text: String): Boolean {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty()) return true
-        val lastChar = trimmed.last()
-        return lastChar == '.' || lastChar == '!' || lastChar == '?' || lastChar == '\n'
     }
 
     private fun applyCasing(word: String, isAllCaps: Boolean, isFirstUpper: Boolean): String {
