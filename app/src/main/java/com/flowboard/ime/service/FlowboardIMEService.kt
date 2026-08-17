@@ -52,6 +52,7 @@ import com.flowboard.ime.engine.LayoutManager
 import com.flowboard.ime.engine.LiveLearningManager
 import com.flowboard.ime.engine.ProfileManager
 import com.flowboard.ime.engine.ScoringEngine
+import com.flowboard.ime.engine.WordPredictionEngine
 import com.flowboard.ime.ui.KeyboardView
 import com.flowboard.ime.ui.SwipeDetector
 import com.flowboard.ime.util.ThemeManager
@@ -79,6 +80,7 @@ class FlowboardIMEService : InputMethodService() {
     private lateinit var layoutManager: LayoutManager
     private lateinit var languageManager: LanguageManager
     private lateinit var profileManager: ProfileManager
+    private lateinit var wordPredictionEngine: WordPredictionEngine
 
     private val settingsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -229,6 +231,7 @@ class FlowboardIMEService : InputMethodService() {
         layoutManager = LayoutManager(repo)
         languageManager = LanguageManager(repo)
         profileManager = ProfileManager(repo)
+        wordPredictionEngine = WordPredictionEngine(repo)
 
         loadSettings()
         liveLearningManager.loadProfile()
@@ -1984,22 +1987,13 @@ class FlowboardIMEService : InputMethodService() {
             }
         }
 
-        if (isNumberMode) {
+        if (isNumberMode || !::wordPredictionEngine.isInitialized) {
             predictionBar?.visibility = View.INVISIBLE
             return
         }
 
-        val text = typedText.toString().trim()
-
-        if (text.isEmpty()) {
-            pred1?.text = ""
-            pred2?.text = ""
-            pred3?.text = ""
-            predictionBar?.visibility = View.GONE
-            return
-        }
-
-        val suggestions = getSimpleSuggestions(text)
+        val fullText = getFullTextBeforeCursor()
+        val suggestions = wordPredictionEngine.getPredictions(fullText, 3)
         
         if (suggestions.isEmpty()) {
             pred1?.text = ""
@@ -2010,59 +2004,13 @@ class FlowboardIMEService : InputMethodService() {
             pred1?.text = suggestions.getOrElse(0) { "" }
             pred2?.text = suggestions.getOrElse(1) { "" }
             pred3?.text = suggestions.getOrElse(2) { "" }
+
+            pred1?.visibility = if (suggestions.size > 0) View.VISIBLE else View.GONE
+            pred2?.visibility = if (suggestions.size > 1) View.VISIBLE else View.GONE
+            pred3?.visibility = if (suggestions.size > 2) View.VISIBLE else View.GONE
+
             predictionBar?.visibility = View.VISIBLE
-            pred1?.visibility = View.VISIBLE
-            pred2?.visibility = View.VISIBLE
-            pred3?.visibility = View.VISIBLE
         }
-    }
-
-    private fun getSimpleSuggestions(text: String): List<String> {
-        val results = mutableListOf<String>()
-
-        val root = repo.trieDict ?: return results
-        val lowerText = text.lowercase()
-        var node = root
-        for (c in lowerText) {
-            node = node[c.toString()] ?: return results
-        }
-
-        val allResults = mutableListOf<Pair<String, Int>>()
-
-        fun dfs(n: com.flowboard.ime.data.models.TrieNode, prefix: String, depth: Int) {
-            if (allResults.size >= 100) return // Candidate pool
-            if (depth > 12) return // Safety depth limit
-            if (n.isEndOfWord) {
-                allResults.add(prefix to n.frequency)
-            }
-            for (entry in n.children.entries) {
-                val key = entry.key
-                val child = entry.value
-                dfs(child, prefix + key, depth + 1)
-            }
-        }
-
-        dfs(node, lowerText, 0)
-
-        val isAllCaps = text.length > 1 && text.all { it.isUpperCase() }
-        val isFirstUpper = text.isNotEmpty() && text[0].isUpperCase()
-
-        fun applyCasing(word: String): String {
-            return when {
-                isAllCaps -> word.uppercase()
-                isFirstUpper -> word.replaceFirstChar { it.uppercase() }
-                else -> word
-            }
-        }
-
-        // Effective rank = (rank + 1) * 1.4^extraChars (smaller line index = more popular)
-        return allResults.sortedBy { (word, rank) ->
-            val extraChars = maxOf(0, word.length - lowerText.length)
-            val lenPenalty = Math.pow(1.4, extraChars.toDouble())
-            (rank + 1) * lenPenalty
-        }
-        .map { applyCasing(it.first) }
-        .take(3)
     }
 
     // ══════════════════════════════════════════
