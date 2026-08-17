@@ -74,6 +74,7 @@ object FlowboardRepository {
     val isReady: StateFlow<Boolean> = _isReady.asStateFlow()
 
     private val _isFullyLoaded = MutableStateFlow(false)
+    @Suppress("unused")
     val isFullyLoaded: StateFlow<Boolean> = _isFullyLoaded.asStateFlow()
 
     fun markReady() {
