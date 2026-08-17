@@ -102,15 +102,17 @@ class LiveLearningManager(private val context: Context) {
         if (words.isEmpty()) return
 
         val lastWord = words.last()
-        if (lastWord.length < 2) return
+        if (lastWord.isEmpty()) return
 
         // 1. Update Word Frequency
-        liveWordFreq[lastWord] = (liveWordFreq[lastWord] ?: 0) + 1
+        if (lastWord.length >= 2 || lastWord == "i" || lastWord == "a") {
+            liveWordFreq[lastWord] = (liveWordFreq[lastWord] ?: 0) + 1
+        }
 
         // 2. Update Bigram
         if (words.size >= 2) {
             val w1 = words[words.size - 2]
-            if (w1.length >= 2) {
+            if (w1.isNotEmpty() && lastWord.isNotEmpty()) {
                 val inner = liveBigram.getOrPut(w1) { HashMap() }
                 inner[lastWord] = (inner[lastWord] ?: 0) + 1
             }
@@ -120,7 +122,7 @@ class LiveLearningManager(private val context: Context) {
         if (words.size >= 3) {
             val w1 = words[words.size - 3]
             val w2 = words[words.size - 2]
-            if (w1.length >= 2 && w2.length >= 2) {
+            if (w1.isNotEmpty() && w2.isNotEmpty() && lastWord.isNotEmpty()) {
                 val triKey = "${w1}_${w2}"
                 val inner = liveTrigram.getOrPut(triKey) { HashMap() }
                 inner[lastWord] = (inner[lastWord] ?: 0) + 1
@@ -128,12 +130,14 @@ class LiveLearningManager(private val context: Context) {
         }
 
         // 4. OOV Check & Dynamic Trie Injection (supports alphanumeric words like "b4", "4ever", "gr8")
-        val isInWordList = FlowboardRepository.wordReverseMap.containsKey(lastWord)
-        val isInMainTrie = isWordInTrie(FlowboardRepository.trieDict, lastWord)
-        if (!isInWordList && !isInMainTrie) {
-            if (!liveLearnedOOV.contains(lastWord)) {
-                liveLearnedOOV.add(lastWord)
-                injectOOVWordToTrie(lastWord)
+        if (lastWord.length >= 2) {
+            val isInWordList = FlowboardRepository.wordReverseMap.containsKey(lastWord)
+            val isInMainTrie = isWordInTrie(FlowboardRepository.trieDict, lastWord)
+            if (!isInWordList && !isInMainTrie) {
+                if (!liveLearnedOOV.contains(lastWord)) {
+                    liveLearnedOOV.add(lastWord)
+                    injectOOVWordToTrie(lastWord)
+                }
             }
         }
 
@@ -141,7 +145,7 @@ class LiveLearningManager(private val context: Context) {
         updateRepositoryProfile()
         pruneIfExceeded()
 
-        Log.d(TAG, "Recorded word in RAM: '$lastWord' (freq=${liveWordFreq[lastWord]}, total OOV=${liveLearnedOOV.size})")
+        Log.d(TAG, "Recorded word in RAM: '$lastWord' (freq=${liveWordFreq[lastWord]}, bigrams=${liveBigram.size}, trigrams=${liveTrigram.size}, total OOV=${liveLearnedOOV.size})")
     }
 
     /**

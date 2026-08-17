@@ -182,6 +182,7 @@ class PersonalizationLiveTest {
         val stats = liveMgr.getStats()
         assertTrue("Stats should report wordFreqCount > 0", (stats["wordFreqCount"] ?: 0) > 0)
         assertTrue("Stats should report oovCount > 0", (stats["oovCount"] ?: 0) > 0)
+        assertTrue("Stats should report totalPairsCount > 0", (stats["totalPairsCount"] ?: 0) > 0)
 
         // Clear Profile
         liveMgr.clearProfile()
@@ -189,7 +190,34 @@ class PersonalizationLiveTest {
         assertEquals(0, clearedStats["wordFreqCount"])
         assertEquals(0, clearedStats["oovCount"])
         assertEquals(0, clearedStats["bigramCount"])
+        assertEquals(0, clearedStats["totalPairsCount"])
         assertTrue("Repository personalProfile should be empty after clear", repo.personalProfile.isEmpty)
+    }
+
+    @Test
+    fun testWordPairsRecordingWithFullSentenceContext() {
+        val filesDir = tempFolder.newFolder("files5")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+
+        liveMgr.loadProfile()
+
+        // Type full sentence: "I love flowboard because it is fast"
+        liveMgr.recordWordTyped("I")
+        liveMgr.recordWordTyped("I love")
+        liveMgr.recordWordTyped("I love flowboard")
+        liveMgr.recordWordTyped("I love flowboard because")
+        liveMgr.recordWordTyped("I love flowboard because it")
+        liveMgr.recordWordTyped("I love flowboard because it is")
+        liveMgr.recordWordTyped("I love flowboard because it is fast")
+
+        val stats = liveMgr.getStats()
+        assertTrue("Should have recorded multiple word pairs", (stats["totalPairsCount"] ?: 0) >= 5)
+        assertTrue("Should have bigrams recorded", (stats["bigramCount"] ?: 0) >= 4)
+        assertTrue("Should have trigrams recorded", (stats["trigramCount"] ?: 0) >= 3)
+        assertTrue("Bigram 'i' -> 'love' should exist", repo.personalProfile.bigram["i"]?.containsKey("love") == true)
+        assertTrue("Bigram 'love' -> 'flowboard' should exist", repo.personalProfile.bigram["love"]?.containsKey("flowboard") == true)
+        assertTrue("Trigram 'i_love' -> 'flowboard' should exist", repo.personalProfile.trigram["i_love"]?.containsKey("flowboard") == true)
     }
 
     private class MockContext(

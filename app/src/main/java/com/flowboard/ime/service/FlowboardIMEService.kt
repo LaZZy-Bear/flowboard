@@ -572,7 +572,7 @@ class FlowboardIMEService : InputMethodService() {
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         Log.d(TAG, "onFinishInputView")
-        val currentText = synchronized(typedText) { typedText.toString() }
+        val currentText = getFullTextBeforeCursor()
         if (currentText.isNotEmpty()) {
             liveLearningManager.recordWordTyped(currentText)
         }
@@ -582,7 +582,7 @@ class FlowboardIMEService : InputMethodService() {
     override fun onWindowHidden() {
         super.onWindowHidden()
         Log.d(TAG, "onWindowHidden")
-        val currentText = synchronized(typedText) { typedText.toString() }
+        val currentText = getFullTextBeforeCursor()
         if (currentText.isNotEmpty()) {
             liveLearningManager.recordWordTyped(currentText)
         }
@@ -1645,6 +1645,16 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
+    private fun getFullTextBeforeCursor(appendChar: String = ""): String {
+        val ic = currentInputConnection
+        val before = ic?.getTextBeforeCursor(1000, 0)?.toString() ?: ""
+        if (before.isNotEmpty()) {
+            return before + appendChar
+        }
+        val local = synchronized(typedText) { typedText.toString() }
+        return local + appendChar
+    }
+
     private fun commitChar(char: String) {
         playClick(if (char == " ") 32 else 0)
         
@@ -1661,12 +1671,15 @@ class FlowboardIMEService : InputMethodService() {
             typedText.append(finalChar)
         }
 
+        val fullText = getFullTextBeforeCursor(finalChar)
+
         if (finalChar == " ") {
             repo.lastActionKeyId = null
             repo.lastActionSlot = null
             repo.lastActionChar = null
             repo.stickyChar = null
-            liveLearningManager.recordWordTyped(synchronized(typedText) { typedText.toString() })
+            liveLearningManager.recordWordTyped(fullText)
+            liveLearningManager.saveProfileIfDirty()
         }
 
         if (languageManager.shiftState == LanguageManager.ShiftState.OFF) {
@@ -1675,10 +1688,12 @@ class FlowboardIMEService : InputMethodService() {
             refreshLayout()
         }
 
-        val ic = currentInputConnection ?: return
-        isCommiting = true
-        ic.commitText(finalChar, 1)
-        isCommiting = false
+        val ic = currentInputConnection
+        if (ic != null) {
+            isCommiting = true
+            ic.commitText(finalChar, 1)
+            isCommiting = false
+        }
 
         refreshLayout()
         updatePredictions()
@@ -1753,9 +1768,10 @@ class FlowboardIMEService : InputMethodService() {
             }
         }
 
-        val currentText = synchronized(typedText) { typedText.toString() }
+        val currentText = getFullTextBeforeCursor()
         if (currentText.isNotEmpty()) {
             liveLearningManager.recordWordTyped(currentText)
+            liveLearningManager.saveProfileIfDirty()
         }
 
         synchronized(typedText) {
@@ -1810,7 +1826,9 @@ class FlowboardIMEService : InputMethodService() {
                 ic.deleteSurroundingText(currentLen, 0)
             }
             ic.commitText("$word ", 1)
-            liveLearningManager.recordWordTyped(typedText.toString() + " " + word)
+            val fullText = getFullTextBeforeCursor()
+            liveLearningManager.recordWordTyped(fullText)
+            liveLearningManager.saveProfileIfDirty()
             typedText.clear()
         }
         if (::scoringEngine.isInitialized) {
@@ -1871,7 +1889,7 @@ class FlowboardIMEService : InputMethodService() {
             return
         }
 
-        val textSnapshot = synchronized(typedText) { typedText.toString() }
+        val textSnapshot = getFullTextBeforeCursor()
 
         // Calculate Sticky Char
         val lastChar = repo.lastActionChar
