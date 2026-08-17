@@ -209,7 +209,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
 
         // 2. Personal Learned OOV Trie matching prefix
         if (isPersonEnabled && repo.trieDictOOV != null) {
-            val oovMatches = searchTrie(repo.trieDictOOV, prefix, 10)
+            val oovMatches = searchTrie(repo.trieDictOOV, prefix)
             for (word in oovMatches) {
                 candidates.add(word)
                 if (candidates.size >= maxCount) return
@@ -262,7 +262,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
 
         // 5. Main Trie Dictionary DFS search
         if (repo.trieDict != null) {
-            val trieMatches = searchTrieRanked(repo.trieDict, prefix, 20)
+            val trieMatches = searchTrieRanked(repo.trieDict, prefix)
             for (word in trieMatches) {
                 candidates.add(word)
                 if (candidates.size >= maxCount) return
@@ -322,7 +322,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         return results
     }
 
-    private fun searchTrie(root: TrieNode?, prefix: String, limit: Int): List<String> {
+    private fun searchTrie(root: TrieNode?, prefix: String): List<String> {
         if (root == null || prefix.isEmpty()) return emptyList()
         var node: TrieNode = root
         for (ch in prefix) {
@@ -330,7 +330,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         }
         val results = mutableListOf<String>()
         fun dfs(curr: TrieNode, currentWord: String) {
-            if (results.size >= limit) return
+            if (results.size >= 10) return
             if (curr.isEndOfWord) results.add(currentWord)
             for ((key, child) in curr.children) {
                 dfs(child, currentWord + key)
@@ -340,7 +340,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         return results
     }
 
-    private fun searchTrieRanked(root: TrieNode?, prefix: String, candidatePoolSize: Int): List<String> {
+    private fun searchTrieRanked(root: TrieNode?, prefix: String): List<String> {
         if (root == null || prefix.isEmpty()) return emptyList()
         var node: TrieNode = root
         for (ch in prefix) {
@@ -350,7 +350,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         val allResults = mutableListOf<Pair<String, Int>>()
 
         fun dfs(n: TrieNode, word: String, depth: Int) {
-            if (allResults.size >= candidatePoolSize || depth > 12) return
+            if (allResults.size >= 20 || depth > 12) return
             if (n.isEndOfWord) {
                 allResults.add(word to n.frequency)
             }
