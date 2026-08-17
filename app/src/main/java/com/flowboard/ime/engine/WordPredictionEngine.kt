@@ -5,25 +5,35 @@ import com.flowboard.ime.data.models.TrieNode
 import com.flowboard.ime.data.models.WordBigramEntry
 
 /**
- * Word Prediction Engine
+ * Production-Grade Word Prediction Engine (Gboard / SwiftKey Architecture)
  *
  * 1. Empty text -> Returns empty list (Do NOT suggest when nothing has been typed).
- * 2. Next Word Prediction (after space) -> Ranked by lowest index in word_list.json.
- *    Uses Clustered Trigram -> Clustered Bigram -> STC -> (fallback to Personalize ONLY if main system unknown).
- * 3. Prefix Autocomplete (while typing) -> Ranked by (wordIndex + 1) * 1.4^extraChars.
- *    Learned OOV words from Personalize are included in candidate pool so user can tap custom words.
+ * 2. Next Word Prediction (after space) -> N-gram ordered with at most 1 stop connector (the, a, to, in, etc.)
+ *    so content/meaningful words get the other 2 slots.
+ * 3. Prefix Autocomplete (while typing) -> Context-Aware N-gram Boost + Normalized Word Popularity + Length Penalty.
+ *    - Context Aware: Boosts words that make grammatical sense after previous words (e.g. "I h" -> "have", "How are y" -> "you").
+ *    - Normalized Popularity: Fixes artificial contraction indices and filters out obscure abbreviations (plc, std, cd).
+ *    - Personal OOV Support: User-learned words matching prefix appear with high priority.
  */
 class WordPredictionEngine(private val repo: FlowboardRepository) {
 
     companion object {
-        private val CONNECTORS_SET = setOf(
-            "the", "a", "an", "this", "that", "these", "those",
-            "my", "your", "his", "her", "its", "our", "their",
-            "to", "in", "of", "by", "for", "on", "at", "with", "from",
-            "into", "about", "over", "after", "before", "under", "through", "out",
-            "is", "was", "are", "were", "be", "been", "being",
-            "have", "has", "had", "do", "does", "did", "can", "could", "will", "would", "should",
-            "and", "or", "but", "so", "as", "if", "than"
+        /**
+         * Pure structural connectors / stop words (the, a, to, in, of, and, etc.)
+         * When predicting next words, at most 1 of these is allowed in the 3 prediction slots.
+         */
+        private val STOP_CONNECTORS_SET = setOf(
+            "the", "a", "an", "and", "or", "but", "to", "in", "of", "by", "for", "on", "at",
+            "with", "from", "into", "about", "as", "than", "so", "if", "that", "this", "these", "those"
+        )
+
+        /**
+         * Common contractions that users frequently type.
+         * Other obscure contractions (e.g. shan't, mightn't) are de-prioritized.
+         */
+        private val COMMON_CONTRACTIONS = setOf(
+            "don't", "can't", "i'm", "it's", "that's", "you're", "i'll", "we'll",
+            "didn't", "won't", "i've", "they're", "you've", "he's", "she's", "let's"
         )
     }
 
@@ -31,7 +41,6 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
      * Generate up to [maxCount] word suggestions based on the full text before cursor.
      */
     fun getPredictions(fullText: String, maxCount: Int = 3): List<String> {
-        // Point 1: Do NOT suggest when nothing has been typed yet
         val trimmed = fullText.trimEnd { it == '\t' || it == '\r' }
         if (trimmed.isEmpty()) {
             return emptyList()
@@ -66,7 +75,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             // ──────────────────────────────────────────
             // Mode B: Prefix Autocomplete (while typing)
             // ──────────────────────────────────────────
-            autocompletePrefix(prefix, maxCount)
+            autocompletePrefix(cleanContext, prefix, maxCount)
         }
 
         if (results.isEmpty()) return emptyList()
@@ -82,16 +91,13 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
 
     /**
      * Next Word Prediction:
-     * 1. Query Clustered Trigram (2-word context)
-     * 2. Query Clustered Bigram (1-word context)
-     * 3. Query Sentence Topic Clusters (STC)
-     * 4. Fallback to Personalize ONLY if main system has no predictions for this context
-     * Rank candidates by lowest index in word_list.json!
+     * Gathers candidate next words in n-gram priority order (Trigram -> Bigram -> STC -> Personalize fallback).
+     * Limits pure stop connectors (the, a, to, in, etc.) to at most 1 slot so content words get the rest.
      */
     private fun predictNextWords(contextWords: List<String>, maxCount: Int): List<String> {
         if (contextWords.isEmpty()) return emptyList()
 
-        val results = LinkedHashSet<String>()
+        val allCandidates = LinkedHashSet<String>()
 
         // 1. General Clustered Trigram (2-word context)
         if (contextWords.size >= 2) {
@@ -104,11 +110,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
                 val nodeData = repo.clusteredTrigram.bigram[key]
                 if (nodeData != null) {
                     val words = resolveNodeWords(nodeData, repo.clusteredTrigram)
-                        .sortedBy { repo.wordReverseMap[it] ?: Int.MAX_VALUE }
-                    for (word in words) {
-                        if (word.isNotEmpty()) results.add(word)
-                        if (results.size >= maxCount) return results.toList()
-                    }
+                    allCandidates.addAll(words)
                 }
             }
         }
@@ -120,49 +122,71 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             val nodeData = repo.clusteredBigram.bigram[w1Id.toString()]
             if (nodeData != null) {
                 val words = resolveNodeWords(nodeData, repo.clusteredBigram)
-                    .sortedBy { repo.wordReverseMap[it] ?: Int.MAX_VALUE }
-                for (word in words) {
-                    if (word.isNotEmpty()) results.add(word)
-                    if (results.size >= maxCount) return results.toList()
-                }
+                allCandidates.addAll(words)
             }
         }
 
         // 3. Sentence Topic Clusters (STC)
         if (contextWords.size >= 2) {
             val stcWords = getSTCWords(contextWords)
-                .sortedBy { repo.wordReverseMap[it] ?: Int.MAX_VALUE }
-            for (word in stcWords) {
-                if (word.isNotEmpty()) results.add(word)
-                if (results.size >= maxCount) return results.toList()
-            }
+            allCandidates.addAll(stcWords)
         }
 
         // 4. Fallback to Personalize ONLY if main system found nothing and personalize is enabled
-        if (results.isEmpty() && repo.isPersonalizationEnabled) {
+        if (allCandidates.isEmpty() && repo.isPersonalizationEnabled) {
             val profile = repo.personalProfile
             if (contextWords.size >= 2) {
                 val pw1 = contextWords[contextWords.size - 2]
                 val pw2 = contextWords[contextWords.size - 1]
                 val triKey = "${pw1}_${pw2}"
-                profile.trigram[triKey]?.keys?.let { results.addAll(it) }
+                profile.trigram[triKey]?.keys?.let { allCandidates.addAll(it) }
             }
-            if (results.isEmpty()) {
-                profile.bigram[w1]?.keys?.let { results.addAll(it) }
+            if (allCandidates.isEmpty()) {
+                profile.bigram[w1]?.keys?.let { allCandidates.addAll(it) }
             }
         }
 
-        return results.take(maxCount).toList()
+        if (allCandidates.isEmpty()) return emptyList()
+
+        val selected = mutableListOf<String>()
+        var connectorCount = 0
+
+        // Filter candidates preserving n-gram database order, capping stop connectors to 1 max
+        for (word in allCandidates) {
+            if (word.isEmpty()) continue
+            val isStopConnector = STOP_CONNECTORS_SET.contains(word)
+            if (isStopConnector) {
+                if (connectorCount < 1) {
+                    selected.add(word)
+                    connectorCount++
+                }
+            } else {
+                selected.add(word)
+            }
+            if (selected.size >= maxCount) break
+        }
+
+        // Backfill if under maxCount
+        if (selected.size < maxCount) {
+            for (word in allCandidates) {
+                if (word.isNotEmpty() && !selected.contains(word)) {
+                    selected.add(word)
+                    if (selected.size >= maxCount) break
+                }
+            }
+        }
+
+        return selected
     }
 
     /**
-     * Prefix Autocomplete (while typing):
-     * Matches all words starting with prefix from:
-     * - Main Trie dictionary
-     * - Learned OOV Trie (if personalize enabled)
-     * Ranks them by: (wordIndex + 1) * 1.4^extraChars
+     * Context-Aware Prefix Autocomplete:
+     * 1. Finds all completions from Trie dictionary + OOV Trie.
+     * 2. Queries preceding context (Trigram / Bigram) to boost matching words.
+     * 3. Normalizes English frequency (penalizing obscure contractions & weird abbreviations).
+     * 4. Scores candidates: BasePopularity + ContextBoost - LengthPenalty.
      */
-    private fun autocompletePrefix(prefix: String, maxCount: Int): List<String> {
+    private fun autocompletePrefix(contextWords: List<String>, prefix: String, maxCount: Int): List<String> {
         val root = repo.trieDict ?: return emptyList()
         val allResults = mutableListOf<Pair<String, Int>>()
 
@@ -175,9 +199,9 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
 
         if (node != null) {
             fun dfs(n: TrieNode, word: String, depth: Int) {
-                if (allResults.size >= 200 || depth > 12) return
+                if (allResults.size >= 400 || depth > 12) return
                 if (n.isEndOfWord) {
-                    val wordIndex = n.frequency // _w in trie is word_list index
+                    val wordIndex = repo.wordReverseMap[word] ?: n.frequency
                     allResults.add(word to wordIndex)
                 }
                 for ((key, child) in n.children) {
@@ -188,6 +212,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         }
 
         // 2. Learned OOV Trie matching prefix (if personalize is enabled)
+        var hasPersonalOOV = false
         if (repo.isPersonalizationEnabled && repo.trieDictOOV != null) {
             var oovNode: TrieNode? = repo.trieDictOOV
             for (ch in prefix) {
@@ -198,9 +223,9 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
                 fun dfsOOV(n: TrieNode, word: String, depth: Int) {
                     if (depth > 12) return
                     if (n.isEndOfWord) {
-                        // For OOV words, give competitive index so exact/close matches appear
-                        val oovIndex = repo.wordReverseMap[word] ?: 500
-                        allResults.add(word to oovIndex)
+                        hasPersonalOOV = true
+                        // User-learned OOV words get highest priority
+                        allResults.add(word to 0)
                     }
                     for ((key, child) in n.children) {
                         dfsOOV(child, word + key, depth + 1)
@@ -210,16 +235,96 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             }
         }
 
-        // 3. Point 3: Sort by exact equation (wordIndex + 1) * 1.4^extraChars
-        return allResults
-            .distinctBy { it.first }
-            .sortedBy { (word, wordIndex) ->
-                val extraChars = maxOf(0, word.length - prefix.length)
-                val lenPenalty = Math.pow(1.4, extraChars.toDouble())
-                (wordIndex + 1) * lenPenalty
+        val candidates = allResults.distinctBy { it.first }
+        if (candidates.isEmpty()) return emptyList()
+        if (candidates.size <= maxCount) return candidates.map { it.first }
+
+        // 3. Find N-gram context matches starting with prefix
+        val trigramMatches = mutableSetOf<String>()
+        val bigramMatches = mutableSetOf<String>()
+
+        if (contextWords.size >= 2) {
+            val w1 = contextWords[contextWords.size - 2]
+            val w2 = contextWords[contextWords.size - 1]
+            val w1Id = repo.wordReverseMap[w1]
+            val w2Id = repo.wordReverseMap[w2]
+            if (w1Id != null && w2Id != null) {
+                val key = "${w1Id}_${w2Id}"
+                val nodeData = repo.clusteredTrigram.bigram[key]
+                if (nodeData != null) {
+                    val words = resolveNodeWords(nodeData, repo.clusteredTrigram)
+                    for (w in words) {
+                        if (w.startsWith(prefix)) trigramMatches.add(w)
+                    }
+                }
             }
+        }
+
+        if (contextWords.isNotEmpty()) {
+            val w1 = contextWords.last()
+            val w1Id = repo.wordReverseMap[w1]
+            if (w1Id != null) {
+                val nodeData = repo.clusteredBigram.bigram[w1Id.toString()]
+                if (nodeData != null) {
+                    val words = resolveNodeWords(nodeData, repo.clusteredBigram)
+                    for (w in words) {
+                        if (w.startsWith(prefix)) bigramMatches.add(w)
+                    }
+                }
+            }
+        }
+
+        // 4. Score each candidate
+        val scoredCandidates = mutableListOf<Pair<String, Double>>()
+
+        for ((word, rawIndex) in candidates) {
+            // Skip single letter echo words like "c", "t", "b" (except "a" and "i")
+            if (word.length == 1 && word != "a" && word != "i") continue
+            if (word == prefix && prefix.length > 2) continue
+
+            var score = getWordBaseScore(word, rawIndex)
+
+            // Context Boost
+            if (trigramMatches.contains(word)) {
+                score += 12000.0
+            } else if (bigramMatches.contains(word)) {
+                score += 6000.0
+            }
+
+            // Length penalty: 45 pts per extra character
+            val extraChars = maxOf(0, word.length - prefix.length)
+            score -= extraChars * 45.0
+
+            // Penalize obscure abbreviations (indices > 2500 for short words len <= 3 without apostrophe)
+            if (word.length <= 3 && rawIndex > 2500 && !word.contains('\'') && !hasPersonalOOV) {
+                score -= 5000.0
+            }
+
+            scoredCandidates.add(word to score)
+        }
+
+        return scoredCandidates
+            .sortedByDescending { it.second }
             .map { it.first }
             .take(maxCount)
+    }
+
+    /**
+     * Compute realistic English popularity score.
+     * Normalized so that standard words (the, of, to, have, can, make) have top scores,
+     * common contractions (can't, don't) have normal scores, and obscure contractions (shan't) are penalized.
+     */
+    private fun getWordBaseScore(word: String, rawIndex: Int): Double {
+        if (word.contains('\'')) {
+            return if (COMMON_CONTRACTIONS.contains(word)) {
+                10000.0 - 150.0
+            } else {
+                -5000.0 // obscure contractions (shan't, mightn't, etc.)
+            }
+        }
+        // In word_list.json, indices 0-49 are contractions. Normal words start at 50 ("the" = 51)
+        val normIndex = maxOf(0, rawIndex - 50)
+        return maxOf(0.0, 10000.0 - normIndex.toDouble())
     }
 
     private fun resolveNodeWords(
@@ -243,7 +348,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         if (contextWords.size < 2 || stc.isEmpty) return emptyList()
 
         val lastWord = cleanWord(contextWords.last())
-        if (!CONNECTORS_SET.contains(lastWord)) return emptyList()
+        if (!STOP_CONNECTORS_SET.contains(lastWord)) return emptyList()
 
         val clusters = stc.clusters
         val wordMap = stc.wordMap
@@ -253,7 +358,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
 
         for (i in contextWords.size - 2 downTo 0) {
             val prevWord = cleanWord(contextWords[i])
-            if (prevWord.isEmpty() || CONNECTORS_SET.contains(prevWord)) continue
+            if (prevWord.isEmpty() || STOP_CONNECTORS_SET.contains(prevWord)) continue
 
             val wId = repo.wordReverseMap[prevWord] ?: continue
             val clusterWordIds: List<Int>? = if (isDetailed) {
