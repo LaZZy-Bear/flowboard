@@ -1,7 +1,6 @@
 package com.flowboard.ime.testing
 
 import com.flowboard.ime.data.FlowboardRepository
-import com.flowboard.ime.data.models.PersonalProfile
 import com.flowboard.ime.data.models.TrieNode
 import com.flowboard.ime.engine.WordPredictionEngine
 import org.junit.Assert.assertEquals
