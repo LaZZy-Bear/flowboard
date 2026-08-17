@@ -86,6 +86,7 @@ class FlowboardIMEService : InputMethodService() {
         override fun onReceive(context: Context?, intent: Intent?) {
             Log.d(TAG, "Settings or theme changed — refreshing input view")
             context?.let { ctx ->
+                liveLearningManager.loadProfile()
                 AssetLoader(ctx).updatePersonalizationState(ctx, repo)
             }
             loadSettings()
@@ -544,6 +545,8 @@ class FlowboardIMEService : InputMethodService() {
         Log.d(TAG, "onStartInputView (restarting=$restarting)")
 
         loadSettings()
+        liveLearningManager.loadProfile()
+        AssetLoader(this).updatePersonalizationState(this, repo)
 
         if (::scoringEngine.isInitialized) {
             scoringEngine.resetTrieCache()

@@ -52,14 +52,28 @@ class LiveLearningManager(private val context: Context) {
      * Loads saved live profile from internal storage JSON file and merges it into FlowboardRepository.
      */
     fun loadProfile() {
+        liveWordFreq.clear()
+        liveBigram.clear()
+        liveTrigram.clear()
+        liveLearnedOOV.clear()
+        isDirty.set(false)
+
         try {
             val file = File(context.filesDir, PROFILE_FILENAME)
             if (!file.exists()) {
+                FlowboardRepository.personalProfile = PersonalProfile.EMPTY
+                FlowboardRepository.isPersonalizationEnabled = false
+                FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV?.deepCopy()
                 Log.d(TAG, "No live profile file found, starting fresh.")
                 return
             }
             val text = file.readText()
-            if (text.isEmpty()) return
+            if (text.isEmpty()) {
+                FlowboardRepository.personalProfile = PersonalProfile.EMPTY
+                FlowboardRepository.isPersonalizationEnabled = false
+                FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV?.deepCopy()
+                return
+            }
 
             val liveData = json.decodeFromString<LiveProfileData>(text)
 
@@ -239,26 +253,19 @@ class LiveLearningManager(private val context: Context) {
 
     private fun updateRepositoryProfile() {
         val mergedBigram = HashMap<String, Map<String, Int>>()
-        FlowboardRepository.personalProfile.bigram.forEach { (k, v) -> mergedBigram[k] = v }
         liveBigram.forEach { (k, v) ->
-            val existing = mergedBigram[k]?.toMutableMap() ?: HashMap()
-            existing.putAll(v)
-            mergedBigram[k] = existing
+            mergedBigram[k] = HashMap(v)
         }
 
         val mergedTrigram = HashMap<String, Map<String, Int>>()
-        FlowboardRepository.personalProfile.trigram.forEach { (k, v) -> mergedTrigram[k] = v }
         liveTrigram.forEach { (k, v) ->
-            val existing = mergedTrigram[k]?.toMutableMap() ?: HashMap()
-            existing.putAll(v)
-            mergedTrigram[k] = existing
+            mergedTrigram[k] = HashMap(v)
         }
 
         val mergedFreq = HashMap<String, Int>()
-        FlowboardRepository.personalProfile.wordFreq.forEach { (k, v) -> mergedFreq[k] = v }
         mergedFreq.putAll(liveWordFreq)
 
-        val mergedOOV = (FlowboardRepository.personalProfile.learnedOOV + liveLearnedOOV).distinct()
+        val mergedOOV = liveLearnedOOV.toList()
 
         FlowboardRepository.personalProfile = PersonalProfile(
             bigram = mergedBigram,
@@ -266,12 +273,19 @@ class LiveLearningManager(private val context: Context) {
             wordFreq = mergedFreq,
             learnedOOV = mergedOOV
         )
-        FlowboardRepository.isPersonalizationEnabled = true
 
-        // Ensure all OOV words are injected into trieDictOOV
+        FlowboardRepository.isPersonalizationEnabled = !FlowboardRepository.personalProfile.isEmpty
+
+        // Reset trieDictOOV to a clean base copy and inject only current liveLearnedOOV
+        val cleanTrie = FlowboardRepository.baseTrieDictOOV?.deepCopy() ?: TrieNode()
         for (oovWord in mergedOOV) {
-            injectOOVWordToTrie(oovWord)
+            var current: TrieNode = cleanTrie
+            for (ch in oovWord) {
+                current = current.getOrPut(ch.toString())
+            }
+            current.isEndOfWord = true
         }
+        FlowboardRepository.trieDictOOV = cleanTrie
     }
 
     /**
@@ -316,7 +330,8 @@ class LiveLearningManager(private val context: Context) {
         }
 
         FlowboardRepository.personalProfile = PersonalProfile.EMPTY
-        FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
+        FlowboardRepository.isPersonalizationEnabled = false
+        FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV?.deepCopy()
         Log.d(TAG, "Cleared live profile successfully.")
     }
 

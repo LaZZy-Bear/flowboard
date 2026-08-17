@@ -220,6 +220,56 @@ class PersonalizationLiveTest {
         assertTrue("Trigram 'i_love' -> 'flowboard' should exist", repo.personalProfile.trigram["i_love"]?.containsKey("flowboard") == true)
     }
 
+    @Test
+    fun testCapacityLimitsAndPruning() {
+        val filesDir = tempFolder.newFolder("files6")
+        val prefs = mutableMapOf<String, Any>(
+            "personalization_max_word_freq" to "2",
+            "personalization_max_pairs" to "2",
+            "personalization_max_oov" to "2"
+        )
+        val mockContext = MockContext(filesDir, prefs)
+        val liveMgr = LiveLearningManager(mockContext)
+
+        liveMgr.loadProfile()
+
+        // Record 5 distinct OOV words and pairs
+        liveMgr.recordWordTyped("first customoovone")
+        liveMgr.recordWordTyped("second customoovtwo")
+        liveMgr.recordWordTyped("third customoovthree")
+        liveMgr.recordWordTyped("fourth customoovfour")
+        liveMgr.recordWordTyped("fifth customoovfive")
+
+        val stats = liveMgr.getStats()
+        assertTrue("wordFreqCount should be pruned to <= 2, but was ${stats["wordFreqCount"]}", (stats["wordFreqCount"] ?: 0) <= 2)
+        assertTrue("bigramCount should be pruned to <= 2, but was ${stats["bigramCount"]}", (stats["bigramCount"] ?: 0) <= 2)
+        assertTrue("oovCount should be pruned to <= 2, but was ${stats["oovCount"]}", (stats["oovCount"] ?: 0) <= 2)
+    }
+
+    @Test
+    fun testReloadProfileAfterClearProfile() {
+        val filesDir = tempFolder.newFolder("files7")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+
+        liveMgr.loadProfile()
+        liveMgr.recordWordTyped("hello flowboard")
+        liveMgr.saveProfileIfDirty()
+
+        // Clear
+        liveMgr.clearProfile()
+        assertTrue("Repo should be empty after clear", repo.personalProfile.isEmpty)
+
+        // Reload on fresh instance
+        val freshLiveMgr = LiveLearningManager(mockContext)
+        freshLiveMgr.loadProfile()
+        assertTrue("Repo should remain empty after reloading cleared profile", repo.personalProfile.isEmpty)
+        val stats = freshLiveMgr.getStats()
+        assertEquals(0, stats["wordFreqCount"])
+        assertEquals(0, stats["bigramCount"])
+        assertEquals(0, stats["oovCount"])
+    }
+
     private class MockContext(
         private val baseDir: java.io.File,
         private val prefsData: MutableMap<String, Any> = mutableMapOf()

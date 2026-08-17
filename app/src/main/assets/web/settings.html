@@ -765,7 +765,13 @@
                         if (confirm('Are you sure you want to clear all learned personalization data? This cannot be undone.')) {
                             if (typeof Android !== 'undefined' && Android.clearPersonalizationData) {
                                 Android.clearPersonalizationData();
-                                loadStats();
+                                const wEl = document.getElementById('stat-words-count');
+                                const pEl = document.getElementById('stat-pairs-count');
+                                const oEl = document.getElementById('stat-oov-count');
+                                if (wEl) wEl.textContent = '0';
+                                if (pEl) pEl.textContent = '0';
+                                if (oEl) oEl.textContent = '0';
+                                setTimeout(loadStats, 200);
                             }
                         }
                     });

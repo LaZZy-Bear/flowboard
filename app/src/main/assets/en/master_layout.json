@@ -1,7 +1,7 @@
 {
   "a": {
     "homeKey": "key_1",
-    "defaultSlot": "up"
+    "defaultSlot": "tap"
   },
   "b": {
     "homeKey": "key_5",
@@ -21,14 +21,14 @@
   },
   "d": {
     "homeKey": "key_8",
-    "defaultSlot": "tap"
+    "defaultSlot": "up"
   },
   "f": {
-    "homeKey": "key_8",
-    "defaultSlot": "left"
+    "homeKey": "key_9",
+    "defaultSlot": "right"
   },
   "!": {
-    "homeKey": "key_2",
+    "homeKey": "key_6",
     "defaultSlot": "up"
   },
   "i": {
@@ -40,12 +40,12 @@
     "defaultSlot": "tap"
   },
   "j": {
-    "homeKey": "key_3",
-    "defaultSlot": "left"
+    "homeKey": "key_8",
+    "defaultSlot": "tap"
   },
   "/": {
-    "homeKey": "key_4",
-    "defaultSlot": "left"
+    "homeKey": "key_1",
+    "defaultSlot": "right"
   },
   "o": {
     "homeKey": "key_7",
@@ -60,8 +60,8 @@
     "defaultSlot": "right"
   },
   "@": {
-    "homeKey": "key_4",
-    "defaultSlot": "right"
+    "homeKey": "key_9",
+    "defaultSlot": "up"
   },
   "n": {
     "homeKey": "key_5",
@@ -72,8 +72,8 @@
     "defaultSlot": "tap"
   },
   "u": {
-    "homeKey": "key_9",
-    "defaultSlot": "right"
+    "homeKey": "key_8",
+    "defaultSlot": "left"
   },
   "v": {
     "homeKey": "key_4",
@@ -88,12 +88,12 @@
     "defaultSlot": "right"
   },
   "q": {
-    "homeKey": "key_1",
-    "defaultSlot": "tap"
+    "homeKey": "key_2",
+    "defaultSlot": "up"
   },
   "-": {
-    "homeKey": "key_1",
-    "defaultSlot": "right"
+    "homeKey": "key_4",
+    "defaultSlot": "left"
   },
   "s": {
     "homeKey": "key_4",
@@ -105,11 +105,11 @@
   },
   "x": {
     "homeKey": "key_3",
-    "defaultSlot": "tap"
+    "defaultSlot": "left"
   },
   ",": {
-    "homeKey": "key_5",
-    "defaultSlot": "up"
+    "homeKey": "key_4",
+    "defaultSlot": "right"
   },
   "t": {
     "homeKey": "key_2",
@@ -124,7 +124,7 @@
     "defaultSlot": "tap"
   },
   "%": {
-    "homeKey": "key_6",
+    "homeKey": "key_5",
     "defaultSlot": "up"
   },
   "h": {
@@ -132,15 +132,15 @@
     "defaultSlot": "left"
   },
   "'": {
-    "homeKey": "key_7",
+    "homeKey": "key_3",
     "defaultSlot": "tap"
   },
   ".": {
-    "homeKey": "key_8",
-    "defaultSlot": "up"
+    "homeKey": "key_7",
+    "defaultSlot": "tap"
   },
   "\"": {
-    "homeKey": "key_9",
+    "homeKey": "key_1",
     "defaultSlot": "up"
   }
 }

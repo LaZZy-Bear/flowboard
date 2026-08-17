@@ -24,4 +24,17 @@ class TrieNode {
      * Get or create a child node for the given key.
      */
     fun getOrPut(key: String): TrieNode = children.getOrPut(key) { TrieNode() }
+
+    /**
+     * Create a deep clone of this trie node and all its descendants.
+     */
+    fun deepCopy(): TrieNode {
+        val copy = TrieNode()
+        copy.isEndOfWord = this.isEndOfWord
+        copy.frequency = this.frequency
+        for ((k, v) in this.children) {
+            copy.children[k] = v.deepCopy()
+        }
+        return copy
+    }
 }
