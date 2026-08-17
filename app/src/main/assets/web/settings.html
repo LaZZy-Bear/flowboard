@@ -212,21 +212,18 @@
 
             <div class="h-[1px] bg-surface-variant mx-4"></div>
 
-            <!-- Personalization -->
-            <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+            <!-- Personalization & Learning Menu Item -->
+            <div id="personalization-layout-btn" class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors cursor-pointer">
                 <div class="flex items-center gap-4 flex-1">
                     <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
                         <span class="material-symbols-outlined">psychology</span>
                     </div>
                     <div>
-                        <h3 class="text-title-md font-title-md">Personalization</h3>
-                        <p class="text-body-md font-body-md text-on-surface-variant">Boost prediction for your personal word history</p>
+                        <h3 class="text-title-md font-title-md">Personalization &amp; Learning</h3>
+                        <p class="text-body-md font-body-md text-on-surface-variant">Word pairs, boost intensity &amp; vocabulary storage</p>
                     </div>
                 </div>
-                <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                    <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="personalization-toggle" type="checkbox">
-                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="personalization-toggle"></label>
-                </div>
+                <span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
             </div>
 
             <div class="h-[1px] bg-surface-variant mx-4"></div>
@@ -282,6 +279,236 @@
         </a>
 
     </nav>
+
+    <!-- Sub-page Overlay for Personalization -->
+    <div id="personalization-subpage" class="fixed inset-0 bg-background z-50 transform translate-x-full transition-transform duration-300 flex flex-col pb-safe">
+        <!-- Sub-page Header -->
+        <header class="bg-surface dark:bg-surface-dim flex items-center gap-3 w-full px-screen-margin py-3 max-w-full sticky top-0 z-40 border-b border-surface-variant/40">
+            <button id="personalization-back-btn" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container-high transition-colors text-on-surface">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </button>
+            <h1 class="text-headline-md font-headline-md font-semibold text-primary">Personalization &amp; Learning</h1>
+        </header>
+
+        <!-- Sub-page Content -->
+        <main class="flex-1 overflow-y-auto px-screen-margin py-6 space-y-6">
+            
+            <!-- Section 1: General Options -->
+            <div>
+                <h2 class="text-label-lg font-label-lg text-primary px-1 mb-2">General</h2>
+                <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-variant overflow-hidden">
+                    
+                    <!-- Master Toggle -->
+                    <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                        <div class="flex items-center gap-4 flex-1">
+                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-outlined">auto_fix_high</span>
+                            </div>
+                            <div>
+                                <h3 class="text-title-md font-title-md">Enable Personalization</h3>
+                                <p class="text-body-md font-body-md text-on-surface-variant">Learn and adapt to your typing style</p>
+                            </div>
+                        </div>
+                        <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="personalization-toggle" type="checkbox">
+                            <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="personalization-toggle"></label>
+                        </div>
+                    </div>
+
+                    <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+                    <!-- Word Pairs Toggle -->
+                    <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                        <div class="flex items-center gap-4 flex-1">
+                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-outlined">join_inner</span>
+                            </div>
+                            <div>
+                                <h3 class="text-title-md font-title-md">Learn Word Pairs &amp; Phrases</h3>
+                                <p class="text-body-md font-body-md text-on-surface-variant">Boost prediction for frequent 2-3 word combinations</p>
+                            </div>
+                        </div>
+                        <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="personalization-pairs-toggle" type="checkbox">
+                            <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="personalization-pairs-toggle"></label>
+                        </div>
+                    </div>
+
+                    <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+                    <!-- Frequent Words Toggle -->
+                    <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                        <div class="flex items-center gap-4 flex-1">
+                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-outlined">trending_up</span>
+                            </div>
+                            <div>
+                                <h3 class="text-title-md font-title-md">Boost Frequent Words</h3>
+                                <p class="text-body-md font-body-md text-on-surface-variant">Prioritize top personal words when candidate scores are close</p>
+                            </div>
+                        </div>
+                        <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="personalization-freq-toggle" type="checkbox">
+                            <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="personalization-freq-toggle"></label>
+                        </div>
+                    </div>
+
+                    <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+                    <!-- Alphanumeric Words Toggle -->
+                    <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                        <div class="flex items-center gap-4 flex-1">
+                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-outlined">pin</span>
+                            </div>
+                            <div>
+                                <h3 class="text-title-md font-title-md">Learn Alphanumeric Words</h3>
+                                <p class="text-body-md font-body-md text-on-surface-variant">Remember slang and words with digits (e.g. B4, 4ever, GR8)</p>
+                            </div>
+                        </div>
+                        <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 transition-transform duration-200 ease-in-out border-surface-variant translate-x-0" id="personalization-alphanumeric-toggle" type="checkbox">
+                            <label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container cursor-pointer transition-colors duration-200 ease-in-out" for="personalization-alphanumeric-toggle"></label>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Section 2: Advanced Tuning -->
+            <div>
+                <h2 class="text-label-lg font-label-lg text-primary px-1 mb-2">Advanced Tuning (ขั้นสูง)</h2>
+                <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-variant overflow-hidden">
+                    
+                    <!-- Boost Multiplier -->
+                    <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                        <div class="flex items-center gap-4 flex-1">
+                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-outlined">speed</span>
+                            </div>
+                            <div>
+                                <h3 class="text-title-md font-title-md">Boost Intensity</h3>
+                                <p class="text-body-md font-body-md text-on-surface-variant">Personalization score multiplier</p>
+                            </div>
+                        </div>
+                        <select id="boost-multiplier-select" aria-label="Boost Intensity" class="bg-surface-container border border-surface-variant text-on-surface rounded-lg px-3 py-1.5 text-body-md focus:outline-none focus:border-primary">
+                            <option value="0.5">0.5x (Subtle)</option>
+                            <option value="1.0">1.0x (Normal)</option>
+                            <option value="1.5">1.5x (Strong)</option>
+                            <option value="2.0">2.0x (Aggressive)</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Section 3: Memory & Capacity Limits -->
+            <div>
+                <h2 class="text-label-lg font-label-lg text-primary px-1 mb-2">Memory &amp; Capacity Limits (จำกัดขนาดข้อมูล)</h2>
+                <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-variant overflow-hidden">
+                    
+                    <!-- Max Frequent Words -->
+                    <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                        <div class="flex items-center gap-4 flex-1">
+                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-outlined">format_list_numbered</span>
+                            </div>
+                            <div>
+                                <h3 class="text-title-md font-title-md">Max Frequent Words</h3>
+                                <p class="text-body-md font-body-md text-on-surface-variant">Capacity for tracked word frequencies</p>
+                            </div>
+                        </div>
+                        <select id="max-word-freq-select" aria-label="Max Frequent Words" class="bg-surface-container border border-surface-variant text-on-surface rounded-lg px-3 py-1.5 text-body-md focus:outline-none focus:border-primary">
+                            <option value="500">500 entries</option>
+                            <option value="1000">1,000 entries (Default)</option>
+                            <option value="2000">2,000 entries</option>
+                            <option value="5000">5,000 entries</option>
+                        </select>
+                    </div>
+
+                    <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+                    <!-- Max Word Pairs -->
+                    <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                        <div class="flex items-center gap-4 flex-1">
+                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-outlined">cable</span>
+                            </div>
+                            <div>
+                                <h3 class="text-title-md font-title-md">Max Word Pairs</h3>
+                                <p class="text-body-md font-body-md text-on-surface-variant">Capacity for bigrams &amp; trigrams</p>
+                            </div>
+                        </div>
+                        <select id="max-pairs-select" aria-label="Max Word Pairs" class="bg-surface-container border border-surface-variant text-on-surface rounded-lg px-3 py-1.5 text-body-md focus:outline-none focus:border-primary">
+                            <option value="500">500 pairs</option>
+                            <option value="1000">1,000 pairs (Default)</option>
+                            <option value="2000">2,000 pairs</option>
+                            <option value="5000">5,000 pairs</option>
+                        </select>
+                    </div>
+
+                    <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+                    <!-- Max OOV Words -->
+                    <div class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors">
+                        <div class="flex items-center gap-4 flex-1">
+                            <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+                                <span class="material-symbols-outlined">menu_book</span>
+                            </div>
+                            <div>
+                                <h3 class="text-title-md font-title-md">Max Custom OOV Words</h3>
+                                <p class="text-body-md font-body-md text-on-surface-variant">Capacity for new vocabulary</p>
+                            </div>
+                        </div>
+                        <select id="max-oov-select" aria-label="Max Custom OOV Words" class="bg-surface-container border border-surface-variant text-on-surface rounded-lg px-3 py-1.5 text-body-md focus:outline-none focus:border-primary">
+                            <option value="250">250 words</option>
+                            <option value="500">500 words (Default)</option>
+                            <option value="1000">1,000 words</option>
+                            <option value="2000">2,000 words</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Section 4: Data Management & Privacy -->
+            <div>
+                <h2 class="text-label-lg font-label-lg text-primary px-1 mb-2">Data Management &amp; Privacy</h2>
+                <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-variant overflow-hidden p-4 space-y-4">
+                    
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="bg-surface-container p-3 rounded-lg">
+                            <span id="stat-words-count" class="text-title-lg font-bold text-primary block">0</span>
+                            <span class="text-label-sm text-on-surface-variant">Tracked Words</span>
+                        </div>
+                        <div class="bg-surface-container p-3 rounded-lg">
+                            <span id="stat-pairs-count" class="text-title-lg font-bold text-primary block">0</span>
+                            <span class="text-label-sm text-on-surface-variant">Word Pairs</span>
+                        </div>
+                        <div class="bg-surface-container p-3 rounded-lg">
+                            <span id="stat-oov-count" class="text-title-lg font-bold text-primary block">0</span>
+                            <span class="text-label-sm text-on-surface-variant">Custom Words</span>
+                        </div>
+                    </div>
+
+                    <!-- Clear Button -->
+                    <button id="clear-personal-data-btn" class="w-full py-2.5 px-4 bg-error-container text-on-error-container hover:bg-error/20 font-medium rounded-lg text-body-md transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-lg">delete_sweep</span>
+                        Clear Learned Data
+                    </button>
+
+                    <!-- Privacy Card -->
+                    <div class="flex items-center gap-3 p-3 bg-surface-container/50 rounded-lg text-on-surface-variant text-label-sm">
+                        <span class="material-symbols-outlined text-primary text-xl flex-shrink-0">shield</span>
+                        <p>100% On-Device: Your personalized typing history never leaves your device.</p>
+                    </div>
+
+                </div>
+            </div>
+
+        </main>
+    </div>
 
     <!-- Sub-page Overlay for Side Bar & Delete Button -->
     <div id="sidebar-subpage" class="fixed inset-0 bg-background z-50 transform translate-x-full transition-transform duration-300 flex flex-col pb-safe">
@@ -432,7 +659,10 @@
                     { id: 'sound-toggle', key: 'sound_on_keypress', defaultVal: false },
                     { id: 'auto-correction-toggle', key: 'auto_correction', defaultVal: true },
                     { id: 'suggestions-toggle', key: 'show_suggestions', defaultVal: true },
-                    { id: 'personalization-toggle', key: 'personalization_enabled', defaultVal: true }
+                    { id: 'personalization-toggle', key: 'personalization_enabled', defaultVal: true },
+                    { id: 'personalization-pairs-toggle', key: 'personalization_pairs_enabled', defaultVal: true },
+                    { id: 'personalization-freq-toggle', key: 'personalization_freq_enabled', defaultVal: true },
+                    { id: 'personalization-alphanumeric-toggle', key: 'personalization_alphanumeric_enabled', defaultVal: true }
                 ];
 
                 settingsList.forEach(setting => {
@@ -459,6 +689,88 @@
                     }
                 });
 
+                // Personalization Sub-page navigation
+                const personSubpage = document.getElementById('personalization-subpage');
+                const personOpenBtn = document.getElementById('personalization-layout-btn');
+                const personBackBtn = document.getElementById('personalization-back-btn');
+
+                const loadStats = () => {
+                    if (typeof Android !== 'undefined' && Android.getPersonalizationStats) {
+                        try {
+                            const statsJson = Android.getPersonalizationStats();
+                            const stats = JSON.parse(statsJson || '{}');
+                            const wEl = document.getElementById('stat-words-count');
+                            const pEl = document.getElementById('stat-pairs-count');
+                            const oEl = document.getElementById('stat-oov-count');
+                            if (wEl) wEl.textContent = stats.wordFreqCount || 0;
+                            if (pEl) pEl.textContent = stats.totalPairsCount || ((stats.bigramCount || 0) + (stats.trigramCount || 0));
+                            if (oEl) oEl.textContent = stats.oovCount || 0;
+                        } catch (e) {
+                            console.error("Failed to parse personalization stats", e);
+                        }
+                    }
+                };
+
+                if (personOpenBtn && personSubpage) {
+                    personOpenBtn.addEventListener('click', () => {
+                        personSubpage.classList.remove('translate-x-full');
+                        history.pushState({ subpage: 'personalization' }, '');
+                        loadStats();
+                    });
+                }
+
+                if (personBackBtn) {
+                    personBackBtn.addEventListener('click', () => {
+                        history.back();
+                    });
+                }
+
+                // Personalization Select dropdowns
+                const boostSelect = document.getElementById('boost-multiplier-select');
+                if (boostSelect) {
+                    boostSelect.value = Android.getStringSetting ? Android.getStringSetting('personalization_boost_multiplier', '1.0') : '1.0';
+                    boostSelect.addEventListener('change', function() {
+                        if (Android.saveStringSetting) Android.saveStringSetting('personalization_boost_multiplier', this.value);
+                    });
+                }
+
+                const maxWordFreqSelect = document.getElementById('max-word-freq-select');
+                if (maxWordFreqSelect) {
+                    maxWordFreqSelect.value = Android.getStringSetting ? Android.getStringSetting('personalization_max_word_freq', '1000') : '1000';
+                    maxWordFreqSelect.addEventListener('change', function() {
+                        if (Android.saveStringSetting) Android.saveStringSetting('personalization_max_word_freq', this.value);
+                    });
+                }
+
+                const maxPairsSelect = document.getElementById('max-pairs-select');
+                if (maxPairsSelect) {
+                    maxPairsSelect.value = Android.getStringSetting ? Android.getStringSetting('personalization_max_pairs', '1000') : '1000';
+                    maxPairsSelect.addEventListener('change', function() {
+                        if (Android.saveStringSetting) Android.saveStringSetting('personalization_max_pairs', this.value);
+                    });
+                }
+
+                const maxOovSelect = document.getElementById('max-oov-select');
+                if (maxOovSelect) {
+                    maxOovSelect.value = Android.getStringSetting ? Android.getStringSetting('personalization_max_oov', '500') : '500';
+                    maxOovSelect.addEventListener('change', function() {
+                        if (Android.saveStringSetting) Android.saveStringSetting('personalization_max_oov', this.value);
+                    });
+                }
+
+                // Clear Personal Data button
+                const clearDataBtn = document.getElementById('clear-personal-data-btn');
+                if (clearDataBtn) {
+                    clearDataBtn.addEventListener('click', () => {
+                        if (confirm('Are you sure you want to clear all learned personalization data? This cannot be undone.')) {
+                            if (typeof Android !== 'undefined' && Android.clearPersonalizationData) {
+                                Android.clearPersonalizationData();
+                                loadStats();
+                            }
+                        }
+                    });
+                }
+
                 // Sub-page navigation
                 const subpage = document.getElementById('sidebar-subpage');
                 const openBtn = document.getElementById('sidebar-layout-btn');
@@ -471,8 +783,9 @@
                     });
                 }
 
-                const closeSubpage = () => {
+                const closeSubpages = () => {
                     if (subpage) subpage.classList.add('translate-x-full');
+                    if (personSubpage) personSubpage.classList.add('translate-x-full');
                 };
 
                 if (backBtn) {
@@ -482,7 +795,7 @@
                 }
 
                 window.addEventListener('popstate', () => {
-                    closeSubpage();
+                    closeSubpages();
                 });
                 
                 // Docked side bar

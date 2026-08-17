@@ -49,6 +49,9 @@ object FlowboardRepository {
     // ══════════════════════════════════════════
     var personalProfile: PersonalProfile = PersonalProfile.EMPTY
     var isPersonalizationEnabled: Boolean = false
+    var personalizationBoostMultiplier: Double = 1.0
+    var personalizationPairsEnabled: Boolean = true
+    var personalizationFreqEnabled: Boolean = true
 
     // ══════════════════════════════════════════
     // Active Profile

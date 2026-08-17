@@ -151,5 +151,30 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent("com.flowboard.ime.ACTION_SETTINGS_CHANGED")
             activity.sendBroadcast(intent)
         }
+
+        @JavascriptInterface
+        fun getPersonalizationStats(): String {
+            return try {
+                val liveMgr = com.flowboard.ime.engine.LiveLearningManager(activity)
+                liveMgr.loadProfile()
+                val stats = liveMgr.getStats()
+                org.json.JSONObject(stats as Map<*, *>).toString()
+            } catch (e: Exception) {
+                "{}"
+            }
+        }
+
+        @JavascriptInterface
+        fun clearPersonalizationData() {
+            try {
+                val liveMgr = com.flowboard.ime.engine.LiveLearningManager(activity)
+                liveMgr.clearProfile()
+
+                val intent = Intent("com.flowboard.ime.ACTION_SETTINGS_CHANGED")
+                activity.sendBroadcast(intent)
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
     }
 }

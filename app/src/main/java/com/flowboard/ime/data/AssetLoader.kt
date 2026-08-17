@@ -108,9 +108,36 @@ class AssetLoader(private val context: Context) {
         repo.trieDictOOV = oovTrie
         repo.baseTrieDictOOV = oovTrie  // Keep immutable base for personalization OOV injection
 
-        repo.clusteredTrigram = clusteredTrigramJob.await()
-        repo.sentenceTopicClusters = stcJob.await()
-        repo.personalProfile = personalProfileJob.await()
+        val assetPersonalProfile = personalProfileJob.await()
+        if (repo.personalProfile.isEmpty) {
+            repo.personalProfile = assetPersonalProfile
+        } else {
+            val mergedBigram = HashMap<String, Map<String, Int>>()
+            assetPersonalProfile.bigram.forEach { (k, v) -> mergedBigram[k] = v }
+            repo.personalProfile.bigram.forEach { (k, v) ->
+                val existing = mergedBigram[k]?.toMutableMap() ?: HashMap()
+                existing.putAll(v)
+                mergedBigram[k] = existing
+            }
+            val mergedTrigram = HashMap<String, Map<String, Int>>()
+            assetPersonalProfile.trigram.forEach { (k, v) -> mergedTrigram[k] = v }
+            repo.personalProfile.trigram.forEach { (k, v) ->
+                val existing = mergedTrigram[k]?.toMutableMap() ?: HashMap()
+                existing.putAll(v)
+                mergedTrigram[k] = existing
+            }
+            val mergedFreq = HashMap<String, Int>()
+            mergedFreq.putAll(assetPersonalProfile.wordFreq)
+            mergedFreq.putAll(repo.personalProfile.wordFreq)
+            val mergedOOV = (assetPersonalProfile.learnedOOV + repo.personalProfile.learnedOOV).distinct()
+
+            repo.personalProfile = PersonalProfile(
+                bigram = mergedBigram,
+                trigram = mergedTrigram,
+                wordFreq = mergedFreq,
+                learnedOOV = mergedOOV
+            )
+        }
 
         updatePersonalizationState(context, repo)
 
@@ -125,10 +152,14 @@ class AssetLoader(private val context: Context) {
     fun updatePersonalizationState(ctx: Context, repo: FlowboardRepository) {
         val prefs = ctx.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
         val userPrefEnabled = prefs.getBoolean("personalization_enabled", true)
+        repo.personalizationPairsEnabled = prefs.getBoolean("personalization_pairs_enabled", true)
+        repo.personalizationFreqEnabled = prefs.getBoolean("personalization_freq_enabled", true)
+        repo.personalizationBoostMultiplier = prefs.getString("personalization_boost_multiplier", "1.0")?.toDoubleOrNull() ?: 1.0
+
         if (!repo.personalProfile.isEmpty && userPrefEnabled) {
             repo.isPersonalizationEnabled = true
             injectLearnedOOVWords(repo)
-            Log.d(TAG, "Personalization enabled: bigram=${repo.personalProfile.bigram.size}, freq=${repo.personalProfile.wordFreq.size}, oov=${repo.personalProfile.learnedOOV.size}")
+            Log.d(TAG, "Personalization enabled: bigram=${repo.personalProfile.bigram.size}, freq=${repo.personalProfile.wordFreq.size}, oov=${repo.personalProfile.learnedOOV.size}, mult=${repo.personalizationBoostMultiplier}")
         } else {
             repo.isPersonalizationEnabled = false
             repo.trieDictOOV = repo.baseTrieDictOOV

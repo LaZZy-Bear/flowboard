@@ -5,14 +5,20 @@ import android.util.Log
 import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.PersonalProfile
 import com.flowboard.ime.data.models.TrieNode
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
+
+@Serializable
+data class LiveProfileData(
+    val bigram: Map<String, Map<String, Int>> = emptyMap(),
+    val trigram: Map<String, Map<String, Int>> = emptyMap(),
+    val wordFreq: Map<String, Int> = emptyMap(),
+    val learnedOOV: List<String> = emptyList()
+)
 
 /**
  * Live Learning Manager — Prototype 22 V22.2.0 Real-time Learning Engine.
@@ -57,34 +63,27 @@ class LiveLearningManager(private val context: Context) {
             val text = file.readText()
             if (text.isEmpty()) return
 
-            val root = json.parseToJsonElement(text).jsonObject
+            val liveData = json.decodeFromString<LiveProfileData>(text)
 
             // Word Frequency
-            root["wordFreq"]?.jsonObject?.forEach { (w, countEl) ->
-                liveWordFreq[w] = countEl.jsonPrimitive.int
+            liveData.wordFreq.forEach { (w, count) ->
+                liveWordFreq[w] = count
             }
 
             // Bigram
-            root["bigram"]?.jsonObject?.forEach { (w1, innerVal) ->
-                val innerMap = liveBigram.getOrPut(w1) { HashMap() }
-                innerVal.jsonObject.forEach { (w2, countEl) ->
-                    innerMap[w2] = countEl.jsonPrimitive.int
-                }
+            liveData.bigram.forEach { (w1, innerMap) ->
+                val targetMap = liveBigram.getOrPut(w1) { HashMap() }
+                targetMap.putAll(innerMap)
             }
 
             // Trigram
-            root["trigram"]?.jsonObject?.forEach { (triKey, innerVal) ->
-                val innerMap = liveTrigram.getOrPut(triKey) { HashMap() }
-                innerVal.jsonObject.forEach { (w3, countEl) ->
-                    innerMap[w3] = countEl.jsonPrimitive.int
-                }
+            liveData.trigram.forEach { (triKey, innerMap) ->
+                val targetMap = liveTrigram.getOrPut(triKey) { HashMap() }
+                targetMap.putAll(innerMap)
             }
 
             // OOV
-            root["learnedOOV"]?.jsonArray?.forEach {
-                val w = it.jsonPrimitive.content
-                if (w.isNotEmpty()) liveLearnedOOV.add(w)
-            }
+            liveLearnedOOV.addAll(liveData.learnedOOV)
 
             updateRepositoryProfile()
             Log.d(TAG, "Loaded live profile: ${liveWordFreq.size} freq, ${liveBigram.size} bigram, ${liveTrigram.size} trigram, ${liveLearnedOOV.size} OOV")
@@ -99,7 +98,8 @@ class LiveLearningManager(private val context: Context) {
      */
     fun recordWordTyped(fullText: String) {
         if (fullText.isEmpty()) return
-        val regex = Regex("[a-z]+(?:'[a-z]+)?")
+        val allowAlphanumeric = isAlphanumericEnabled()
+        val regex = if (allowAlphanumeric) Regex("[a-z0-9]+(?:'[a-z0-9]+)?") else Regex("[a-z]+(?:'[a-z]+)?")
         val words = regex.findAll(fullText.lowercase()).map { it.value }.toList()
         if (words.isEmpty()) return
 
@@ -129,8 +129,8 @@ class LiveLearningManager(private val context: Context) {
             }
         }
 
-        // 4. OOV Check & Dynamic Trie Injection
-        if (lastWord.length >= 3) {
+        // 4. OOV Check & Dynamic Trie Injection (supports alphanumeric words like "b4", "4ever", "gr8")
+        if (lastWord.length >= 2) {
             val isInWordList = FlowboardRepository.wordReverseMap.containsKey(lastWord)
             val isInMainTrie = isWordInTrie(FlowboardRepository.trieDict, lastWord)
             if (!isInWordList && !isInMainTrie) {
@@ -169,40 +169,64 @@ class LiveLearningManager(private val context: Context) {
         return current.isEndOfWord
     }
 
+    private fun getMaxWordFreqCapacity(): Int {
+        val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+        return prefs.getString("personalization_max_word_freq", "1000")?.toIntOrNull() ?: 1000
+    }
+
+    private fun getMaxPairsCapacity(): Int {
+        val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+        return prefs.getString("personalization_max_pairs", "1000")?.toIntOrNull() ?: 1000
+    }
+
+    private fun getMaxOOVCapacity(): Int {
+        val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+        return prefs.getString("personalization_max_oov", "500")?.toIntOrNull() ?: 500
+    }
+
+    private fun isAlphanumericEnabled(): Boolean {
+        val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+        return prefs.getBoolean("personalization_alphanumeric_enabled", true)
+    }
+
     /**
      * Prune lowest-frequency / lowest-ranked entries if maximum capacities are exceeded.
      */
     private fun pruneIfExceeded() {
+        val maxWordFreq = getMaxWordFreqCapacity()
+        val maxPairs = getMaxPairsCapacity()
+        val maxOOV = getMaxOOVCapacity()
+
         // Prune Word Frequency
-        if (liveWordFreq.size > MAX_WORD_FREQ_ENTRIES) {
+        if (liveWordFreq.size > maxWordFreq) {
             val sorted = liveWordFreq.entries.sortedBy { it.value }
-            val toRemoveCount = liveWordFreq.size - MAX_WORD_FREQ_ENTRIES
+            val toRemoveCount = liveWordFreq.size - maxWordFreq
             for (i in 0 until toRemoveCount) {
                 liveWordFreq.remove(sorted[i].key)
             }
         }
 
         // Prune Bigram
-        if (liveBigram.size > MAX_BIGRAM_ENTRIES) {
+        if (liveBigram.size > maxPairs) {
             val sorted = liveBigram.entries.sortedBy { it.value.values.sum() }
-            val toRemoveCount = liveBigram.size - MAX_BIGRAM_ENTRIES
+            val toRemoveCount = liveBigram.size - maxPairs
             for (i in 0 until toRemoveCount) {
                 liveBigram.remove(sorted[i].key)
             }
         }
 
         // Prune Trigram
-        if (liveTrigram.size > MAX_TRIGRAM_ENTRIES) {
+        if (liveTrigram.size > maxPairs) {
             val sorted = liveTrigram.entries.sortedBy { it.value.values.sum() }
-            val toRemoveCount = liveTrigram.size - MAX_TRIGRAM_ENTRIES
+            val toRemoveCount = liveTrigram.size - maxPairs
             for (i in 0 until toRemoveCount) {
                 liveTrigram.remove(sorted[i].key)
             }
         }
 
         // Prune OOV
-        if (liveLearnedOOV.size > MAX_OOV_ENTRIES) {
-            val overflow = liveLearnedOOV.size - MAX_OOV_ENTRIES
+        if (liveLearnedOOV.size > maxOOV) {
+            val overflow = liveLearnedOOV.size - maxOOV
             val iterator = liveLearnedOOV.iterator()
             var count = 0
             while (iterator.hasNext() && count < overflow) {
@@ -256,13 +280,13 @@ class LiveLearningManager(private val context: Context) {
     fun saveProfileIfDirty() {
         if (!isDirty.compareAndSet(true, false)) return
         try {
-            val profileMap = mapOf(
-                "bigram" to liveBigram,
-                "trigram" to liveTrigram,
-                "wordFreq" to liveWordFreq,
-                "learnedOOV" to liveLearnedOOV.toList()
+            val liveData = LiveProfileData(
+                bigram = liveBigram,
+                trigram = liveTrigram,
+                wordFreq = liveWordFreq,
+                learnedOOV = liveLearnedOOV.toList()
             )
-            val jsonStr = json.encodeToString(profileMap)
+            val jsonStr = json.encodeToString(liveData)
             val file = File(context.filesDir, PROFILE_FILENAME)
             file.writeText(jsonStr)
             Log.d(TAG, "Successfully persisted live profile to internal storage (${file.length()} bytes)")
@@ -270,5 +294,43 @@ class LiveLearningManager(private val context: Context) {
             Log.e(TAG, "Failed to save live profile: ${e.message}")
             isDirty.set(true)
         }
+    }
+
+    /**
+     * Clear all recorded personal profile data from RAM and disk.
+     */
+    fun clearProfile() {
+        liveWordFreq.clear()
+        liveBigram.clear()
+        liveTrigram.clear()
+        liveLearnedOOV.clear()
+        isDirty.set(false)
+
+        try {
+            val file = File(context.filesDir, PROFILE_FILENAME)
+            if (file.exists()) {
+                file.delete()
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to delete live profile file: ${e.message}")
+        }
+
+        FlowboardRepository.personalProfile = PersonalProfile.EMPTY
+        FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
+        Log.d(TAG, "Cleared live profile successfully.")
+    }
+
+    /**
+     * Get statistics of learned items for settings display.
+     */
+    fun getStats(): Map<String, Int> {
+        val totalPairs = liveBigram.values.sumOf { it.size } + liveTrigram.values.sumOf { it.size }
+        return mapOf(
+            "wordFreqCount" to liveWordFreq.size,
+            "bigramCount" to liveBigram.size,
+            "trigramCount" to liveTrigram.size,
+            "totalPairsCount" to totalPairs,
+            "oovCount" to liveLearnedOOV.size
+        )
     }
 }

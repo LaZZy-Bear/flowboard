@@ -572,12 +572,20 @@ class FlowboardIMEService : InputMethodService() {
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         Log.d(TAG, "onFinishInputView")
+        val currentText = synchronized(typedText) { typedText.toString() }
+        if (currentText.isNotEmpty()) {
+            liveLearningManager.recordWordTyped(currentText)
+        }
         liveLearningManager.saveProfileIfDirty()
     }
 
     override fun onWindowHidden() {
         super.onWindowHidden()
         Log.d(TAG, "onWindowHidden")
+        val currentText = synchronized(typedText) { typedText.toString() }
+        if (currentText.isNotEmpty()) {
+            liveLearningManager.recordWordTyped(currentText)
+        }
         liveLearningManager.saveProfileIfDirty()
     }
 
@@ -1743,6 +1751,11 @@ class FlowboardIMEService : InputMethodService() {
                 ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
                 ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
             }
+        }
+
+        val currentText = synchronized(typedText) { typedText.toString() }
+        if (currentText.isNotEmpty()) {
+            liveLearningManager.recordWordTyped(currentText)
         }
 
         synchronized(typedText) {

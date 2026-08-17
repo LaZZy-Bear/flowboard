@@ -64,14 +64,17 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
 
         val prefix = activePrefix.lowercase()
         val prefixLen = prefix.length
+        val multiplier = repo.personalizationBoostMultiplier
 
         // System 1: Personal word pair boosts (bigram/trigram) — active across all typing states
-        applyPersonalWordPairs(finalScores, activeWordsArray, profile, prefix, prefixLen)
+        if (repo.personalizationPairsEnabled) {
+            applyPersonalWordPairs(finalScores, activeWordsArray, profile, prefix, prefixLen, multiplier)
+        }
 
         // System 2: Uncertain gap — boost frequent personal words in word-start states
         val isWordStart = state == 1 || state == 7 || state == 8
-        if (isWordStart) {
-            applyFrequentWordsIfUncertain(finalScores, profile, prefix, prefixLen)
+        if (isWordStart && repo.personalizationFreqEnabled) {
+            applyFrequentWordsIfUncertain(finalScores, profile, prefix, prefixLen, multiplier)
         }
     }
 
@@ -84,26 +87,35 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         activeWordsArray: List<String>,
         profile: PersonalProfile,
         prefix: String,
-        prefixLen: Int
+        prefixLen: Int,
+        multiplier: Double
     ) {
         if (activeWordsArray.isEmpty()) return
+
+        val cleanWords = activeWordsArray.map {
+            it.lowercase().replace(Regex("[^a-z0-9']"), "")
+        }.filter { it.isNotEmpty() }
+        if (cleanWords.isEmpty()) return
 
         var found = false
 
         // Try trigram first (2-word history)
-        if (activeWordsArray.size >= 2) {
-            val w1 = activeWordsArray[activeWordsArray.size - 2]
-            val w2 = activeWordsArray[activeWordsArray.size - 1]
+        if (cleanWords.size >= 2) {
+            val w1 = cleanWords[cleanWords.size - 2]
+            val w2 = cleanWords[cleanWords.size - 1]
             val triKey = "${w1}_${w2}"
             val triEntry = profile.trigram[triKey]
             if (triEntry != null) {
                 for ((nextWord, count) in triEntry) {
                     if (nextWord.length > prefixLen && (prefixLen == 0 || nextWord.lowercase().startsWith(prefix))) {
                         val targetChar = nextWord[prefixLen].lowercase()
-                        val bonus = countToPairBonus(count)
-                        if (bonus > 0.0) {
-                            finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
-                            found = true
+                        // Digits do not receive score bonuses on keyboard layout
+                        if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
+                            val bonus = countToPairBonus(count) * multiplier
+                            if (bonus > 0.0) {
+                                finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
+                                found = true
+                            }
                         }
                     }
                 }
@@ -111,16 +123,19 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         }
 
         // Fallback to bigram (1-word history) if trigram didn't fire
-        if (!found && activeWordsArray.isNotEmpty()) {
-            val w1 = activeWordsArray.last()
+        if (!found && cleanWords.isNotEmpty()) {
+            val w1 = cleanWords.last()
             val biEntry = profile.bigram[w1]
             if (biEntry != null) {
                 for ((nextWord, count) in biEntry) {
                     if (nextWord.length > prefixLen && (prefixLen == 0 || nextWord.lowercase().startsWith(prefix))) {
                         val targetChar = nextWord[prefixLen].lowercase()
-                        val bonus = countToPairBonus(count)
-                        if (bonus > 0.0) {
-                            finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
+                        // Digits do not receive score bonuses on keyboard layout
+                        if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
+                            val bonus = countToPairBonus(count) * multiplier
+                            if (bonus > 0.0) {
+                                finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
+                            }
                         }
                     }
                 }
@@ -144,7 +159,8 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         finalScores: HashMap<String, Double>,
         profile: PersonalProfile,
         prefix: String,
-        prefixLen: Int
+        prefixLen: Int,
+        multiplier: Double
     ) {
         if (profile.wordFreq.isEmpty()) return
 
@@ -163,9 +179,12 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
             if (word.length <= prefixLen) continue
             if (prefixLen > 0 && !word.lowercase().startsWith(prefix)) continue
             val targetChar = word[prefixLen].lowercase()
-            val bonus = countToFreqBonus(count)
-            if (bonus > 0.0) {
-                finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
+            // Digits do not receive score bonuses on keyboard layout
+            if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
+                val bonus = countToFreqBonus(count) * multiplier
+                if (bonus > 0.0) {
+                    finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
+                }
             }
         }
     }
