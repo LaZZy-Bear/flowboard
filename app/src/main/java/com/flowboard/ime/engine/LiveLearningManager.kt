@@ -7,7 +7,6 @@ import com.flowboard.ime.data.models.PersonalProfile
 import com.flowboard.ime.data.models.TrieNode
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
@@ -34,11 +33,10 @@ class LiveLearningManager(private val context: Context) {
         private const val TAG = "LiveLearningManager"
         private const val PROFILE_FILENAME = "flowboard_live_profile.json"
 
-        // Max Capacity Limits for Pruning
-        private const val MAX_WORD_FREQ_ENTRIES = 1000
-        private const val MAX_BIGRAM_ENTRIES = 1000
-        private const val MAX_TRIGRAM_ENTRIES = 1000
-        private const val MAX_OOV_ENTRIES = 500
+        // Default Max Capacity Limits for Pruning
+        private const val DEFAULT_MAX_WORD_FREQ_ENTRIES = 1000
+        private const val DEFAULT_MAX_PAIRS_ENTRIES = 1000
+        private const val DEFAULT_MAX_OOV_ENTRIES = 500
     }
 
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
@@ -130,14 +128,12 @@ class LiveLearningManager(private val context: Context) {
         }
 
         // 4. OOV Check & Dynamic Trie Injection (supports alphanumeric words like "b4", "4ever", "gr8")
-        if (lastWord.length >= 2) {
-            val isInWordList = FlowboardRepository.wordReverseMap.containsKey(lastWord)
-            val isInMainTrie = isWordInTrie(FlowboardRepository.trieDict, lastWord)
-            if (!isInWordList && !isInMainTrie) {
-                if (!liveLearnedOOV.contains(lastWord)) {
-                    liveLearnedOOV.add(lastWord)
-                    injectOOVWordToTrie(lastWord)
-                }
+        val isInWordList = FlowboardRepository.wordReverseMap.containsKey(lastWord)
+        val isInMainTrie = isWordInTrie(FlowboardRepository.trieDict, lastWord)
+        if (!isInWordList && !isInMainTrie) {
+            if (!liveLearnedOOV.contains(lastWord)) {
+                liveLearnedOOV.add(lastWord)
+                injectOOVWordToTrie(lastWord)
             }
         }
 
@@ -171,17 +167,17 @@ class LiveLearningManager(private val context: Context) {
 
     private fun getMaxWordFreqCapacity(): Int {
         val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
-        return prefs.getString("personalization_max_word_freq", "1000")?.toIntOrNull() ?: 1000
+        return prefs.getString("personalization_max_word_freq", "$DEFAULT_MAX_WORD_FREQ_ENTRIES")?.toIntOrNull() ?: DEFAULT_MAX_WORD_FREQ_ENTRIES
     }
 
     private fun getMaxPairsCapacity(): Int {
         val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
-        return prefs.getString("personalization_max_pairs", "1000")?.toIntOrNull() ?: 1000
+        return prefs.getString("personalization_max_pairs", "$DEFAULT_MAX_PAIRS_ENTRIES")?.toIntOrNull() ?: DEFAULT_MAX_PAIRS_ENTRIES
     }
 
     private fun getMaxOOVCapacity(): Int {
         val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
-        return prefs.getString("personalization_max_oov", "500")?.toIntOrNull() ?: 500
+        return prefs.getString("personalization_max_oov", "$DEFAULT_MAX_OOV_ENTRIES")?.toIntOrNull() ?: DEFAULT_MAX_OOV_ENTRIES
     }
 
     private fun isAlphanumericEnabled(): Boolean {

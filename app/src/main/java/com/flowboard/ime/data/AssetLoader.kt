@@ -108,6 +108,9 @@ class AssetLoader(private val context: Context) {
         repo.trieDictOOV = oovTrie
         repo.baseTrieDictOOV = oovTrie  // Keep immutable base for personalization OOV injection
 
+        repo.clusteredTrigram = clusteredTrigramJob.await()
+        repo.sentenceTopicClusters = stcJob.await()
+
         val assetPersonalProfile = personalProfileJob.await()
         if (repo.personalProfile.isEmpty) {
             repo.personalProfile = assetPersonalProfile
@@ -140,6 +143,7 @@ class AssetLoader(private val context: Context) {
         }
 
         updatePersonalizationState(context, repo)
+        repo.markFullyLoaded()
 
         val elapsed = System.currentTimeMillis() - startTime
         Log.d(TAG, "Phase C complete in ${elapsed}ms")
