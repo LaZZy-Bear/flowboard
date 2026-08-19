@@ -35,6 +35,14 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             "don't", "can't", "i'm", "it's", "that's", "you're", "i'll", "we'll",
             "didn't", "won't", "i've", "they're", "you've", "he's", "she's", "let's"
         )
+
+        private val PLURAL_INDICATORS = setOf(
+            "many", "several", "these", "those", "two", "three", "four", "five", "all", "both", "few", "some"
+        )
+
+        private val SINGULAR_INDICATORS = setOf(
+            "a", "an", "one", "this", "that", "each", "every", "another"
+        )
     }
 
     /**
@@ -276,15 +284,38 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
 
         // 4. Score each candidate
         val scoredCandidates = mutableListOf<Pair<String, Double>>()
+        val lastContextWord = contextWords.lastOrNull()?.lowercase()
 
         for ((word, rawIndex) in candidates) {
             // Skip single letter echo words like "c", "t", "b" (except "a" and "i")
             if (word.length == 1 && word != "a" && word != "i") continue
-            if (word == prefix && prefix.length > 2) continue
 
             var score = getWordBaseScore(word, rawIndex)
+            val isObscureAbbr = word.length <= 3 && rawIndex > 1500 && !word.contains('\'') && !hasPersonalOOV
 
-            // Context Boost
+            // Exact match bonus: when user typed the exact valid word (and not an obscure abbreviation), give highest priority
+            if (word == prefix && !isObscureAbbr) {
+                score += 2500.0
+            }
+
+            // Prefer base/root form over +s derivative if user hasn't typed 's'
+            if (word.length > prefix.length && word.endsWith('s') && !prefix.endsWith('s')) {
+                val root = word.substring(0, word.length - 1)
+                if (repo.wordReverseMap.containsKey(root)) {
+                    score -= 250.0
+                }
+            }
+
+            // Context Grammar Boost (Plural vs Singular indicators)
+            if (lastContextWord != null) {
+                if (PLURAL_INDICATORS.contains(lastContextWord) && word.endsWith('s')) {
+                    score += 3000.0
+                } else if (SINGULAR_INDICATORS.contains(lastContextWord) && !word.endsWith('s')) {
+                    score += 3000.0
+                }
+            }
+
+            // Context Boost (N-gram)
             if (trigramMatches.contains(word)) {
                 score += 12000.0
             } else if (bigramMatches.contains(word)) {
@@ -295,8 +326,8 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             val extraChars = maxOf(0, word.length - prefix.length)
             score -= extraChars * 45.0
 
-            // Penalize obscure abbreviations (indices > 2500 for short words len <= 3 without apostrophe)
-            if (word.length <= 3 && rawIndex > 2500 && !word.contains('\'') && !hasPersonalOOV) {
+            // Penalize obscure abbreviations (indices > 1500 for short words len <= 3 without apostrophe)
+            if (isObscureAbbr) {
                 score -= 5000.0
             }
 

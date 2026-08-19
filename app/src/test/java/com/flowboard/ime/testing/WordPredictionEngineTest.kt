@@ -96,4 +96,35 @@ class WordPredictionEngineTest {
         val upper = engine.getPredictions("HEL", 3)
         assertTrue("All-caps prefix produces all-caps word", upper.first().all { it.isUpperCase() || it == '\'' })
     }
+
+    @Test
+    fun testExactMatchAndPluralHandling() {
+        // When user types exact word "thing", it must be #1, not overridden by "things"
+        val thingPreds = engine.getPredictions("thing", 3)
+        assertTrue("Predictions for 'thing' should not be empty", thingPreds.isNotEmpty())
+        assertEquals("Top prediction for 'thing' must be 'thing'", "thing", thingPreds.first())
+
+        // When user types exact word "make", it must be #1, not overridden by "makes"
+        val makePreds = engine.getPredictions("make", 3)
+        assertEquals("Top prediction for 'make' must be 'make'", "make", makePreds.first())
+
+        // When user types exact word "time", it must be #1
+        val timePreds = engine.getPredictions("time", 3)
+        assertEquals("Top prediction for 'time' must be 'time'", "time", timePreds.first())
+
+        // When user explicitly types "things" with 's', "things" must be #1
+        val thingsPreds = engine.getPredictions("things", 3)
+        assertEquals("Top prediction for 'things' must be 'things'", "things", thingsPreds.first())
+    }
+
+    @Test
+    fun testPluralVsSingularContextGrammar() {
+        // "many thin" -> should boost "things"
+        val pluralContext = engine.getPredictions("many thin", 3)
+        assertTrue("Predictions after 'many thin' should contain 'things'", pluralContext.contains("things"))
+
+        // "a thin" -> should boost "thing"
+        val singularContext = engine.getPredictions("a thin", 3)
+        assertTrue("Predictions after 'a thin' should contain 'thing'", singularContext.contains("thing"))
+    }
 }
