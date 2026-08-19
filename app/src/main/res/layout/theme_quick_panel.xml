@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="32dp"
         android:gravity="center_vertical"
-        android:drawableStart="@drawable/ic_theme"
+        app:drawableStartCompat="@drawable/ic_theme"
         android:drawablePadding="6dp"
         app:drawableTint="@color/text_tap"
         android:text="@string/quick_theme"

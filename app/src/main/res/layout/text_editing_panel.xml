@@ -16,7 +16,7 @@
         android:layout_height="32dp"
         android:gravity="center_vertical"
         android:paddingHorizontal="4dp"
-        android:drawableStart="@drawable/ic_text_edit"
+        app:drawableStartCompat="@drawable/ic_text_edit"
         android:drawablePadding="6dp"
         app:drawableTint="@color/text_tap"
         android:text="@string/text_editing"
