@@ -15,8 +15,7 @@ import android.graphics.drawable.RippleDrawable
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import androidx.core.content.ContextCompat
-import com.flowboard.ime.R
+import androidx.core.graphics.toColorInt
 import com.flowboard.ime.data.models.KeySlots
 
 /**
@@ -94,6 +93,7 @@ class KeyView @JvmOverloads constructor(
 
     // ── Dimensions ──
     private val dp = resources.displayMetrics.density
+    @Suppress("DEPRECATION")
     private val sp = resources.displayMetrics.scaledDensity
     private val cornerRadius = 12f * dp
     private val baseTapTextSize = 24f * sp
@@ -171,7 +171,7 @@ class KeyView @JvmOverloads constructor(
         colorTextTap = colors.textTap
         colorTextSwipe = colors.textSwipe
         colorAccent = colors.accent
-        shadowPaint.color = if (colors.isDark) Color.parseColor("#151517") else Color.parseColor("#CACAD0")
+        shadowPaint.color = if (colors.isDark) "#151517".toColorInt() else "#CACAD0".toColorInt()
         updateZoneColor()
         gradientDirty = true
     }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/textEditPanel"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -20,7 +21,7 @@
             android:layout_width="20dp"
             android:layout_height="20dp"
             android:src="@drawable/ic_text_edit"
-            android:tint="@color/text_tap"
+            app:tint="@color/text_tap"
             android:contentDescription="Text Editing" />
 
         <TextView
@@ -40,6 +41,7 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="horizontal"
+        android:baselineAligned="false"
         android:gravity="center"
         android:layout_marginTop="2dp">
 
@@ -57,6 +59,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:orientation="horizontal"
+                android:baselineAligned="false"
                 android:layout_marginBottom="4dp">
 
                 <TextView
@@ -90,6 +93,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:orientation="horizontal"
+                android:baselineAligned="false"
                 android:layout_marginBottom="4dp">
 
                 <TextView
@@ -122,7 +126,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:baselineAligned="false">
 
                 <TextView
                     android:id="@+id/btnTextPaste"
@@ -172,6 +177,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:orientation="horizontal"
+                android:baselineAligned="false"
                 android:layout_marginBottom="4dp">
 
                 <ImageView
@@ -182,7 +188,7 @@
                     android:src="@drawable/ic_jump_start"
                     android:padding="6dp"
                     android:background="@drawable/fn_key_bg"
-                    android:tint="@color/text_tap"
+                    app:tint="@color/text_tap"
                     android:layout_marginEnd="2dp"
                     android:contentDescription="Jump to Start" />
 
@@ -194,7 +200,7 @@
                     android:src="@drawable/ic_arrow_up"
                     android:padding="6dp"
                     android:background="@drawable/key_bg"
-                    android:tint="@color/text_tap"
+                    app:tint="@color/text_tap"
                     android:layout_marginHorizontal="2dp"
                     android:contentDescription="Arrow Up" />
 
@@ -206,7 +212,7 @@
                     android:src="@drawable/ic_jump_end"
                     android:padding="6dp"
                     android:background="@drawable/fn_key_bg"
-                    android:tint="@color/text_tap"
+                    app:tint="@color/text_tap"
                     android:layout_marginStart="2dp"
                     android:contentDescription="Jump to End" />
             </LinearLayout>
@@ -217,6 +223,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:orientation="horizontal"
+                android:baselineAligned="false"
                 android:layout_marginBottom="4dp">
 
                 <ImageView
@@ -227,7 +234,7 @@
                     android:src="@drawable/ic_arrow_left"
                     android:padding="6dp"
                     android:background="@drawable/key_bg"
-                    android:tint="@color/text_tap"
+                    app:tint="@color/text_tap"
                     android:layout_marginEnd="2dp"
                     android:contentDescription="Arrow Left" />
 
@@ -251,7 +258,7 @@
                     android:src="@drawable/ic_arrow_right"
                     android:padding="6dp"
                     android:background="@drawable/key_bg"
-                    android:tint="@color/text_tap"
+                    app:tint="@color/text_tap"
                     android:layout_marginStart="2dp"
                     android:contentDescription="Arrow Right" />
             </LinearLayout>
@@ -261,6 +268,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
+                android:baselineAligned="false"
                 android:orientation="horizontal">
 
                 <View
@@ -277,7 +285,7 @@
                     android:src="@drawable/ic_arrow_down"
                     android:padding="6dp"
                     android:background="@drawable/key_bg"
-                    android:tint="@color/text_tap"
+                    app:tint="@color/text_tap"
                     android:layout_marginHorizontal="2dp"
                     android:contentDescription="Arrow Down" />
 

@@ -2,6 +2,7 @@ package com.flowboard.ime.util
 
 import android.content.Context
 import android.graphics.Color
+import androidx.core.graphics.toColorInt
 import com.flowboard.ime.ui.KeyView
 
 data class ThemeColors(
@@ -26,7 +27,7 @@ data class ZoneColors(
 )
 
 object ThemeManager {
-    fun getThemeColors(context: Context, themeName: String, isSystemDark: Boolean): ThemeColors {
+    fun getThemeColors(@Suppress("UNUSED_PARAMETER") context: Context, themeName: String, isSystemDark: Boolean): ThemeColors {
         val resolvedTheme = when {
             themeName == "System default" -> if (isSystemDark) "Dark" else "Clean Minimal"
             themeName == "Clean Minimal" && isSystemDark -> "Dark"
@@ -35,152 +36,153 @@ object ThemeManager {
 
         return when (resolvedTheme) {
             "Dark" -> ThemeColors(
-                keyboardBackground = Color.parseColor("#1C1C1E"),
-                keyBackground = Color.parseColor("#2C2C2E"),
-                keyActive = Color.parseColor("#3A3A3C"),
-                textTap = Color.parseColor("#FFFFFF"),
-                textSwipe = Color.parseColor("#98989D"),
-                accent = Color.parseColor("#6B43F5"),
-                toolBackground = Color.parseColor("#3A3A3C"),
-                zoneTopStart = Color.parseColor("#1C2238"),
-                zoneMidStart = Color.parseColor("#182820"),
-                zoneBotStart = Color.parseColor("#302018"),
+                keyboardBackground = "#1C1C1E".toColorInt(),
+                keyBackground = "#2C2C2E".toColorInt(),
+                keyActive = "#3A3A3C".toColorInt(),
+                textTap = "#FFFFFF".toColorInt(),
+                textSwipe = "#98989D".toColorInt(),
+                accent = "#6B43F5".toColorInt(),
+                toolBackground = "#3A3A3C".toColorInt(),
+                zoneTopStart = "#1C2238".toColorInt(),
+                zoneMidStart = "#182820".toColorInt(),
+                zoneBotStart = "#302018".toColorInt(),
                 isDark = true
             )
             "Pastel Mountains" -> ThemeColors(
-                keyboardBackground = Color.parseColor("#F3E8EE"),
-                keyBackground = Color.parseColor("#FFFFFF"),
-                keyActive = Color.parseColor("#FCEBF3"),
-                textTap = Color.parseColor("#4A3543"),
-                textSwipe = Color.parseColor("#8A7382"),
-                accent = Color.parseColor("#D8B4F8"),
-                toolBackground = Color.parseColor("#EDE0E7"),
-                zoneTopStart = Color.parseColor("#E8F0FE"),
-                zoneMidStart = Color.parseColor("#E6F4EA"),
-                zoneBotStart = Color.parseColor("#FCE8E6"),
+                keyboardBackground = "#F3E8EE".toColorInt(),
+                keyBackground = "#FFFFFF".toColorInt(),
+                keyActive = "#FCEBF3".toColorInt(),
+                textTap = "#4A3543".toColorInt(),
+                textSwipe = "#8A7382".toColorInt(),
+                accent = "#D8B4F8".toColorInt(),
+                toolBackground = "#EDE0E7".toColorInt(),
+                zoneTopStart = "#E8F0FE".toColorInt(),
+                zoneMidStart = "#E6F4EA".toColorInt(),
+                zoneBotStart = "#FCE8E6".toColorInt(),
                 isDark = false
             )
             "Geo Grid" -> ThemeColors(
-                keyboardBackground = Color.parseColor("#ECEFF1"),
-                keyBackground = Color.parseColor("#FFFFFF"),
-                keyActive = Color.parseColor("#CFD8DC"),
-                textTap = Color.parseColor("#37474F"),
-                textSwipe = Color.parseColor("#78909C"),
-                accent = Color.parseColor("#00C853"),
-                toolBackground = Color.parseColor("#E0E0E0"),
-                zoneTopStart = Color.parseColor("#E1F5FE"),
-                zoneMidStart = Color.parseColor("#E8F5E9"),
-                zoneBotStart = Color.parseColor("#FFF3E0"),
+                keyboardBackground = "#ECEFF1".toColorInt(),
+                keyBackground = "#FFFFFF".toColorInt(),
+                keyActive = "#CFD8DC".toColorInt(),
+                textTap = "#37474F".toColorInt(),
+                textSwipe = "#78909C".toColorInt(),
+                accent = "#00C853".toColorInt(),
+                toolBackground = "#E0E0E0".toColorInt(),
+                zoneTopStart = "#E1F5FE".toColorInt(),
+                zoneMidStart = "#E8F5E9".toColorInt(),
+                zoneBotStart = "#FFF3E0".toColorInt(),
                 isDark = false
             )
             "Warm Bokeh" -> ThemeColors(
-                keyboardBackground = Color.parseColor("#FAF5EC"),
-                keyBackground = Color.parseColor("#FFFFFF"),
-                keyActive = Color.parseColor("#F5ECD5"),
-                textTap = Color.parseColor("#5D4037"),
-                textSwipe = Color.parseColor("#8D6E63"),
-                accent = Color.parseColor("#FBBC05"),
-                toolBackground = Color.parseColor("#F1E6D2"),
-                zoneTopStart = Color.parseColor("#ECEFF1"),
-                zoneMidStart = Color.parseColor("#F1F8E9"),
-                zoneBotStart = Color.parseColor("#FFF8E1"),
+                keyboardBackground = "#FAF5EC".toColorInt(),
+                keyBackground = "#FFFFFF".toColorInt(),
+                keyActive = "#F5ECD5".toColorInt(),
+                textTap = "#5D4037".toColorInt(),
+                textSwipe = "#8D6E63".toColorInt(),
+                accent = "#FBBC05".toColorInt(),
+                toolBackground = "#F1E6D2".toColorInt(),
+                zoneTopStart = "#ECEFF1".toColorInt(),
+                zoneMidStart = "#F1F8E9".toColorInt(),
+                zoneBotStart = "#FFF8E1".toColorInt(),
                 isDark = false
             )
             "Liquid Silver" -> ThemeColors(
-                keyboardBackground = Color.parseColor("#E3E8EC"),
-                keyBackground = Color.parseColor("#F0F4F8"),
-                keyActive = Color.parseColor("#D6E4F0"),
-                textTap = Color.parseColor("#0F172A"),
-                textSwipe = Color.parseColor("#64748B"),
-                accent = Color.parseColor("#3B82F6"),
-                toolBackground = Color.parseColor("#DCE2E7"),
-                zoneTopStart = Color.parseColor("#E0F7FA"),
-                zoneMidStart = Color.parseColor("#E8F5E9"),
-                zoneBotStart = Color.parseColor("#FFF3E0"),
+                keyboardBackground = "#E3E8EC".toColorInt(),
+                keyBackground = "#F0F4F8".toColorInt(),
+                keyActive = "#D6E4F0".toColorInt(),
+                textTap = "#0F172A".toColorInt(),
+                textSwipe = "#64748B".toColorInt(),
+                accent = "#3B82F6".toColorInt(),
+                toolBackground = "#DCE2E7".toColorInt(),
+                zoneTopStart = "#E0F7FA".toColorInt(),
+                zoneMidStart = "#E8F5E9".toColorInt(),
+                zoneBotStart = "#FFF3E0".toColorInt(),
                 isDark = false
             )
             "White Marble" -> ThemeColors(
-                keyboardBackground = Color.parseColor("#F3F4F6"),
-                keyBackground = Color.parseColor("#FFFFFF"),
-                keyActive = Color.parseColor("#E5E7EB"),
-                textTap = Color.parseColor("#111827"),
-                textSwipe = Color.parseColor("#4B5563"),
-                accent = Color.parseColor("#D4AF37"),
-                toolBackground = Color.parseColor("#E5E7EB"),
-                zoneTopStart = Color.parseColor("#F0F4F8"),
-                zoneMidStart = Color.parseColor("#F0FFF4"),
-                zoneBotStart = Color.parseColor("#FAF8F5"),
+                keyboardBackground = "#F3F4F6".toColorInt(),
+                keyBackground = "#FFFFFF".toColorInt(),
+                keyActive = "#E5E7EB".toColorInt(),
+                textTap = "#111827".toColorInt(),
+                textSwipe = "#4B5563".toColorInt(),
+                accent = "#D4AF37".toColorInt(),
+                toolBackground = "#E5E7EB".toColorInt(),
+                zoneTopStart = "#F0F4F8".toColorInt(),
+                zoneMidStart = "#F0FFF4".toColorInt(),
+                zoneBotStart = "#FAF8F5".toColorInt(),
                 isDark = false
             )
             "Frosted Glass" -> ThemeColors(
-                keyboardBackground = Color.parseColor("#E5E7EB"),
-                keyBackground = Color.parseColor("#F9FAFB"),
-                keyActive = Color.parseColor("#E5E7EB"),
-                textTap = Color.parseColor("#1F2937"),
-                textSwipe = Color.parseColor("#6B7280"),
-                accent = Color.parseColor("#2563EB"),
-                toolBackground = Color.parseColor("#D1D5DB"),
-                zoneTopStart = Color.parseColor("#EEF2F6"),
-                zoneMidStart = Color.parseColor("#F0FDF4"),
-                zoneBotStart = Color.parseColor("#FFFBEB"),
+                keyboardBackground = "#E5E7EB".toColorInt(),
+                keyBackground = "#F9FAFB".toColorInt(),
+                keyActive = "#E5E7EB".toColorInt(),
+                textTap = "#1F2937".toColorInt(),
+                textSwipe = "#6B7280".toColorInt(),
+                accent = "#2563EB".toColorInt(),
+                toolBackground = "#D1D5DB".toColorInt(),
+                zoneTopStart = "#EEF2F6".toColorInt(),
+                zoneMidStart = "#F0FDF4".toColorInt(),
+                zoneBotStart = "#FFFBEB".toColorInt(),
                 isDark = false
             )
             "Blue" -> ThemeColors(
-                keyboardBackground = Color.parseColor("#E3F2FD"),
-                keyBackground = Color.parseColor("#FFFFFF"),
-                keyActive = Color.parseColor("#BBDEFB"),
-                textTap = Color.parseColor("#0D47A1"),
-                textSwipe = Color.parseColor("#1E88E5"),
-                accent = Color.parseColor("#1565C0"),
-                toolBackground = Color.parseColor("#E3F2FD"),
-                zoneTopStart = Color.parseColor("#E3F2FD"),
-                zoneMidStart = Color.parseColor("#E8F5E9"),
-                zoneBotStart = Color.parseColor("#FFF3E0"),
+                keyboardBackground = "#E3F2FD".toColorInt(),
+                keyBackground = "#FFFFFF".toColorInt(),
+                keyActive = "#BBDEFB".toColorInt(),
+                textTap = "#0D47A1".toColorInt(),
+                textSwipe = "#1E88E5".toColorInt(),
+                accent = "#1565C0".toColorInt(),
+                toolBackground = "#E3F2FD".toColorInt(),
+                zoneTopStart = "#E3F2FD".toColorInt(),
+                zoneMidStart = "#E8F5E9".toColorInt(),
+                zoneBotStart = "#FFF3E0".toColorInt(),
                 isDark = false
             )
             "Red" -> ThemeColors(
-                keyboardBackground = Color.parseColor("#FFEBEE"),
-                keyBackground = Color.parseColor("#FFFFFF"),
-                keyActive = Color.parseColor("#FFCDD2"),
-                textTap = Color.parseColor("#B71C1C"),
-                textSwipe = Color.parseColor("#E53935"),
-                accent = Color.parseColor("#C62828"),
-                toolBackground = Color.parseColor("#FFEBEE"),
-                zoneTopStart = Color.parseColor("#E0F2F1"),
-                zoneMidStart = Color.parseColor("#E8F5E9"),
-                zoneBotStart = Color.parseColor("#FFEBEE"),
+                keyboardBackground = "#FFEBEE".toColorInt(),
+                keyBackground = "#FFFFFF".toColorInt(),
+                keyActive = "#FFCDD2".toColorInt(),
+                textTap = "#B71C1C".toColorInt(),
+                textSwipe = "#E53935".toColorInt(),
+                accent = "#C62828".toColorInt(),
+                toolBackground = "#FFEBEE".toColorInt(),
+                zoneTopStart = "#E0F2F1".toColorInt(),
+                zoneMidStart = "#E8F5E9".toColorInt(),
+                zoneBotStart = "#FFEBEE".toColorInt(),
                 isDark = false
             )
             "Light" -> ThemeColors(
-                keyboardBackground = Color.parseColor("#F3F4F6"),
-                keyBackground = Color.parseColor("#FFFFFF"),
-                keyActive = Color.parseColor("#E5E7EB"),
-                textTap = Color.parseColor("#111827"),
-                textSwipe = Color.parseColor("#6B7280"),
-                accent = Color.parseColor("#1D4ED8"),
-                toolBackground = Color.parseColor("#E5E7EB"),
-                zoneTopStart = Color.parseColor("#F0F4FF"),
-                zoneMidStart = Color.parseColor("#F0FFF4"),
-                zoneBotStart = Color.parseColor("#FFF7ED"),
+                keyboardBackground = "#F3F4F6".toColorInt(),
+                keyBackground = "#FFFFFF".toColorInt(),
+                keyActive = "#E5E7EB".toColorInt(),
+                textTap = "#111827".toColorInt(),
+                textSwipe = "#6B7280".toColorInt(),
+                accent = "#1D4ED8".toColorInt(),
+                toolBackground = "#E5E7EB".toColorInt(),
+                zoneTopStart = "#F0F4FF".toColorInt(),
+                zoneMidStart = "#F0FFF4".toColorInt(),
+                zoneBotStart = "#FFF7ED".toColorInt(),
                 isDark = false
             )
             else -> // "Clean Minimal" or fallback
                 ThemeColors(
-                    keyboardBackground = Color.parseColor("#E2E2E7"),
-                    keyBackground = Color.parseColor("#FFFFFF"),
-                    keyActive = Color.parseColor("#CACAD0"),
-                    textTap = Color.parseColor("#1D1D1F"),
-                    textSwipe = Color.parseColor("#86868B"),
-                    accent = Color.parseColor("#6B43F5"),
-                    toolBackground = Color.parseColor("#D1D1D6"),
-                    zoneTopStart = Color.parseColor("#F0F4FF"),
-                    zoneMidStart = Color.parseColor("#F0FFF4"),
-                    zoneBotStart = Color.parseColor("#FFF7ED"),
+                    keyboardBackground = "#E2E2E7".toColorInt(),
+                    keyBackground = "#FFFFFF".toColorInt(),
+                    keyActive = "#CACAD0".toColorInt(),
+                    textTap = "#1D1D1F".toColorInt(),
+                    textSwipe = "#86868B".toColorInt(),
+                    accent = "#6B43F5".toColorInt(),
+                    toolBackground = "#D1D1D6".toColorInt(),
+                    zoneTopStart = "#F0F4FF".toColorInt(),
+                    zoneMidStart = "#F0FFF4".toColorInt(),
+                    zoneBotStart = "#FFF7ED".toColorInt(),
                     isDark = false
                 )
         }
     }
 
+    @Suppress("unused")
     fun getZoneColors(context: Context, themeName: String, zoneType: KeyView.ZoneType, isSystemDark: Boolean): ZoneColors {
         val colors = getThemeColors(context, themeName, isSystemDark)
         val startColor = when (zoneType) {

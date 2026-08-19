@@ -11,6 +11,8 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.inputmethodservice.InputMethodService
+import androidx.core.graphics.toColorInt
+import androidx.core.view.isVisible
 import com.flowboard.ime.data.ClipboardItem
 import android.content.pm.PackageManager
 import com.flowboard.ime.data.ClipboardManagerHelper
@@ -561,9 +563,10 @@ class FlowboardIMEService : InputMethodService() {
             val btnPaste = panel.findViewById<TextView>(R.id.btnTextPaste)
             val btnDelete = panel.findViewById<TextView>(R.id.btnTextDelete)
 
+            @Suppress("SetTextI18n")
             fun updateSelectButtonState() {
                 if (isTextSelecting) {
-                    btnSelect?.setBackgroundColor(Color.parseColor("#6C5CE7"))
+                    btnSelect?.setBackgroundColor("#6C5CE7".toColorInt())
                     btnSelect?.setTextColor(Color.WHITE)
                     btnSelect?.text = "Selecting"
                 } else {
@@ -1031,6 +1034,7 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
+    @Suppress("SetTextI18n")
     private fun startVoiceRecognition() {
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             android.widget.Toast.makeText(this, "Microphone permission required for Voice typing", android.widget.Toast.LENGTH_LONG).show()
@@ -1052,8 +1056,8 @@ class FlowboardIMEService : InputMethodService() {
         showSubPanel(voiceInputPanel)
         voiceLiveText?.text = "Listening... Speak now"
         voiceStatusText?.text = "Listening..."
-        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(Color.parseColor("#E74C3C"))
-        btnVoiceMic?.setBackgroundColor(Color.parseColor("#33E74C3C"))
+        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf("#E74C3C".toColorInt())
+        btnVoiceMic?.setBackgroundColor("#33E74C3C".toColorInt())
 
         try {
             speechRecognizer?.destroy()
@@ -1061,7 +1065,7 @@ class FlowboardIMEService : InputMethodService() {
                 setRecognitionListener(object : RecognitionListener {
                     override fun onReadyForSpeech(params: Bundle?) {
                         voiceStatusText?.text = "Listening... Speak now"
-                        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(Color.parseColor("#E74C3C"))
+                        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf("#E74C3C".toColorInt())
                     }
 
                     override fun onBeginningOfSpeech() {
@@ -1131,6 +1135,7 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
+    @Suppress("SetTextI18n")
     private fun stopVoiceRecognition() {
         if (isListeningVoice) {
             try {
