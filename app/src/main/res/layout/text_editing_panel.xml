@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/textEditPanel"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -10,30 +11,18 @@
     android:visibility="gone">
 
     <!-- Header -->
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="32dp"
-        android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingHorizontal="4dp">
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/ic_text_edit"
-            app:tint="@color/text_tap"
-            android:contentDescription="Text Editing" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:text="Text Editing"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_tap" />
-    </LinearLayout>
+        android:paddingHorizontal="4dp"
+        android:drawableStart="@drawable/ic_text_edit"
+        android:drawablePadding="6dp"
+        app:drawableTint="@color/text_tap"
+        android:text="@string/text_editing"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_tap" />
 
     <!-- Main Controller Area -->
     <LinearLayout
@@ -43,7 +32,8 @@
         android:orientation="horizontal"
         android:baselineAligned="false"
         android:gravity="center"
-        android:layout_marginTop="2dp">
+        android:layout_marginTop="2dp"
+        tools:ignore="NestedWeights">
 
         <!-- Left Tools: Select, Select All, Copy, Cut, Paste -->
         <LinearLayout
@@ -68,7 +58,7 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="Select"
+                    android:text="@string/select"
                     android:textSize="11sp"
                     android:textColor="@color/text_tap"
                     android:background="@drawable/fn_key_bg"
@@ -80,7 +70,7 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="Select All"
+                    android:text="@string/select_all"
                     android:textSize="11sp"
                     android:textColor="@color/text_tap"
                     android:background="@drawable/fn_key_bg"
@@ -102,7 +92,7 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="Cut"
+                    android:text="@string/cut"
                     android:textSize="11sp"
                     android:textColor="@color/text_tap"
                     android:background="@drawable/fn_key_bg"
@@ -114,7 +104,7 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="Copy"
+                    android:text="@string/copy"
                     android:textSize="11sp"
                     android:textColor="@color/text_tap"
                     android:background="@drawable/fn_key_bg"
@@ -135,7 +125,7 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="Paste"
+                    android:text="@string/paste"
                     android:textSize="11sp"
                     android:textColor="@color/text_tap"
                     android:background="@drawable/fn_key_bg"
@@ -147,7 +137,7 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="Delete"
+                    android:text="@string/delete"
                     android:textSize="11sp"
                     android:textColor="@color/text_tap"
                     android:background="@drawable/fn_key_bg"
@@ -190,7 +180,7 @@
                     android:background="@drawable/fn_key_bg"
                     app:tint="@color/text_tap"
                     android:layout_marginEnd="2dp"
-                    android:contentDescription="Jump to Start" />
+                    android:contentDescription="@string/jump_to_start" />
 
                 <ImageView
                     android:id="@+id/btnTextArrowUp"
@@ -202,7 +192,7 @@
                     android:background="@drawable/key_bg"
                     app:tint="@color/text_tap"
                     android:layout_marginHorizontal="2dp"
-                    android:contentDescription="Arrow Up" />
+                    android:contentDescription="@string/arrow_up" />
 
                 <ImageView
                     android:id="@+id/btnTextJumpEnd"
@@ -214,7 +204,7 @@
                     android:background="@drawable/fn_key_bg"
                     app:tint="@color/text_tap"
                     android:layout_marginStart="2dp"
-                    android:contentDescription="Jump to End" />
+                    android:contentDescription="@string/jump_to_end" />
             </LinearLayout>
 
             <!-- Middle Row: Left Arrow | Center/Home | Right Arrow -->
@@ -236,7 +226,7 @@
                     android:background="@drawable/key_bg"
                     app:tint="@color/text_tap"
                     android:layout_marginEnd="2dp"
-                    android:contentDescription="Arrow Left" />
+                    android:contentDescription="@string/arrow_left" />
 
                 <TextView
                     android:id="@+id/btnTextCenter"
@@ -244,7 +234,7 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="✛"
+                    android:text="@string/dpad_center"
                     android:textSize="16sp"
                     android:textColor="@color/text_icon"
                     android:background="@drawable/prediction_key_bg"
@@ -260,7 +250,7 @@
                     android:background="@drawable/key_bg"
                     app:tint="@color/text_tap"
                     android:layout_marginStart="2dp"
-                    android:contentDescription="Arrow Right" />
+                    android:contentDescription="@string/arrow_right" />
             </LinearLayout>
 
             <!-- Bottom Row: Down Arrow -->
@@ -287,7 +277,7 @@
                     android:background="@drawable/key_bg"
                     app:tint="@color/text_tap"
                     android:layout_marginHorizontal="2dp"
-                    android:contentDescription="Arrow Down" />
+                    android:contentDescription="@string/arrow_down" />
 
                 <View
                     android:layout_width="0dp"

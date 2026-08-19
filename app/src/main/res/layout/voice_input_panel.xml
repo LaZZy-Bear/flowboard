@@ -10,29 +10,17 @@
     android:visibility="gone">
 
     <!-- Header -->
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="32dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/ic_mic"
-            app:tint="@color/text_tap"
-            android:contentDescription="Voice Input" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:text="Voice Typing"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_tap" />
-    </LinearLayout>
+        android:gravity="center_vertical"
+        android:drawableStart="@drawable/ic_mic"
+        android:drawablePadding="6dp"
+        app:drawableTint="@color/text_tap"
+        android:text="@string/voice_typing"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_tap" />
 
     <!-- Live Speech Text Display -->
     <TextView
@@ -42,7 +30,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:padding="8dp"
-        android:text="Speak now..."
+        android:text="@string/speak_now"
         android:textSize="15sp"
         android:textColor="@color/text_tap"
         android:maxLines="3"
@@ -71,7 +59,7 @@
                 android:layout_gravity="center"
                 android:src="@drawable/ic_mic"
                 app:tint="@color/text_tap"
-                android:contentDescription="Microphone" />
+                android:contentDescription="@string/microphone" />
         </FrameLayout>
 
         <TextView
@@ -79,7 +67,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Tap to start / stop"
+            android:text="@string/tap_to_start_stop"
             android:textSize="11sp"
             android:textColor="@color/text_swipe" />
     </LinearLayout>

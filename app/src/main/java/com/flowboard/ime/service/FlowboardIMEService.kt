@@ -47,7 +47,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import androidx.core.graphics.toColorInt
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -948,13 +947,13 @@ class FlowboardIMEService : InputMethodService() {
     private fun isAnySubPanelOpen(): Boolean {
         val morePanel = keyboardRoot?.findViewById<GridLayout>(R.id.morePanel)
         return isMorePanelOpen ||
-                (morePanel != null && morePanel.visibility == View.VISIBLE) ||
-                clipboardPanel?.visibility == View.VISIBLE ||
-                textEditPanel?.visibility == View.VISIBLE ||
-                quickThemePanel?.visibility == View.VISIBLE ||
-                undoRedoPanel?.visibility == View.VISIBLE ||
-                voiceInputPanel?.visibility == View.VISIBLE ||
-                heightAdjustLayout?.visibility == View.VISIBLE
+                (morePanel?.isVisible == true) ||
+                (clipboardPanel?.isVisible == true) ||
+                (textEditPanel?.isVisible == true) ||
+                (quickThemePanel?.isVisible == true) ||
+                (undoRedoPanel?.isVisible == true) ||
+                (voiceInputPanel?.isVisible == true) ||
+                (heightAdjustLayout?.isVisible == true)
     }
 
     private fun hideAllSubPanels() {
@@ -987,7 +986,7 @@ class FlowboardIMEService : InputMethodService() {
             val btnSelect = panel.findViewById<TextView>(R.id.btnTextSelect)
             btnSelect?.setBackgroundResource(R.drawable.fn_key_bg)
             btnSelect?.setTextColor(ContextCompat.getColor(this, R.color.text_tap))
-            btnSelect?.text = "Select"
+            btnSelect?.setText(R.string.select)
         }
 
         val lp = panel.layoutParams as? LinearLayout.LayoutParams
@@ -1832,7 +1831,7 @@ class FlowboardIMEService : InputMethodService() {
                     quickThemePanel,
                     undoRedoPanel,
                     voiceInputPanel
-                ).firstOrNull { it.visibility == View.VISIBLE }
+                ).firstOrNull { it.isVisible }
 
                 openSubPanel?.let { p ->
                     (p.layoutParams as? LinearLayout.LayoutParams)?.let { pLp ->

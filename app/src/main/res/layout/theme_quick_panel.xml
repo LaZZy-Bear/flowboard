@@ -10,29 +10,17 @@
     android:visibility="gone">
 
     <!-- Header -->
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="32dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@drawable/ic_theme"
-            app:tint="@color/text_tap"
-            android:contentDescription="Themes" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:text="Quick Theme"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_tap" />
-    </LinearLayout>
+        android:gravity="center_vertical"
+        android:drawableStart="@drawable/ic_theme"
+        android:drawablePadding="6dp"
+        app:drawableTint="@color/text_tap"
+        android:text="@string/quick_theme"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_tap" />
 
     <!-- Dark/Light Mode Row -->
     <LinearLayout
@@ -47,7 +35,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Mode"
+            android:text="@string/mode"
             android:textSize="12sp"
             android:textColor="@color/text_tap"
             android:textStyle="bold" />
@@ -65,7 +53,7 @@
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:paddingHorizontal="12dp"
-                android:text="Light"
+                android:text="@string/theme_light"
                 android:textSize="11sp"
                 android:textColor="@color/text_tap"
                 android:background="@drawable/key_bg" />
@@ -76,7 +64,7 @@
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:paddingHorizontal="12dp"
-                android:text="Dark"
+                android:text="@string/theme_dark"
                 android:textSize="11sp"
                 android:textColor="@color/text_tap"
                 android:background="@drawable/fn_key_bg" />
@@ -87,7 +75,7 @@
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:paddingHorizontal="12dp"
-                android:text="Auto"
+                android:text="@string/theme_auto"
                 android:textSize="11sp"
                 android:textColor="@color/text_tap"
                 android:background="@drawable/fn_key_bg" />
@@ -145,7 +133,7 @@
         android:layout_width="match_parent"
         android:layout_height="32dp"
         android:gravity="center"
-        android:text="More Themes &amp; Customization →"
+        android:text="@string/more_themes"
         android:textSize="12sp"
         android:textColor="@color/text_tap"
         android:background="@drawable/fn_key_bg" />

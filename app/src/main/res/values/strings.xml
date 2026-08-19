@@ -4,4 +4,43 @@
     <string name="subtype_english">English</string>
     <string name="space_label">space</string>
     <string name="numbers_label">\?123</string>
+
+    <!-- Text Editing Panel -->
+    <string name="text_editing">Text Editing</string>
+    <string name="select">Select</string>
+    <string name="select_all">Select All</string>
+    <string name="cut">Cut</string>
+    <string name="copy">Copy</string>
+    <string name="paste">Paste</string>
+    <string name="delete">Delete</string>
+    <string name="jump_to_start">Jump to Start</string>
+    <string name="arrow_up">Arrow Up</string>
+    <string name="jump_to_end">Jump to End</string>
+    <string name="arrow_left">Arrow Left</string>
+    <string name="dpad_center">✛</string>
+    <string name="arrow_right">Arrow Right</string>
+    <string name="arrow_down">Arrow Down</string>
+
+    <!-- Undo Redo Panel -->
+    <string name="undo_redo">Undo Redo</string>
+    <string name="undo_and_history">Undo &amp; History</string>
+    <string name="undo">Undo</string>
+    <string name="redo">Redo</string>
+    <string name="clear_all">Clear All</string>
+
+    <!-- Quick Theme Panel -->
+    <string name="themes">Themes</string>
+    <string name="quick_theme">Quick Theme</string>
+    <string name="mode">Mode</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_auto">Auto</string>
+    <string name="more_themes">More Themes &amp; Customization →</string>
+
+    <!-- Voice Input Panel -->
+    <string name="voice_input">Voice Input</string>
+    <string name="voice_typing">Voice Typing</string>
+    <string name="speak_now">Speak now...</string>
+    <string name="microphone">Microphone</string>
+    <string name="tap_to_start_stop">Tap to start / stop</string>
 </resources>
