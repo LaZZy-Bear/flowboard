@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/undoRedoPanel"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/prediction_key_bg"
+    android:padding="8dp"
+    android:visibility="gone">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_undo"
+            android:tint="@color/text_tap"
+            android:contentDescription="Undo Redo" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="Undo &amp; History"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_tap" />
+    </LinearLayout>
+
+    <!-- 3 Action Cards -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="8dp">
+
+        <!-- Undo Card -->
+        <LinearLayout
+            android:id="@+id/cardUndo"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/fn_key_bg"
+            android:layout_marginEnd="4dp"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_undo"
+                android:tint="@color/text_tap"
+                android:contentDescription="Undo" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Undo"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_tap"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Redo Card -->
+        <LinearLayout
+            android:id="@+id/cardRedo"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/fn_key_bg"
+            android:layout_marginHorizontal="2dp"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_redo"
+                android:tint="@color/text_tap"
+                android:contentDescription="Redo" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Redo"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_tap"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Clear All Card -->
+        <LinearLayout
+            android:id="@+id/cardClearAll"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/fn_key_bg"
+            android:layout_marginStart="4dp"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_clear_all"
+                android:tint="@color/text_tap"
+                android:contentDescription="Clear All" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Clear All"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_tap"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

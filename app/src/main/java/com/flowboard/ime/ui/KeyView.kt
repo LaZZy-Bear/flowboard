@@ -149,13 +149,20 @@ class KeyView @JvmOverloads constructor(
         invalidate()
     }
 
+    fun refreshTheme() {
+        resolveColors()
+        gradientDirty = true
+        invalidate()
+    }
+
     /**
      * Resolve colors from resources to support light/dark theme switching.
      */
     private fun resolveColors() {
         val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
         val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
-        val isSystemDark = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val isOverrideDark = if (prefs.contains("dark_mode_override")) prefs.getBoolean("dark_mode_override", false) else null
+        val isSystemDark = isOverrideDark ?: ((context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES)
         val colors = com.flowboard.ime.util.ThemeManager.getThemeColors(context, activeTheme, isSystemDark)
         currentThemeColors = colors
 
@@ -164,7 +171,9 @@ class KeyView @JvmOverloads constructor(
         colorTextTap = colors.textTap
         colorTextSwipe = colors.textSwipe
         colorAccent = colors.accent
+        shadowPaint.color = if (colors.isDark) Color.parseColor("#151517") else Color.parseColor("#CACAD0")
         updateZoneColor()
+        gradientDirty = true
     }
 
     private fun updateZoneColor() {
@@ -181,6 +190,7 @@ class KeyView @JvmOverloads constructor(
      */
     fun bind(slots: KeySlots) {
         this.keySlots = slots
+        resolveColors()
         invalidate()
     }
 
@@ -211,7 +221,7 @@ class KeyView @JvmOverloads constructor(
         val h = height.toFloat()
 
         // ── Rebuild gradient if needed ──
-        if (gradientDirty) {
+        if (gradientDirty || bgPaint.shader == null) {
             updateZoneColor()
             bgPaint.shader = LinearGradient(
                 0f, 0f, 0f, h,

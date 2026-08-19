@@ -62,6 +62,10 @@ class KeyboardView @JvmOverloads constructor(
         keyViews.forEach { it.setFontScale(scale) }
     }
 
+    fun refreshTheme() {
+        keyViews.forEach { it.refreshTheme() }
+    }
+
     init {
         for (key in keyViews) {
             addView(key)

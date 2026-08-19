@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/quickThemePanel"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/prediction_key_bg"
+    android:padding="8dp"
+    android:visibility="gone">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_theme"
+            android:tint="@color/text_tap"
+            android:contentDescription="Themes" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="Quick Theme"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_tap" />
+    </LinearLayout>
+
+    <!-- Dark/Light Mode Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="6dp"
+        android:paddingHorizontal="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Mode"
+            android:textSize="12sp"
+            android:textColor="@color/text_tap"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:orientation="horizontal"
+            android:background="@drawable/fn_key_bg"
+            android:padding="2dp">
+
+            <TextView
+                android:id="@+id/btnThemeLight"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="Light"
+                android:textSize="11sp"
+                android:textColor="@color/text_tap"
+                android:background="@drawable/key_bg" />
+
+            <TextView
+                android:id="@+id/btnThemeDark"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="Dark"
+                android:textSize="11sp"
+                android:textColor="@color/text_tap"
+                android:background="@drawable/fn_key_bg" />
+
+            <TextView
+                android:id="@+id/btnThemeSystem"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="Auto"
+                android:textSize="11sp"
+                android:textColor="@color/text_tap"
+                android:background="@drawable/fn_key_bg" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Color Palettes -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="8dp">
+
+        <FrameLayout
+            android:id="@+id/palettePurple"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginHorizontal="4dp"
+            android:background="#6C5CE7" />
+
+        <FrameLayout
+            android:id="@+id/paletteOcean"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginHorizontal="4dp"
+            android:background="#0984E3" />
+
+        <FrameLayout
+            android:id="@+id/paletteTeal"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginHorizontal="4dp"
+            android:background="#00B894" />
+
+        <FrameLayout
+            android:id="@+id/paletteCoral"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginHorizontal="4dp"
+            android:background="#E17055" />
+
+        <FrameLayout
+            android:id="@+id/paletteMidnight"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginHorizontal="4dp"
+            android:background="#2D3436" />
+    </LinearLayout>
+
+    <!-- Open Full Theme Settings -->
+    <TextView
+        android:id="@+id/btnOpenFullThemes"
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:gravity="center"
+        android:text="More Themes &amp; Customization →"
+        android:textSize="12sp"
+        android:textColor="@color/text_tap"
+        android:background="@drawable/fn_key_bg" />
+</LinearLayout>

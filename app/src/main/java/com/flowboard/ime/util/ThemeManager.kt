@@ -27,10 +27,10 @@ data class ZoneColors(
 
 object ThemeManager {
     fun getThemeColors(context: Context, themeName: String, isSystemDark: Boolean): ThemeColors {
-        val resolvedTheme = if (themeName == "System default") {
-            if (isSystemDark) "Dark" else "Clean Minimal"
-        } else {
-            themeName
+        val resolvedTheme = when {
+            themeName == "System default" -> if (isSystemDark) "Dark" else "Clean Minimal"
+            themeName == "Clean Minimal" && isSystemDark -> "Dark"
+            else -> themeName
         }
 
         return when (resolvedTheme) {

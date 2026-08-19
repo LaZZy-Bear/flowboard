@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/voiceInputPanel"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/prediction_key_bg"
+    android:padding="8dp"
+    android:visibility="gone">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_mic"
+            android:tint="@color/text_tap"
+            android:contentDescription="Voice Input" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="Voice Typing"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_tap" />
+    </LinearLayout>
+
+    <!-- Live Speech Text Display -->
+    <TextView
+        android:id="@+id/voiceLiveText"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:padding="8dp"
+        android:text="Speak now..."
+        android:textSize="15sp"
+        android:textColor="@color/text_tap"
+        android:maxLines="3"
+        android:ellipsize="end" />
+
+    <!-- Mic Button & Status Area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingBottom="4dp">
+
+        <FrameLayout
+            android:id="@+id/btnVoiceMic"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/fn_key_bg"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/ivVoiceMicIcon"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_mic"
+                android:tint="@color/text_tap"
+                android:contentDescription="Microphone" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/voiceStatusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Tap to start / stop"
+            android:textSize="11sp"
+            android:textColor="@color/text_swipe" />
+    </LinearLayout>
+</LinearLayout>

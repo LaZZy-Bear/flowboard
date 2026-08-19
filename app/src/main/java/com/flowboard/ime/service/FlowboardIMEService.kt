@@ -12,16 +12,23 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.inputmethodservice.InputMethodService
 import com.flowboard.ime.data.ClipboardItem
+import android.content.pm.PackageManager
 import com.flowboard.ime.data.ClipboardManagerHelper
 import android.media.AudioManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.text.TextUtils
 import android.util.Log
 import android.util.TypedValue
 import android.view.ContextThemeWrapper
 import android.view.Gravity
+import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -107,7 +114,7 @@ class FlowboardIMEService : InputMethodService() {
     private var btnDelete: ImageView? = null
 
     // Side Tools (Control Panel)
-    enum class ToolbarAction { HANDEDNESS, THEME, FLOATING, CLIPBOARD, UNDO, RESIZE, MORE, DELETE }
+    enum class ToolbarAction { HANDEDNESS, THEME, FLOATING, CLIPBOARD, UNDO, RESIZE, TEXT_EDIT, VOICE, SETTINGS, MORE, DELETE }
     private val activeShortcuts = mutableListOf(
         ToolbarAction.HANDEDNESS,
         ToolbarAction.THEME,
@@ -122,13 +129,27 @@ class FlowboardIMEService : InputMethodService() {
         ToolbarAction.FLOATING,
         ToolbarAction.CLIPBOARD,
         ToolbarAction.UNDO,
-        ToolbarAction.RESIZE
+        ToolbarAction.RESIZE,
+        ToolbarAction.TEXT_EDIT,
+        ToolbarAction.VOICE,
+        ToolbarAction.SETTINGS
     )
     private var sideTools: LinearLayout? = null
     private var dragHandleArea: View? = null
     private var resizeHandleRight: View? = null
     private var clipboardPanel: View? = null
     private var clipboardContent: LinearLayout? = null
+    private var textEditPanel: View? = null
+    private var quickThemePanel: View? = null
+    private var undoRedoPanel: View? = null
+    private var voiceInputPanel: LinearLayout? = null
+    private var voiceLiveText: TextView? = null
+    private var voiceStatusText: TextView? = null
+    private var btnVoiceMic: FrameLayout? = null
+    private var ivVoiceMicIcon: ImageView? = null
+    private var speechRecognizer: SpeechRecognizer? = null
+    private var isListeningVoice = false
+    private var isTextSelecting = false
     private lateinit var clipboardHelper: ClipboardManagerHelper
     private var quickPasteBar: View? = null
     private var quickPasteText: TextView? = null
@@ -170,6 +191,8 @@ class FlowboardIMEService : InputMethodService() {
         isFloatingMode = prefs.getBoolean("is_floating_mode", false)
         floatingX = prefs.getInt("floating_x", -1)
         floatingY = prefs.getInt("floating_y", 100)
+        currentFloatingScale = prefs.getFloat("floating_scale", 1f).coerceIn(0.88f, 1.20f)
+        isDarkModeOverride = if (prefs.contains("dark_mode_override")) prefs.getBoolean("dark_mode_override", false) else null
         loadActiveShortcuts()
     }
 
@@ -196,6 +219,7 @@ class FlowboardIMEService : InputMethodService() {
     
     // Undo & Minimization States
     private val typedTextHistory = mutableListOf<String>()
+    private val typedTextRedoHistory = mutableListOf<String>()
     private var lastDragHandleClickTime = 0L
     private var isMinimized = false
     private var isCommiting = false
@@ -517,6 +541,161 @@ class FlowboardIMEService : InputMethodService() {
 
         btnCloseHeightAdjust?.setOnClickListener {
             heightAdjustLayout?.visibility = View.GONE
+            keyboardView?.visibility = View.VISIBLE
+            renderToolbar()
+        }
+
+        // Text Editing Panel Setup
+        textEditPanel = rootView.findViewById(R.id.textEditPanel)
+        textEditPanel?.let { panel ->
+            val btnArrowUp = panel.findViewById<ImageView>(R.id.btnTextArrowUp)
+            val btnArrowDown = panel.findViewById<ImageView>(R.id.btnTextArrowDown)
+            val btnArrowLeft = panel.findViewById<ImageView>(R.id.btnTextArrowLeft)
+            val btnArrowRight = panel.findViewById<ImageView>(R.id.btnTextArrowRight)
+            val btnJumpStart = panel.findViewById<ImageView>(R.id.btnTextJumpStart)
+            val btnJumpEnd = panel.findViewById<ImageView>(R.id.btnTextJumpEnd)
+            val btnSelect = panel.findViewById<TextView>(R.id.btnTextSelect)
+            val btnSelectAll = panel.findViewById<TextView>(R.id.btnTextSelectAll)
+            val btnCut = panel.findViewById<TextView>(R.id.btnTextCut)
+            val btnCopy = panel.findViewById<TextView>(R.id.btnTextCopy)
+            val btnPaste = panel.findViewById<TextView>(R.id.btnTextPaste)
+            val btnDelete = panel.findViewById<TextView>(R.id.btnTextDelete)
+
+            fun updateSelectButtonState() {
+                if (isTextSelecting) {
+                    btnSelect?.setBackgroundColor(Color.parseColor("#6C5CE7"))
+                    btnSelect?.setTextColor(Color.WHITE)
+                    btnSelect?.text = "Selecting"
+                } else {
+                    btnSelect?.setBackgroundResource(R.drawable.fn_key_bg)
+                    btnSelect?.setTextColor(ContextCompat.getColor(this, R.color.text_tap))
+                    btnSelect?.text = "Select"
+                }
+            }
+
+            btnSelect?.setOnClickListener {
+                isTextSelecting = !isTextSelecting
+                updateSelectButtonState()
+            }
+
+            btnSelectAll?.setOnClickListener {
+                currentInputConnection?.performContextMenuAction(android.R.id.selectAll)
+            }
+
+            btnCut?.setOnClickListener {
+                currentInputConnection?.performContextMenuAction(android.R.id.cut)
+            }
+
+            btnCopy?.setOnClickListener {
+                currentInputConnection?.performContextMenuAction(android.R.id.copy)
+            }
+
+            btnPaste?.setOnClickListener {
+                currentInputConnection?.performContextMenuAction(android.R.id.paste)
+            }
+
+            btnDelete?.setOnClickListener {
+                handleDelete()
+            }
+
+            btnArrowUp?.setOnClickListener {
+                sendDpadKey(KeyEvent.KEYCODE_DPAD_UP, isTextSelecting)
+            }
+
+            btnArrowDown?.setOnClickListener {
+                sendDpadKey(KeyEvent.KEYCODE_DPAD_DOWN, isTextSelecting)
+            }
+
+            btnArrowLeft?.setOnClickListener {
+                sendDpadKey(KeyEvent.KEYCODE_DPAD_LEFT, isTextSelecting)
+            }
+
+            btnArrowRight?.setOnClickListener {
+                sendDpadKey(KeyEvent.KEYCODE_DPAD_RIGHT, isTextSelecting)
+            }
+
+            btnJumpStart?.setOnClickListener {
+                sendDpadKey(KeyEvent.KEYCODE_MOVE_HOME, isTextSelecting)
+            }
+
+            btnJumpEnd?.setOnClickListener {
+                sendDpadKey(KeyEvent.KEYCODE_MOVE_END, isTextSelecting)
+            }
+        }
+
+        // Quick Theme Panel Setup
+        quickThemePanel = rootView.findViewById(R.id.quickThemePanel)
+        quickThemePanel?.let { panel ->
+            val btnThemeLight = panel.findViewById<TextView>(R.id.btnThemeLight)
+            val btnThemeDark = panel.findViewById<TextView>(R.id.btnThemeDark)
+            val btnThemeSystem = panel.findViewById<TextView>(R.id.btnThemeSystem)
+            val pPurple = panel.findViewById<FrameLayout>(R.id.palettePurple)
+            val pOcean = panel.findViewById<FrameLayout>(R.id.paletteOcean)
+            val pTeal = panel.findViewById<FrameLayout>(R.id.paletteTeal)
+            val pCoral = panel.findViewById<FrameLayout>(R.id.paletteCoral)
+            val pMidnight = panel.findViewById<FrameLayout>(R.id.paletteMidnight)
+            val btnOpenFullThemes = panel.findViewById<TextView>(R.id.btnOpenFullThemes)
+
+            fun applyThemeDirect(themeName: String, darkOverride: Boolean? = null) {
+                isDarkModeOverride = darkOverride
+                getSharedPreferences("flowboard_settings", MODE_PRIVATE).edit {
+                    putString("active_theme", themeName)
+                    if (darkOverride != null) {
+                        putBoolean("dark_mode_override", darkOverride)
+                    } else {
+                        remove("dark_mode_override")
+                    }
+                }
+                keyboardRoot?.let { applySettingsAndTheme(it, getThemedContext()) }
+                keyboardView?.refreshTheme()
+                refreshLayout()
+                renderToolbar()
+            }
+
+            btnThemeLight?.setOnClickListener { applyThemeDirect("Light", false) }
+            btnThemeDark?.setOnClickListener { applyThemeDirect("Dark", true) }
+            btnThemeSystem?.setOnClickListener { applyThemeDirect("System default", null) }
+
+            pPurple?.setOnClickListener { applyThemeDirect("Clean Minimal", false) }
+            pOcean?.setOnClickListener { applyThemeDirect("Blue", false) }
+            pTeal?.setOnClickListener { applyThemeDirect("Geo Grid", false) }
+            pCoral?.setOnClickListener { applyThemeDirect("Warm Bokeh", false) }
+            pMidnight?.setOnClickListener { applyThemeDirect("Dark", true) }
+
+            btnOpenFullThemes?.setOnClickListener {
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("OPEN_PAGE", "themes.html")
+                }
+                startActivity(intent)
+            }
+        }
+
+        // Undo & Redo Panel Setup
+        undoRedoPanel = rootView.findViewById(R.id.undoRedoPanel)
+        undoRedoPanel?.let { panel ->
+            val cardUndo = panel.findViewById<View>(R.id.cardUndo)
+            val cardRedo = panel.findViewById<View>(R.id.cardRedo)
+            val cardClearAll = panel.findViewById<View>(R.id.cardClearAll)
+
+            cardUndo?.setOnClickListener { handleUndo() }
+            cardRedo?.setOnClickListener { handleRedo() }
+            cardClearAll?.setOnClickListener { handleClearAll() }
+        }
+
+        // Voice Input Panel Setup
+        voiceInputPanel = rootView.findViewById(R.id.voiceInputPanel)
+        voiceLiveText = rootView.findViewById(R.id.voiceLiveText)
+        voiceStatusText = rootView.findViewById(R.id.voiceStatusText)
+        btnVoiceMic = rootView.findViewById(R.id.btnVoiceMic)
+        ivVoiceMicIcon = rootView.findViewById(R.id.ivVoiceMicIcon)
+
+        btnVoiceMic?.setOnClickListener {
+            if (isListeningVoice) {
+                stopVoiceRecognition()
+            } else {
+                startVoiceRecognition()
+            }
         }
 
         // Initial setups
@@ -578,6 +757,7 @@ class FlowboardIMEService : InputMethodService() {
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         Log.d(TAG, "onFinishInputView")
+        stopVoiceRecognition()
         val currentText = getFullTextBeforeCursor()
         if (currentText.isNotEmpty()) {
             liveLearningManager.recordWordTyped(currentText)
@@ -588,6 +768,7 @@ class FlowboardIMEService : InputMethodService() {
     override fun onWindowHidden() {
         super.onWindowHidden()
         Log.d(TAG, "onWindowHidden")
+        stopVoiceRecognition()
         val currentText = getFullTextBeforeCursor()
         if (currentText.isNotEmpty()) {
             liveLearningManager.recordWordTyped(currentText)
@@ -598,6 +779,11 @@ class FlowboardIMEService : InputMethodService() {
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "onDestroy")
+        stopVoiceRecognition()
+        try {
+            speechRecognizer?.destroy()
+            speechRecognizer = null
+        } catch (_: Exception) {}
         liveLearningManager.saveProfileIfDirty()
         try {
             unregisterReceiver(settingsReceiver)
@@ -642,8 +828,11 @@ class FlowboardIMEService : InputMethodService() {
                 ToolbarAction.CLIPBOARD -> R.drawable.ic_clipboard
                 ToolbarAction.UNDO -> R.drawable.ic_undo
                 ToolbarAction.RESIZE -> R.drawable.ic_resize
+                ToolbarAction.TEXT_EDIT -> R.drawable.ic_text_edit
+                ToolbarAction.VOICE -> R.drawable.ic_mic
+                ToolbarAction.SETTINGS -> R.drawable.ic_settings
                 ToolbarAction.DELETE -> R.drawable.ic_backspace
-                ToolbarAction.MORE -> if (isMorePanelOpen || clipboardPanel?.visibility == View.VISIBLE) android.R.drawable.ic_menu_close_clear_cancel else R.drawable.ic_more
+                ToolbarAction.MORE -> if (isAnySubPanelOpen()) android.R.drawable.ic_menu_close_clear_cancel else R.drawable.ic_more
             }
 
             val iv = ImageView(getThemedContext()).apply {
@@ -721,19 +910,23 @@ class FlowboardIMEService : InputMethodService() {
                             }
                             android.view.DragEvent.ACTION_DROP -> {
                                 v.alpha = 1.0f
-                                val actionStr = event.clipData.getItemAt(0).text.toString()
-                                val droppedAction = ToolbarAction.valueOf(actionStr)
-                                val targetSlot = v.tag as? Int ?: -1
-                                if (targetSlot in activeShortcuts.indices) {
-                                    val existingIndex = activeShortcuts.indexOf(droppedAction)
-                                    if (existingIndex != -1) {
-                                        activeShortcuts[existingIndex] = activeShortcuts[targetSlot]
+                                try {
+                                    val actionStr = event.clipData?.getItemAt(0)?.text?.toString()
+                                    if (actionStr != null) {
+                                        val droppedAction = ToolbarAction.valueOf(actionStr)
+                                        val targetSlot = v.tag as? Int ?: -1
+                                        if (targetSlot in activeShortcuts.indices) {
+                                            val existingIndex = activeShortcuts.indexOf(droppedAction)
+                                            if (existingIndex != -1) {
+                                                activeShortcuts[existingIndex] = activeShortcuts[targetSlot]
+                                            }
+                                            activeShortcuts[targetSlot] = droppedAction
+                                            saveActiveShortcuts()
+                                            renderToolbar()
+                                            renderMorePanel()
+                                        }
                                     }
-                                    activeShortcuts[targetSlot] = droppedAction
-                                    saveActiveShortcuts()
-                                    renderToolbar()
-                                    renderMorePanel()
-                                }
+                                } catch (_: Exception) {}
                                 true
                             }
                             android.view.DragEvent.ACTION_DRAG_ENDED -> {
@@ -746,6 +939,207 @@ class FlowboardIMEService : InputMethodService() {
                 }
             }
             tools.addView(iv)
+        }
+    }
+
+    private fun isAnySubPanelOpen(): Boolean {
+        val morePanel = keyboardRoot?.findViewById<GridLayout>(R.id.morePanel)
+        return isMorePanelOpen ||
+                (morePanel != null && morePanel.visibility == View.VISIBLE) ||
+                clipboardPanel?.visibility == View.VISIBLE ||
+                textEditPanel?.visibility == View.VISIBLE ||
+                quickThemePanel?.visibility == View.VISIBLE ||
+                undoRedoPanel?.visibility == View.VISIBLE ||
+                voiceInputPanel?.visibility == View.VISIBLE ||
+                heightAdjustLayout?.visibility == View.VISIBLE
+    }
+
+    private fun hideAllSubPanels() {
+        keyboardRoot?.findViewById<GridLayout>(R.id.morePanel)?.visibility = View.GONE
+        clipboardPanel?.visibility = View.GONE
+        textEditPanel?.visibility = View.GONE
+        quickThemePanel?.visibility = View.GONE
+        undoRedoPanel?.visibility = View.GONE
+        voiceInputPanel?.visibility = View.GONE
+        heightAdjustLayout?.visibility = View.GONE
+        isMorePanelOpen = false
+    }
+
+    private fun showSubPanel(panel: View?) {
+        if (panel == null) return
+        val kv = keyboardView
+        val scale = if (isFloatingMode) currentFloatingScale else 1f
+        val density = resources.displayMetrics.density
+        val targetHeight = if (kv != null && kv.height > 0) {
+            kv.height
+        } else {
+            ((75 * scale * 3 + 12) * density).toInt()
+        }
+
+        hideAllSubPanels()
+        kv?.visibility = View.GONE
+
+        if (panel == textEditPanel) {
+            isTextSelecting = false
+            val btnSelect = panel.findViewById<TextView>(R.id.btnTextSelect)
+            btnSelect?.setBackgroundResource(R.drawable.fn_key_bg)
+            btnSelect?.setTextColor(ContextCompat.getColor(this, R.color.text_tap))
+            btnSelect?.text = "Select"
+        }
+
+        val lp = panel.layoutParams as? LinearLayout.LayoutParams
+        if (lp != null) {
+            lp.height = targetHeight
+            lp.width = 0
+            lp.weight = if (isFloatingMode) 8.6f else 1f
+            panel.layoutParams = lp
+        }
+        panel.visibility = View.VISIBLE
+        if (panel.id == R.id.morePanel) {
+            isMorePanelOpen = true
+        }
+        renderToolbar()
+    }
+
+    private fun closeSubPanelsToKeyboard() {
+        stopVoiceRecognition()
+        isTextSelecting = false
+        hideAllSubPanels()
+        keyboardView?.visibility = View.VISIBLE
+        if (isFloatingMode) {
+            val scale = currentFloatingScale
+            keyboardView?.setKeyHeight((75 * scale).toInt())
+            keyboardView?.setFontScale(scale)
+        }
+        renderToolbar()
+    }
+
+    private fun sendDpadKey(keyCode: Int, isShift: Boolean) {
+        val ic = currentInputConnection ?: return
+        val now = SystemClock.uptimeMillis()
+        if (isShift) {
+            val meta = KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT, 0, 0, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, KeyEvent.FLAG_SOFT_KEYBOARD))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, meta, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, KeyEvent.FLAG_SOFT_KEYBOARD))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, meta, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, KeyEvent.FLAG_SOFT_KEYBOARD))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT, 0, 0, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, KeyEvent.FLAG_SOFT_KEYBOARD))
+        } else {
+            val down = KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, 0, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, KeyEvent.FLAG_SOFT_KEYBOARD)
+            val up = KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, 0, KeyCharacterMap.VIRTUAL_KEYBOARD, 0, KeyEvent.FLAG_SOFT_KEYBOARD)
+            ic.sendKeyEvent(down)
+            ic.sendKeyEvent(up)
+        }
+    }
+
+    private fun startVoiceRecognition() {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            android.widget.Toast.makeText(this, "Microphone permission required for Voice typing", android.widget.Toast.LENGTH_LONG).show()
+            try {
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("REQUEST_AUDIO_PERMISSION", true)
+                }
+                startActivity(intent)
+            } catch (_: Exception) {}
+            return
+        }
+
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            android.widget.Toast.makeText(this, "Voice recognition service not available on this device", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        showSubPanel(voiceInputPanel)
+        voiceLiveText?.text = "Listening... Speak now"
+        voiceStatusText?.text = "Listening..."
+        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(Color.parseColor("#E74C3C"))
+        btnVoiceMic?.setBackgroundColor(Color.parseColor("#33E74C3C"))
+
+        try {
+            speechRecognizer?.destroy()
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+                setRecognitionListener(object : RecognitionListener {
+                    override fun onReadyForSpeech(params: Bundle?) {
+                        voiceStatusText?.text = "Listening... Speak now"
+                        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(Color.parseColor("#E74C3C"))
+                    }
+
+                    override fun onBeginningOfSpeech() {
+                        voiceStatusText?.text = "Listening..."
+                    }
+
+                    override fun onRmsChanged(rmsdB: Float) {}
+
+                    override fun onBufferReceived(buffer: ByteArray?) {}
+
+                    override fun onEndOfSpeech() {
+                        voiceStatusText?.text = "Processing speech..."
+                        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this@FlowboardIMEService, R.color.text_tap))
+                    }
+
+                    override fun onError(error: Int) {
+                        val msg = when (error) {
+                            SpeechRecognizer.ERROR_NO_MATCH -> "No speech detected. Tap mic to retry."
+                            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Speech timeout. Tap mic to speak."
+                            SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
+                            SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network connection error"
+                            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission required"
+                            else -> "Voice recognition stopped. Tap mic to retry."
+                        }
+                        voiceStatusText?.text = msg
+                        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this@FlowboardIMEService, R.color.text_tap))
+                        btnVoiceMic?.setBackgroundResource(R.drawable.fn_key_bg)
+                        isListeningVoice = false
+                    }
+
+                    override fun onResults(results: Bundle?) {
+                        val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        val text = matches?.firstOrNull()
+                        if (!text.isNullOrEmpty()) {
+                            voiceLiveText?.text = text
+                            currentInputConnection?.commitText("$text ", 1)
+                            typedTextRedoHistory.clear()
+                        }
+                        voiceStatusText?.text = "Tap mic to speak again"
+                        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this@FlowboardIMEService, R.color.text_tap))
+                        btnVoiceMic?.setBackgroundResource(R.drawable.fn_key_bg)
+                        isListeningVoice = false
+                    }
+
+                    override fun onPartialResults(partialResults: Bundle?) {
+                        val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        val text = matches?.firstOrNull()
+                        if (!text.isNullOrEmpty()) {
+                            voiceLiveText?.text = text
+                        }
+                    }
+
+                    override fun onEvent(eventType: Int, params: Bundle?) {}
+                })
+            }
+
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+            }
+            speechRecognizer?.startListening(intent)
+            isListeningVoice = true
+        } catch (e: Exception) {
+            voiceStatusText?.text = "Error starting voice recognition: ${e.message}"
+            isListeningVoice = false
+        }
+    }
+
+    private fun stopVoiceRecognition() {
+        if (isListeningVoice) {
+            try {
+                speechRecognizer?.stopListening()
+            } catch (_: Exception) {}
+            isListeningVoice = false
+            voiceStatusText?.text = "Tap mic to start"
+            ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.text_tap))
+            btnVoiceMic?.setBackgroundResource(R.drawable.fn_key_bg)
         }
     }
 
@@ -767,11 +1161,11 @@ class FlowboardIMEService : InputMethodService() {
                 }
             }
             ToolbarAction.THEME -> {
-                val intent = Intent(this, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    putExtra("OPEN_PAGE", "themes.html")
+                if (quickThemePanel?.visibility == View.VISIBLE) {
+                    closeSubPanelsToKeyboard()
+                } else {
+                    showSubPanel(quickThemePanel)
                 }
-                startActivity(intent)
             }
             ToolbarAction.FLOATING -> {
                 isFloatingMode = !isFloatingMode
@@ -782,73 +1176,65 @@ class FlowboardIMEService : InputMethodService() {
                 renderToolbar()
             }
             ToolbarAction.CLIPBOARD -> {
-                val isClipboardOpen = clipboardPanel?.visibility == View.VISIBLE
-                if (isClipboardOpen) {
-                    clipboardPanel?.visibility = View.GONE
-                    keyboardView?.visibility = View.VISIBLE
+                if (clipboardPanel?.visibility == View.VISIBLE) {
+                    closeSubPanelsToKeyboard()
                 } else {
-                    keyboardView?.visibility = View.GONE
-                    val morePanel = keyboardRoot?.findViewById<GridLayout>(R.id.morePanel)
-                    morePanel?.visibility = View.GONE
-                    isMorePanelOpen = false
-                    
-                    clipboardPanel?.visibility = View.VISIBLE
-                    keyboardView?.let { kv ->
-                        val lp = clipboardPanel?.layoutParams
-                        if (lp != null) {
-                            lp.height = if (kv.height > 0) kv.height else (220 * resources.displayMetrics.density).toInt()
-                            clipboardPanel?.layoutParams = lp
-                        }
-                    }
+                    showSubPanel(clipboardPanel)
                     updateClipboardPanel()
                 }
-                renderToolbar()
             }
             ToolbarAction.UNDO -> {
-                handleUndo()
+                if (undoRedoPanel?.visibility == View.VISIBLE) {
+                    closeSubPanelsToKeyboard()
+                } else {
+                    showSubPanel(undoRedoPanel)
+                }
             }
             ToolbarAction.RESIZE -> {
                 if (!isFloatingMode) {
-                    heightAdjustLayout?.visibility = if (heightAdjustLayout?.visibility == View.VISIBLE) View.GONE else View.VISIBLE
-                    val morePanel = keyboardRoot?.findViewById<GridLayout>(R.id.morePanel)
-                    if (morePanel?.visibility == View.VISIBLE) {
-                        morePanel.visibility = View.GONE
-                        keyboardView?.visibility = View.VISIBLE
-                        isMorePanelOpen = false
-                        renderToolbar()
+                    val isCurrentlyVisible = heightAdjustLayout?.visibility == View.VISIBLE
+                    hideAllSubPanels()
+                    keyboardView?.visibility = View.VISIBLE
+                    if (!isCurrentlyVisible) {
+                        heightAdjustLayout?.visibility = View.VISIBLE
                     }
+                    renderToolbar()
                 }
+            }
+            ToolbarAction.TEXT_EDIT -> {
+                if (textEditPanel?.visibility == View.VISIBLE) {
+                    closeSubPanelsToKeyboard()
+                } else {
+                    showSubPanel(textEditPanel)
+                }
+            }
+            ToolbarAction.VOICE -> {
+                if (voiceInputPanel?.visibility == View.VISIBLE) {
+                    closeSubPanelsToKeyboard()
+                } else {
+                    startVoiceRecognition()
+                }
+            }
+            ToolbarAction.SETTINGS -> {
+                val intent = Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("OPEN_PAGE", "settings.html")
+                }
+                startActivity(intent)
             }
             ToolbarAction.DELETE -> {
                 handleDelete()
             }
             ToolbarAction.MORE -> {
-                if (clipboardPanel?.visibility == View.VISIBLE) {
-                    clipboardPanel?.visibility = View.GONE
-                    keyboardView?.visibility = View.VISIBLE
-                    renderToolbar()
+                if (isAnySubPanelOpen()) {
+                    closeSubPanelsToKeyboard()
                     return
                 }
-                
-                isMorePanelOpen = !isMorePanelOpen
+
+                isMorePanelOpen = true
                 val morePanel = keyboardRoot?.findViewById<GridLayout>(R.id.morePanel)
-                if (isMorePanelOpen) {
-                    keyboardView?.visibility = View.GONE
-                    morePanel?.visibility = View.VISIBLE
-                    keyboardView?.let { kv ->
-                        val lp = morePanel?.layoutParams
-                        if (lp != null) {
-                            val kvHeight = kv.height
-                            lp.height = if (kvHeight > 0) kvHeight else (220 * resources.displayMetrics.density).toInt()
-                            morePanel.layoutParams = lp
-                        }
-                    }
-                    renderMorePanel()
-                } else {
-                    keyboardView?.visibility = View.VISIBLE
-                    morePanel?.visibility = View.GONE
-                }
-                renderToolbar()
+                showSubPanel(morePanel)
+                renderMorePanel()
             }
         }
     }
@@ -859,12 +1245,15 @@ class FlowboardIMEService : InputMethodService() {
         
         val context = getThemedContext()
         val density = resources.displayMetrics.density
+        val p = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+        val activeTheme = p.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
+        val colors = ThemeManager.getThemeColors(context, activeTheme, isEffectiveDarkMode())
         
         for (action in allActions) {
             val itemLayout = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
-                val padding = (8 * density).toInt()
+                val padding = (6 * density).toInt()
                 setPadding(padding, padding, padding, padding)
                 
                 val outValue = TypedValue()
@@ -879,16 +1268,20 @@ class FlowboardIMEService : InputMethodService() {
                 ToolbarAction.CLIPBOARD -> R.drawable.ic_clipboard
                 ToolbarAction.UNDO -> R.drawable.ic_undo
                 ToolbarAction.RESIZE -> R.drawable.ic_resize
+                ToolbarAction.TEXT_EDIT -> R.drawable.ic_text_edit
+                ToolbarAction.VOICE -> R.drawable.ic_mic
+                ToolbarAction.SETTINGS -> R.drawable.ic_settings
                 ToolbarAction.DELETE -> R.drawable.ic_backspace
                 ToolbarAction.MORE -> R.drawable.ic_more
             }
             
             val iv = ImageView(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
-                    (36 * density).toInt(),
-                    (36 * density).toInt()
+                    (32 * density).toInt(),
+                    (32 * density).toInt()
                 )
                 setImageResource(iconRes)
+                setColorFilter(colors.textTap)
             }
             
             val tv = TextView(context).apply {
@@ -896,20 +1289,23 @@ class FlowboardIMEService : InputMethodService() {
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
                 ).apply {
-                    topMargin = (4 * density).toInt()
+                    topMargin = (3 * density).toInt()
                 }
                 @Suppress("SetTextI18n")
                 text = when (action) {
                     ToolbarAction.HANDEDNESS -> "Switch Hand"
                     ToolbarAction.THEME -> "Theme"
-                    ToolbarAction.FLOATING -> "Float"
+                    ToolbarAction.FLOATING -> if (isFloatingMode) "Dock" else "Floating"
                     ToolbarAction.CLIPBOARD -> "Clipboard"
-                    ToolbarAction.UNDO -> "Undo"
+                    ToolbarAction.UNDO -> "Undo/Redo"
                     ToolbarAction.RESIZE -> "Resize"
+                    ToolbarAction.TEXT_EDIT -> "Text Edit"
+                    ToolbarAction.VOICE -> "Voice"
+                    ToolbarAction.SETTINGS -> "Settings"
                     else -> ""
                 }
-                textSize = 12f
-                setTextColor(ContextCompat.getColor(context, R.color.text_tap))
+                textSize = 11f
+                setTextColor(colors.textTap)
                 gravity = Gravity.CENTER
             }
             
@@ -1206,9 +1602,23 @@ class FlowboardIMEService : InputMethodService() {
             btnSendView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1.6f; it.layoutParams = lp } }
             
             sideToolsView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.height = ViewGroup.LayoutParams.MATCH_PARENT; lp.weight = 1.4f; it.layoutParams = lp } }
-            kbView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 8.6f; it.layoutParams = lp } }
-            morePanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 8.6f; it.layoutParams = lp } }
-            clipboardPanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 8.6f; it.layoutParams = lp } }
+            
+            val allFloatingPanels = listOfNotNull(
+                kbView,
+                morePanelView,
+                clipboardPanelView,
+                root.findViewById<View>(R.id.textEditPanel),
+                root.findViewById<View>(R.id.quickThemePanel),
+                root.findViewById<View>(R.id.undoRedoPanel),
+                voiceInputPanel
+            )
+            for (p in allFloatingPanels) {
+                (p.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
+                    lp.width = 0
+                    lp.weight = 8.6f
+                    p.layoutParams = lp
+                }
+            }
 
             root.findViewById<View>(R.id.bottomBar)?.requestLayout()
             root.findViewById<View>(R.id.mainArea)?.requestLayout()
@@ -1272,9 +1682,23 @@ class FlowboardIMEService : InputMethodService() {
             btnSendView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (50 * density).toInt(); lp.weight = 0f; it.layoutParams = lp } }
             
             sideToolsView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = (42 * density).toInt(); lp.height = ViewGroup.LayoutParams.MATCH_PARENT; lp.weight = 0f; it.layoutParams = lp } }
-            kbView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1f; it.layoutParams = lp } }
-            morePanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1f; it.layoutParams = lp } }
-            clipboardPanelView?.let { (it.layoutParams as? LinearLayout.LayoutParams)?.let { lp -> lp.width = 0; lp.weight = 1f; it.layoutParams = lp } }
+            
+            val allDockedPanels = listOfNotNull(
+                kbView,
+                morePanelView,
+                clipboardPanelView,
+                root.findViewById<View>(R.id.textEditPanel),
+                root.findViewById<View>(R.id.quickThemePanel),
+                root.findViewById<View>(R.id.undoRedoPanel),
+                voiceInputPanel
+            )
+            for (p in allDockedPanels) {
+                (p.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
+                    lp.width = 0
+                    lp.weight = 1f
+                    p.layoutParams = lp
+                }
+            }
 
             root.findViewById<View>(R.id.bottomBar)?.requestLayout()
             root.findViewById<View>(R.id.mainArea)?.requestLayout()
@@ -1393,11 +1817,31 @@ class FlowboardIMEService : InputMethodService() {
                 val kbView = root.findViewById<KeyboardView>(R.id.keyboardView)
                 kbView?.setKeyHeight((75 * scale).toInt())
                 kbView?.setFontScale(scale)
+
+                // Dynamically adjust height of any currently open subpanel
+                val subPanelHeight = (3 * (75 * scale * metrics.density).toInt() + (12 * metrics.density).toInt())
+                val openSubPanel = listOfNotNull(
+                    root.findViewById<View>(R.id.morePanel),
+                    clipboardPanel,
+                    textEditPanel,
+                    quickThemePanel,
+                    undoRedoPanel,
+                    voiceInputPanel
+                ).firstOrNull { it.visibility == View.VISIBLE }
+
+                openSubPanel?.let { p ->
+                    (p.layoutParams as? LinearLayout.LayoutParams)?.let { pLp ->
+                        pLp.height = subPanelHeight
+                        p.layoutParams = pLp
+                    }
+                }
+
                 renderToolbar()
                 return true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 val scale = (lp.width / baseWidth).coerceIn(0.88f, 1.20f)
+                currentFloatingScale = scale
                 val maxX = maxOf(0, metrics.widthPixels - lp.width)
                 lp.x = maxOf(0, minOf(lp.x, maxX))
                 win.attributes = lp
@@ -1408,6 +1852,11 @@ class FlowboardIMEService : InputMethodService() {
                     putInt("floating_x", floatingX)
                     putInt("floating_y", floatingY)
                 }
+
+                val kbView = root.findViewById<KeyboardView>(R.id.keyboardView)
+                kbView?.setKeyHeight((75 * scale).toInt())
+                kbView?.setFontScale(scale)
+                renderToolbar()
                 return true
             }
         }
@@ -1674,6 +2123,7 @@ class FlowboardIMEService : InputMethodService() {
         
         synchronized(typedText) {
             typedTextHistory.add(typedText.toString())
+            typedTextRedoHistory.clear()
             typedText.append(finalChar)
         }
 
@@ -1714,6 +2164,7 @@ class FlowboardIMEService : InputMethodService() {
 
         synchronized(typedText) {
             typedTextHistory.add(typedText.toString())
+            typedTextRedoHistory.clear()
             if (typedText.isNotEmpty()) {
                 typedText.deleteCharAt(typedText.length - 1)
                 if (::scoringEngine.isInitialized) {
@@ -1847,6 +2298,8 @@ class FlowboardIMEService : InputMethodService() {
     private fun handleUndo() {
         val lastState = synchronized(typedText) {
             if (typedTextHistory.isNotEmpty()) {
+                val current = typedText.toString()
+                typedTextRedoHistory.add(current)
                 typedTextHistory.removeAt(typedTextHistory.size - 1)
             } else {
                 null
@@ -1869,6 +2322,59 @@ class FlowboardIMEService : InputMethodService() {
             refreshLayout()
             updatePredictions()
         }
+    }
+
+    private fun handleRedo() {
+        val nextState = synchronized(typedText) {
+            if (typedTextRedoHistory.isNotEmpty()) {
+                val current = typedText.toString()
+                typedTextHistory.add(current)
+                typedTextRedoHistory.removeAt(typedTextRedoHistory.size - 1)
+            } else {
+                null
+            }
+        }
+        if (nextState != null) {
+            val ic = currentInputConnection ?: return
+            val currentLen = synchronized(typedText) { typedText.length }
+            if (currentLen > 0) {
+                ic.deleteSurroundingText(currentLen, 0)
+            }
+            ic.commitText(nextState, 1)
+            synchronized(typedText) {
+                typedText.clear()
+                typedText.append(nextState)
+            }
+            if (::scoringEngine.isInitialized) {
+                scoringEngine.resetTrieCache()
+            }
+            refreshLayout()
+            updatePredictions()
+        }
+    }
+
+    private fun handleClearAll() {
+        val ic = currentInputConnection ?: return
+        val currentLen = synchronized(typedText) {
+            val len = typedText.length
+            if (len > 0) {
+                typedTextHistory.add(typedText.toString())
+                typedTextRedoHistory.clear()
+                typedText.clear()
+            }
+            len
+        }
+        if (currentLen > 0) {
+            ic.deleteSurroundingText(currentLen, 0)
+        } else {
+            ic.performContextMenuAction(android.R.id.selectAll)
+            sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+        }
+        if (::scoringEngine.isInitialized) {
+            scoringEngine.resetTrieCache()
+        }
+        refreshLayout()
+        updatePredictions()
     }
 
     private fun toggleAltMode() {
@@ -2205,6 +2711,7 @@ class FlowboardIMEService : InputMethodService() {
         
         btnSend?.backgroundTintList = accentTintList
         rootView.findViewById<ImageView>(R.id.btnSendIcon)?.imageTintList = ColorStateList.valueOf(colors.sendText)
+        keyboardView?.refreshTheme()
     }
 
     @SuppressLint("DiscouragedApi", "InternalInsetResource")

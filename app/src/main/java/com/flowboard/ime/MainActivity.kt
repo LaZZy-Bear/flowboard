@@ -74,6 +74,12 @@ class MainActivity : AppCompatActivity() {
         webView.addJavascriptInterface(KeyboardSettingsInterface(this), "Android")
         val page = intent.getStringExtra("OPEN_PAGE") ?: "settings.html"
         webView.loadUrl("file:///android_asset/web/$page")
+
+        if (intent.getBooleanExtra("REQUEST_AUDIO_PERMISSION", false)) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                androidx.core.app.ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.RECORD_AUDIO), 101)
+            }
+        }
     }
 
     @Deprecated("Deprecated in Java")

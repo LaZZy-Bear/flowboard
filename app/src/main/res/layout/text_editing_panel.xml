@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/textEditPanel"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/prediction_key_bg"
+    android:padding="6dp"
+    android:visibility="gone">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="4dp">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_text_edit"
+            android:tint="@color/text_tap"
+            android:contentDescription="Text Editing" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="Text Editing"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_tap" />
+    </LinearLayout>
+
+    <!-- Main Controller Area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="2dp">
+
+        <!-- Left Tools: Select, Select All, Copy, Cut, Paste -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1.2"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Row 1: Select & Select All -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:id="@+id/btnTextSelect"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="Select"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_tap"
+                    android:background="@drawable/fn_key_bg"
+                    android:layout_marginEnd="2dp" />
+
+                <TextView
+                    android:id="@+id/btnTextSelectAll"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="Select All"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_tap"
+                    android:background="@drawable/fn_key_bg"
+                    android:layout_marginStart="2dp" />
+            </LinearLayout>
+
+            <!-- Row 2: Cut & Copy -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:id="@+id/btnTextCut"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="Cut"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_tap"
+                    android:background="@drawable/fn_key_bg"
+                    android:layout_marginEnd="2dp" />
+
+                <TextView
+                    android:id="@+id/btnTextCopy"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="Copy"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_tap"
+                    android:background="@drawable/fn_key_bg"
+                    android:layout_marginStart="2dp" />
+            </LinearLayout>
+
+            <!-- Row 3: Paste & Delete -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnTextPaste"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="Paste"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_tap"
+                    android:background="@drawable/fn_key_bg"
+                    android:layout_marginEnd="2dp" />
+
+                <TextView
+                    android:id="@+id/btnTextDelete"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="Delete"
+                    android:textSize="11sp"
+                    android:textColor="@color/text_tap"
+                    android:background="@drawable/fn_key_bg"
+                    android:layout_marginStart="2dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="@color/text_icon"
+            android:alpha="0.2"
+            android:layout_marginHorizontal="6dp" />
+
+        <!-- Right: D-Pad Navigation & Jump -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1.3"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Top Row: Jump Start | Up Arrow | Jump End -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+
+                <ImageView
+                    android:id="@+id/btnTextJumpStart"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:src="@drawable/ic_jump_start"
+                    android:padding="6dp"
+                    android:background="@drawable/fn_key_bg"
+                    android:tint="@color/text_tap"
+                    android:layout_marginEnd="2dp"
+                    android:contentDescription="Jump to Start" />
+
+                <ImageView
+                    android:id="@+id/btnTextArrowUp"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:src="@drawable/ic_arrow_up"
+                    android:padding="6dp"
+                    android:background="@drawable/key_bg"
+                    android:tint="@color/text_tap"
+                    android:layout_marginHorizontal="2dp"
+                    android:contentDescription="Arrow Up" />
+
+                <ImageView
+                    android:id="@+id/btnTextJumpEnd"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:src="@drawable/ic_jump_end"
+                    android:padding="6dp"
+                    android:background="@drawable/fn_key_bg"
+                    android:tint="@color/text_tap"
+                    android:layout_marginStart="2dp"
+                    android:contentDescription="Jump to End" />
+            </LinearLayout>
+
+            <!-- Middle Row: Left Arrow | Center/Home | Right Arrow -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+
+                <ImageView
+                    android:id="@+id/btnTextArrowLeft"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:src="@drawable/ic_arrow_left"
+                    android:padding="6dp"
+                    android:background="@drawable/key_bg"
+                    android:tint="@color/text_tap"
+                    android:layout_marginEnd="2dp"
+                    android:contentDescription="Arrow Left" />
+
+                <TextView
+                    android:id="@+id/btnTextCenter"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="✛"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_icon"
+                    android:background="@drawable/prediction_key_bg"
+                    android:layout_marginHorizontal="2dp" />
+
+                <ImageView
+                    android:id="@+id/btnTextArrowRight"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:src="@drawable/ic_arrow_right"
+                    android:padding="6dp"
+                    android:background="@drawable/key_bg"
+                    android:tint="@color/text_tap"
+                    android:layout_marginStart="2dp"
+                    android:contentDescription="Arrow Right" />
+            </LinearLayout>
+
+            <!-- Bottom Row: Down Arrow -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="2dp" />
+
+                <ImageView
+                    android:id="@+id/btnTextArrowDown"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:src="@drawable/ic_arrow_down"
+                    android:padding="6dp"
+                    android:background="@drawable/key_bg"
+                    android:tint="@color/text_tap"
+                    android:layout_marginHorizontal="2dp"
+                    android:contentDescription="Arrow Down" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="2dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

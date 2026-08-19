@@ -286,11 +286,39 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:columnCount="3"
-                android:rowCount="2"
-                android:padding="8dp"
+                android:rowCount="3"
+                android:padding="6dp"
                 android:visibility="gone">
                 <!-- Dynamically populated in code -->
             </GridLayout>
+
+            <!-- Text Editing Panel (initially GONE) -->
+            <include
+                layout="@layout/text_editing_panel"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+            <!-- Quick Theme Panel (initially GONE) -->
+            <include
+                layout="@layout/theme_quick_panel"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+            <!-- Undo / Redo Panel (initially GONE) -->
+            <include
+                layout="@layout/undo_redo_panel"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
+
+            <!-- Voice Input Panel (initially GONE) -->
+            <include
+                layout="@layout/voice_input_panel"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1" />
 
             <!-- Clipboard Panel Container (initially GONE) -->
             <LinearLayout
@@ -568,7 +596,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="ขนาด:"
+            android:text="Size:"
             android:textColor="@android:color/black"
             android:layout_marginEnd="8dp" />
             
@@ -581,7 +609,7 @@
             android:layout_marginEnd="4dp"
             android:backgroundTint="#CCCCCC"
             android:textColor="@android:color/black"
-            android:text="เล็ก" />
+            android:text="Small" />
             
         <Button
             android:id="@+id/btnSizeMedium"
@@ -592,7 +620,7 @@
             android:layout_marginEnd="4dp"
             android:backgroundTint="#CCCCCC"
             android:textColor="@android:color/black"
-            android:text="กลาง" />
+            android:text="Medium" />
             
         <Button
             android:id="@+id/btnSizeLarge"
@@ -602,7 +630,7 @@
             android:textSize="12sp"
             android:backgroundTint="#CCCCCC"
             android:textColor="@android:color/black"
-            android:text="ใหญ่" />
+            android:text="Large" />
 
         <ImageView
             android:id="@+id/btnCloseHeightAdjust"
