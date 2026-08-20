@@ -2277,11 +2277,7 @@ class FlowboardIMEService : InputMethodService() {
         } else {
             val textBefore = ic.getTextBeforeCursor(16, 0)
             if (textBefore.isNullOrEmpty()) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    ic.deleteSurroundingTextInCodePoints(1, 0)
-                } else {
-                    ic.deleteSurroundingText(1, 0)
-                }
+                ic.deleteSurroundingTextInCodePoints(1, 0)
             } else {
                 var deleteCount = 0
                 val len = textBefore.length
@@ -2307,7 +2303,6 @@ class FlowboardIMEService : InputMethodService() {
                             }
                         } else if (isRegionalIndicator(cp) && isRegionalIndicator(prevCp)) {
                             deleteCount += prevCharCount
-                            i -= prevCharCount
                             break
                         } else {
                             break
@@ -2318,11 +2313,7 @@ class FlowboardIMEService : InputMethodService() {
                 if (deleteCount > 0) {
                     ic.deleteSurroundingText(deleteCount, 0)
                 } else {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        ic.deleteSurroundingTextInCodePoints(1, 0)
-                    } else {
-                        ic.deleteSurroundingText(1, 0)
-                    }
+                    ic.deleteSurroundingTextInCodePoints(1, 0)
                 }
             }
         }

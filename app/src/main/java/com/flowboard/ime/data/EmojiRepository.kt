@@ -3,16 +3,16 @@ package com.flowboard.ime.data
 import android.content.Context
 import androidx.core.content.edit
 
-enum class EmojiCategory(val displayName: String, val icon: String) {
-    RECENT("Recent", "🕒"),
-    SMILEYS("Smileys", "😊"),
-    PEOPLE("People", "👋"),
-    ANIMALS("Animals", "🐶"),
-    FOOD("Food", "🍔"),
-    TRAVEL("Travel", "✈️"),
-    ACTIVITIES("Activities", "⚽"),
-    OBJECTS("Objects", "💡"),
-    FLAGS("Flags", "🚩")
+enum class EmojiCategory {
+    RECENT,
+    SMILEYS,
+    PEOPLE,
+    ANIMALS,
+    FOOD,
+    TRAVEL,
+    ACTIVITIES,
+    OBJECTS,
+    FLAGS
 }
 
 object EmojiRepository {
