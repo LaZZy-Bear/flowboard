@@ -997,7 +997,7 @@ class FlowboardIMEService : InputMethodService() {
         val activeTheme = p.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
         val colors = ThemeManager.getThemeColors(this, activeTheme, isEffectiveDarkMode())
 
-        val scrollContainer = root.findViewById<View>(R.id.emojiCategoryScroll)
+        val scrollContainer = root.findViewById<HorizontalScrollView>(R.id.emojiCategoryScroll)
         val containerDrawable = android.graphics.drawable.GradientDrawable().apply {
             cornerRadius = 10 * density
             setColor(colors.toolBackground)
@@ -1017,11 +1017,10 @@ class FlowboardIMEService : InputMethodService() {
                     setStroke((1.5f * density).toInt(), colors.accent)
                 }
                 tab.background = activeBg
-                val scroll = root.findViewById<HorizontalScrollView>(R.id.emojiCategoryScroll)
-                if (scroll != null) {
+                if (scrollContainer != null) {
                     tab.post {
-                        val scrollX = tab.left - (scroll.width - tab.width) / 2
-                        scroll.smoothScrollTo(maxOf(0, scrollX), 0)
+                        val scrollX = tab.left - (scrollContainer.width - tab.width) / 2
+                        scrollContainer.smoothScrollTo(maxOf(0, scrollX), 0)
                     }
                 }
             } else {
