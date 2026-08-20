@@ -47,6 +47,7 @@ import android.view.inputmethod.InputMethodSubtype
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.GridLayout
+import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -977,6 +978,59 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
+    private fun updateEmojiCategoryHighlight(selectedCat: EmojiCategory) {
+        val root = keyboardRoot ?: return
+        val catMap = listOf(
+            R.id.btnEmojiCatRecent to EmojiCategory.RECENT,
+            R.id.btnEmojiCatSmileys to EmojiCategory.SMILEYS,
+            R.id.btnEmojiCatPeople to EmojiCategory.PEOPLE,
+            R.id.btnEmojiCatAnimals to EmojiCategory.ANIMALS,
+            R.id.btnEmojiCatFood to EmojiCategory.FOOD,
+            R.id.btnEmojiCatTravel to EmojiCategory.TRAVEL,
+            R.id.btnEmojiCatActivities to EmojiCategory.ACTIVITIES,
+            R.id.btnEmojiCatObjects to EmojiCategory.OBJECTS,
+            R.id.btnEmojiCatFlags to EmojiCategory.FLAGS
+        )
+
+        val density = resources.displayMetrics.density
+        val p = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+        val activeTheme = p.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
+        val colors = ThemeManager.getThemeColors(this, activeTheme, isEffectiveDarkMode())
+
+        val scrollContainer = root.findViewById<View>(R.id.emojiCategoryScroll)
+        val containerDrawable = android.graphics.drawable.GradientDrawable().apply {
+            cornerRadius = 10 * density
+            setColor(colors.toolBackground)
+        }
+        scrollContainer?.background = containerDrawable
+
+        val divider = root.findViewById<View>(R.id.emojiCategoryDivider)
+        divider?.setBackgroundColor(if (colors.isDark) 0x33FFFFFF else 0x22000000)
+
+        for ((viewId, cat) in catMap) {
+            val tab = root.findViewById<TextView>(viewId) ?: continue
+            if (cat == selectedCat) {
+                tab.alpha = 1.0f
+                val activeBg = android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = 8 * density
+                    setColor(colors.keyBackground)
+                    setStroke((1.5f * density).toInt(), colors.accent)
+                }
+                tab.background = activeBg
+                val scroll = root.findViewById<HorizontalScrollView>(R.id.emojiCategoryScroll)
+                if (scroll != null) {
+                    tab.post {
+                        val scrollX = tab.left - (scroll.width - tab.width) / 2
+                        scroll.smoothScrollTo(maxOf(0, scrollX), 0)
+                    }
+                }
+            } else {
+                tab.alpha = 0.55f
+                tab.background = null
+            }
+        }
+    }
+
     private fun setupEmojiCategoryTabs(rootView: View) {
         val catMap = listOf(
             R.id.btnEmojiCatRecent to EmojiCategory.RECENT,
@@ -990,28 +1044,22 @@ class FlowboardIMEService : InputMethodService() {
             R.id.btnEmojiCatFlags to EmojiCategory.FLAGS
         )
 
-        fun updateCategorySelection(selectedCat: EmojiCategory) {
-            currentEmojiCategory = selectedCat
-            val emojis = EmojiRepository.getEmojisForCategory(this, selectedCat)
+        fun selectCategory(cat: EmojiCategory) {
+            currentEmojiCategory = cat
+            val emojis = EmojiRepository.getEmojisForCategory(this, cat)
             emojiAdapter?.updateEmojis(emojis)
             emojiRecyclerView?.scrollToPosition(0)
-
-            for ((viewId, cat) in catMap) {
-                val tab = rootView.findViewById<TextView>(viewId) ?: continue
-                if (cat == selectedCat) {
-                    tab.setBackgroundResource(R.drawable.key_bg)
-                } else {
-                    tab.setBackgroundResource(R.drawable.fn_key_bg)
-                }
-            }
+            updateEmojiCategoryHighlight(cat)
         }
 
         for ((viewId, cat) in catMap) {
             rootView.findViewById<TextView>(viewId)?.setOnClickListener {
                 playClick(0)
-                updateCategorySelection(cat)
+                selectCategory(cat)
             }
         }
+
+        updateEmojiCategoryHighlight(currentEmojiCategory)
     }
 
     private fun isAnySubPanelOpen(): Boolean {
@@ -1063,6 +1111,7 @@ class FlowboardIMEService : InputMethodService() {
             val emojis = EmojiRepository.getEmojisForCategory(this, currentEmojiCategory)
             emojiAdapter?.updateEmojis(emojis)
             emojiAdapter?.setEmojiSize(if (isFloatingMode) 19f * scale else 23f)
+            updateEmojiCategoryHighlight(currentEmojiCategory)
         }
 
         val lp = panel.layoutParams as? LinearLayout.LayoutParams
@@ -2854,6 +2903,7 @@ class FlowboardIMEService : InputMethodService() {
         
         btnSend?.backgroundTintList = accentTintList
         rootView.findViewById<ImageView>(R.id.btnSendIcon)?.imageTintList = ColorStateList.valueOf(colors.sendText)
+        updateEmojiCategoryHighlight(currentEmojiCategory)
         keyboardView?.refreshTheme()
     }
 
