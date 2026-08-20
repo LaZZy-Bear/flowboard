@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/emojiPanel"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/prediction_key_bg"
+    android:padding="4dp"
+    android:visibility="gone">
+
+    <!-- Category Tabs Bar (Top) -->
+    <HorizontalScrollView
+        android:id="@+id/emojiCategoryScroll"
+        android:layout_width="match_parent"
+        android:layout_height="34dp"
+        android:scrollbars="none"
+        android:overScrollMode="never"
+        android:fadingEdge="none">
+
+        <LinearLayout
+            android:id="@+id/emojiCategoryContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Category Tabs -->
+            <TextView
+                android:id="@+id/btnEmojiCatRecent"
+                android:layout_width="38dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="🕒"
+                android:textSize="17sp"
+                android:background="@drawable/fn_key_bg"
+                android:layout_marginEnd="3dp" />
+
+            <TextView
+                android:id="@+id/btnEmojiCatSmileys"
+                android:layout_width="38dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="😊"
+                android:textSize="17sp"
+                android:background="@drawable/key_bg"
+                android:layout_marginEnd="3dp" />
+
+            <TextView
+                android:id="@+id/btnEmojiCatPeople"
+                android:layout_width="38dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="👋"
+                android:textSize="17sp"
+                android:background="@drawable/fn_key_bg"
+                android:layout_marginEnd="3dp" />
+
+            <TextView
+                android:id="@+id/btnEmojiCatAnimals"
+                android:layout_width="38dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="🐶"
+                android:textSize="17sp"
+                android:background="@drawable/fn_key_bg"
+                android:layout_marginEnd="3dp" />
+
+            <TextView
+                android:id="@+id/btnEmojiCatFood"
+                android:layout_width="38dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="🍔"
+                android:textSize="17sp"
+                android:background="@drawable/fn_key_bg"
+                android:layout_marginEnd="3dp" />
+
+            <TextView
+                android:id="@+id/btnEmojiCatTravel"
+                android:layout_width="38dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="✈️"
+                android:textSize="17sp"
+                android:background="@drawable/fn_key_bg"
+                android:layout_marginEnd="3dp" />
+
+            <TextView
+                android:id="@+id/btnEmojiCatActivities"
+                android:layout_width="38dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="⚽"
+                android:textSize="17sp"
+                android:background="@drawable/fn_key_bg"
+                android:layout_marginEnd="3dp" />
+
+            <TextView
+                android:id="@+id/btnEmojiCatObjects"
+                android:layout_width="38dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="💡"
+                android:textSize="17sp"
+                android:background="@drawable/fn_key_bg"
+                android:layout_marginEnd="3dp" />
+
+            <TextView
+                android:id="@+id/btnEmojiCatFlags"
+                android:layout_width="38dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="🚩"
+                android:textSize="17sp"
+                android:background="@drawable/fn_key_bg" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Emoji Grid Area -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/emojiRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="3dp"
+        android:clipToPadding="false"
+        android:overScrollMode="ifContentScrolls"
+        android:scrollbars="none" />
+</LinearLayout>

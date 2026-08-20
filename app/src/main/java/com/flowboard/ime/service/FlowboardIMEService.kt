@@ -13,7 +13,12 @@ import android.graphics.Typeface
 import android.inputmethodservice.InputMethodService
 import androidx.core.graphics.toColorInt
 import androidx.core.view.isVisible
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.flowboard.ime.data.ClipboardItem
+import com.flowboard.ime.data.EmojiCategory
+import com.flowboard.ime.data.EmojiRepository
+import com.flowboard.ime.ui.EmojiAdapter
 import android.content.pm.PackageManager
 import com.flowboard.ime.data.ClipboardManagerHelper
 import android.media.AudioManager
@@ -115,7 +120,7 @@ class FlowboardIMEService : InputMethodService() {
     private var btnDelete: ImageView? = null
 
     // Side Tools (Control Panel)
-    enum class ToolbarAction { HANDEDNESS, THEME, FLOATING, CLIPBOARD, UNDO, RESIZE, TEXT_EDIT, VOICE, SETTINGS, MORE, DELETE }
+    enum class ToolbarAction { HANDEDNESS, THEME, FLOATING, CLIPBOARD, UNDO, RESIZE, TEXT_EDIT, VOICE, EMOJI, SETTINGS, MORE, DELETE }
     private val activeShortcuts = mutableListOf(
         ToolbarAction.HANDEDNESS,
         ToolbarAction.THEME,
@@ -133,6 +138,7 @@ class FlowboardIMEService : InputMethodService() {
         ToolbarAction.RESIZE,
         ToolbarAction.TEXT_EDIT,
         ToolbarAction.VOICE,
+        ToolbarAction.EMOJI,
         ToolbarAction.SETTINGS
     )
     private var sideTools: LinearLayout? = null
@@ -151,6 +157,10 @@ class FlowboardIMEService : InputMethodService() {
     private var speechRecognizer: SpeechRecognizer? = null
     private var isListeningVoice = false
     private var isTextSelecting = false
+    private var emojiPanel: LinearLayout? = null
+    private var emojiRecyclerView: RecyclerView? = null
+    private var emojiAdapter: EmojiAdapter? = null
+    private var currentEmojiCategory: EmojiCategory = EmojiCategory.SMILEYS
     private lateinit var clipboardHelper: ClipboardManagerHelper
     private var quickPasteBar: View? = null
     private var quickPasteText: TextView? = null
@@ -466,11 +476,13 @@ class FlowboardIMEService : InputMethodService() {
             }
         }
 
-        // Period with swipe-up detector (TAP -> ".", UP -> ",")
+        // Period with swipe-up detector (TAP -> ".", UP -> Emoji Panel)
         val periodSwipeDetector = SwipeDetector(thresholdPx = 25f * resources.displayMetrics.density) { action ->
             when (action) {
                 SwipeDetector.SwipeAction.TAP -> commitChar(".")
-                SwipeDetector.SwipeAction.UP -> commitChar(",")
+                SwipeDetector.SwipeAction.UP -> {
+                    showSubPanel(emojiPanel)
+                }
                 else -> {}
             }
         }
@@ -700,6 +712,26 @@ class FlowboardIMEService : InputMethodService() {
             }
         }
 
+        // Emoji Panel Setup
+        emojiPanel = rootView.findViewById(R.id.emojiPanel)
+        emojiRecyclerView = rootView.findViewById(R.id.emojiRecyclerView)
+
+        val gridColumns = if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 10 else 7
+        emojiRecyclerView?.layoutManager = GridLayoutManager(this, gridColumns)
+        val initialScale = if (isFloatingMode) currentFloatingScale else 1f
+        emojiAdapter = EmojiAdapter(
+            emojis = EmojiRepository.getEmojisForCategory(this, EmojiCategory.SMILEYS),
+            emojiSizeSp = if (isFloatingMode) 19f * initialScale else 23f
+        ) { emoji ->
+            playClick(0)
+            currentInputConnection?.commitText(emoji, 1)
+            EmojiRepository.addRecentEmoji(this, emoji)
+            typedTextRedoHistory.clear()
+        }
+        emojiRecyclerView?.adapter = emojiAdapter
+
+        setupEmojiCategoryTabs(rootView)
+
         // Initial setups
         refreshLayout()
         
@@ -832,6 +864,7 @@ class FlowboardIMEService : InputMethodService() {
                 ToolbarAction.RESIZE -> R.drawable.ic_resize
                 ToolbarAction.TEXT_EDIT -> R.drawable.ic_text_edit
                 ToolbarAction.VOICE -> R.drawable.ic_mic
+                ToolbarAction.EMOJI -> R.drawable.ic_emoji
                 ToolbarAction.SETTINGS -> R.drawable.ic_settings
                 ToolbarAction.DELETE -> R.drawable.ic_backspace
                 ToolbarAction.MORE -> if (isAnySubPanelOpen()) android.R.drawable.ic_menu_close_clear_cancel else R.drawable.ic_more
@@ -944,6 +977,43 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
+    private fun setupEmojiCategoryTabs(rootView: View) {
+        val catMap = listOf(
+            R.id.btnEmojiCatRecent to EmojiCategory.RECENT,
+            R.id.btnEmojiCatSmileys to EmojiCategory.SMILEYS,
+            R.id.btnEmojiCatPeople to EmojiCategory.PEOPLE,
+            R.id.btnEmojiCatAnimals to EmojiCategory.ANIMALS,
+            R.id.btnEmojiCatFood to EmojiCategory.FOOD,
+            R.id.btnEmojiCatTravel to EmojiCategory.TRAVEL,
+            R.id.btnEmojiCatActivities to EmojiCategory.ACTIVITIES,
+            R.id.btnEmojiCatObjects to EmojiCategory.OBJECTS,
+            R.id.btnEmojiCatFlags to EmojiCategory.FLAGS
+        )
+
+        fun updateCategorySelection(selectedCat: EmojiCategory) {
+            currentEmojiCategory = selectedCat
+            val emojis = EmojiRepository.getEmojisForCategory(this, selectedCat)
+            emojiAdapter?.updateEmojis(emojis)
+            emojiRecyclerView?.scrollToPosition(0)
+
+            for ((viewId, cat) in catMap) {
+                val tab = rootView.findViewById<TextView>(viewId) ?: continue
+                if (cat == selectedCat) {
+                    tab.setBackgroundResource(R.drawable.key_bg)
+                } else {
+                    tab.setBackgroundResource(R.drawable.fn_key_bg)
+                }
+            }
+        }
+
+        for ((viewId, cat) in catMap) {
+            rootView.findViewById<TextView>(viewId)?.setOnClickListener {
+                playClick(0)
+                updateCategorySelection(cat)
+            }
+        }
+    }
+
     private fun isAnySubPanelOpen(): Boolean {
         val morePanel = keyboardRoot?.findViewById<GridLayout>(R.id.morePanel)
         return isMorePanelOpen ||
@@ -953,6 +1023,7 @@ class FlowboardIMEService : InputMethodService() {
                 (quickThemePanel?.isVisible == true) ||
                 (undoRedoPanel?.isVisible == true) ||
                 (voiceInputPanel?.isVisible == true) ||
+                (emojiPanel?.isVisible == true) ||
                 (heightAdjustLayout?.isVisible == true)
     }
 
@@ -963,6 +1034,7 @@ class FlowboardIMEService : InputMethodService() {
         quickThemePanel?.visibility = View.GONE
         undoRedoPanel?.visibility = View.GONE
         voiceInputPanel?.visibility = View.GONE
+        emojiPanel?.visibility = View.GONE
         heightAdjustLayout?.visibility = View.GONE
         isMorePanelOpen = false
     }
@@ -987,6 +1059,10 @@ class FlowboardIMEService : InputMethodService() {
             btnSelect?.setBackgroundResource(R.drawable.fn_key_bg)
             btnSelect?.setTextColor(ContextCompat.getColor(this, R.color.text_tap))
             btnSelect?.setText(R.string.select)
+        } else if (panel == emojiPanel) {
+            val emojis = EmojiRepository.getEmojisForCategory(this, currentEmojiCategory)
+            emojiAdapter?.updateEmojis(emojis)
+            emojiAdapter?.setEmojiSize(if (isFloatingMode) 19f * scale else 23f)
         }
 
         val lp = panel.layoutParams as? LinearLayout.LayoutParams
@@ -1219,6 +1295,13 @@ class FlowboardIMEService : InputMethodService() {
                     startVoiceRecognition()
                 }
             }
+            ToolbarAction.EMOJI -> {
+                if (emojiPanel?.visibility == View.VISIBLE) {
+                    closeSubPanelsToKeyboard()
+                } else {
+                    showSubPanel(emojiPanel)
+                }
+            }
             ToolbarAction.SETTINGS -> {
                 val intent = Intent(this, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -1274,6 +1357,7 @@ class FlowboardIMEService : InputMethodService() {
                 ToolbarAction.RESIZE -> R.drawable.ic_resize
                 ToolbarAction.TEXT_EDIT -> R.drawable.ic_text_edit
                 ToolbarAction.VOICE -> R.drawable.ic_mic
+                ToolbarAction.EMOJI -> R.drawable.ic_emoji
                 ToolbarAction.SETTINGS -> R.drawable.ic_settings
                 ToolbarAction.DELETE -> R.drawable.ic_backspace
                 ToolbarAction.MORE -> R.drawable.ic_more
@@ -1305,6 +1389,7 @@ class FlowboardIMEService : InputMethodService() {
                     ToolbarAction.RESIZE -> "Resize"
                     ToolbarAction.TEXT_EDIT -> "Text Edit"
                     ToolbarAction.VOICE -> "Voice"
+                    ToolbarAction.EMOJI -> "Emoji"
                     ToolbarAction.SETTINGS -> "Settings"
                     else -> ""
                 }
@@ -1614,7 +1699,8 @@ class FlowboardIMEService : InputMethodService() {
                 root.findViewById<View>(R.id.textEditPanel),
                 root.findViewById<View>(R.id.quickThemePanel),
                 root.findViewById<View>(R.id.undoRedoPanel),
-                voiceInputPanel
+                voiceInputPanel,
+                emojiPanel
             )
             for (p in allFloatingPanels) {
                 (p.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
@@ -1694,7 +1780,8 @@ class FlowboardIMEService : InputMethodService() {
                 root.findViewById<View>(R.id.textEditPanel),
                 root.findViewById<View>(R.id.quickThemePanel),
                 root.findViewById<View>(R.id.undoRedoPanel),
-                voiceInputPanel
+                voiceInputPanel,
+                emojiPanel
             )
             for (p in allDockedPanels) {
                 (p.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
@@ -1830,7 +1917,8 @@ class FlowboardIMEService : InputMethodService() {
                     textEditPanel,
                     quickThemePanel,
                     undoRedoPanel,
-                    voiceInputPanel
+                    voiceInputPanel,
+                    emojiPanel
                 ).firstOrNull { it.isVisible }
 
                 openSubPanel?.let { p ->
@@ -2159,6 +2247,8 @@ class FlowboardIMEService : InputMethodService() {
         updatePredictions()
     }
 
+    private fun isRegionalIndicator(cp: Int): Boolean = cp in 0x1F1E6..0x1F1FF
+
     private fun handleDelete() {
         playClick(KeyEvent.KEYCODE_DEL)
         repo.lastActionKeyId = null
@@ -2170,7 +2260,9 @@ class FlowboardIMEService : InputMethodService() {
             typedTextHistory.add(typedText.toString())
             typedTextRedoHistory.clear()
             if (typedText.isNotEmpty()) {
-                typedText.deleteCharAt(typedText.length - 1)
+                val lastCp = Character.codePointBefore(typedText, typedText.length)
+                val count = Character.charCount(lastCp)
+                typedText.delete(typedText.length - minOf(count, typedText.length), typedText.length)
                 if (::scoringEngine.isInitialized) {
                     scoringEngine.resetTrieCache()
                 }
@@ -2180,10 +2272,59 @@ class FlowboardIMEService : InputMethodService() {
         val ic = currentInputConnection ?: return
         val selectedText = ic.getSelectedText(0)
         isCommiting = true
-        if (selectedText.isNullOrEmpty()) {
-            ic.deleteSurroundingText(1, 0)
-        } else {
+        if (!selectedText.isNullOrEmpty()) {
             ic.commitText("", 1)
+        } else {
+            val textBefore = ic.getTextBeforeCursor(16, 0)
+            if (textBefore.isNullOrEmpty()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    ic.deleteSurroundingTextInCodePoints(1, 0)
+                } else {
+                    ic.deleteSurroundingText(1, 0)
+                }
+            } else {
+                var deleteCount = 0
+                val len = textBefore.length
+                var i = len
+
+                if (i > 0) {
+                    val cp = Character.codePointBefore(textBefore, i)
+                    val charCount = Character.charCount(cp)
+                    deleteCount += charCount
+                    i -= charCount
+
+                    while (i > 0) {
+                        val prevCp = Character.codePointBefore(textBefore, i)
+                        val prevCharCount = Character.charCount(prevCp)
+                        if (cp == 0xFE0F || cp == 0xFE0E || (cp in 0x1F3FB..0x1F3FF) || cp == 0x20E3 || prevCp == 0x200D) {
+                            deleteCount += prevCharCount
+                            i -= prevCharCount
+                            if (prevCp == 0x200D && i > 0) {
+                                val beforeZwjCp = Character.codePointBefore(textBefore, i)
+                                val beforeZwjCount = Character.charCount(beforeZwjCp)
+                                deleteCount += beforeZwjCount
+                                i -= beforeZwjCount
+                            }
+                        } else if (isRegionalIndicator(cp) && isRegionalIndicator(prevCp)) {
+                            deleteCount += prevCharCount
+                            i -= prevCharCount
+                            break
+                        } else {
+                            break
+                        }
+                    }
+                }
+
+                if (deleteCount > 0) {
+                    ic.deleteSurroundingText(deleteCount, 0)
+                } else {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        ic.deleteSurroundingTextInCodePoints(1, 0)
+                    } else {
+                        ic.deleteSurroundingText(1, 0)
+                    }
+                }
+            }
         }
         isCommiting = false
 
@@ -2444,7 +2585,14 @@ class FlowboardIMEService : InputMethodService() {
         keyboardRoot?.findViewById<TextView>(R.id.btnSpaceText)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * scale)
         keyboardRoot?.findViewById<TextView>(R.id.btnSpaceDownText)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f * scale)
         keyboardRoot?.findViewById<TextView>(R.id.btnPeriodText)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f * scale)
-        keyboardRoot?.findViewById<TextView>(R.id.btnPeriodCommaText)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f * scale)
+        keyboardRoot?.findViewById<ImageView>(R.id.btnPeriodEmojiIcon)?.let { icon ->
+            val iconSize = (14 * scale * density).toInt()
+            (icon.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
+                lp.width = iconSize
+                lp.height = iconSize
+                icon.layoutParams = lp
+            }
+        }
         keyboardRoot?.findViewById<TextView>(R.id.btnNumbers)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * scale)
         keyboardRoot?.findViewById<TextView>(R.id.btnShiftText)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f * scale)
         
@@ -2711,7 +2859,7 @@ class FlowboardIMEService : InputMethodService() {
         
         btnPeriod?.backgroundTintList = keyBgTintList
         rootView.findViewById<TextView>(R.id.btnPeriodText)?.setTextColor(textTapColor)
-        rootView.findViewById<TextView>(R.id.btnPeriodCommaText)?.setTextColor(textSwipeColor)
+        rootView.findViewById<ImageView>(R.id.btnPeriodEmojiIcon)?.imageTintList = ColorStateList.valueOf(textSwipeColor)
         
         btnSend?.backgroundTintList = accentTintList
         rootView.findViewById<ImageView>(R.id.btnSendIcon)?.imageTintList = ColorStateList.valueOf(colors.sendText)
