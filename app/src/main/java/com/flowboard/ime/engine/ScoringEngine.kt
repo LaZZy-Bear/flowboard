@@ -241,8 +241,8 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             return emptyMap()
         }
 
-        var mainNode: TrieNode? = null
-        var oovNode: TrieNode? = null
+        val mainNode: TrieNode?
+        val oovNode: TrieNode?
 
         // Incremental cache: extend by one character if possible
         when {
@@ -284,7 +284,6 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
         // 🧠 Trie Branch Evaluation: Quick completion (low depth) + Word popularity (low index in word_list)
         val totalWords = if (repo.wordList.isNotEmpty()) repo.wordList.size else 20000
-        val decay = 0.80
 
         val raw = HashMap<String, Double>()
 
@@ -292,7 +291,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         if (mainNode != null) {
             for ((nextKey, childNode) in mainNode.children) {
                 if (nextKey != "_w" && nextKey != "_f") {
-                    val branchScore = evaluateBranch(childNode, totalWords, decay, isOOV = false, maxDepth = 6)
+                    val branchScore = evaluateBranch(childNode, totalWords, isOOV = false)
                     if (branchScore > 0.0) {
                         raw[nextKey] = branchScore
                     }
@@ -304,7 +303,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         if (oovNode != null) {
             for ((nextKey, childNode) in oovNode.children) {
                 if (nextKey != "_w" && nextKey != "_f") {
-                    val branchScore = evaluateBranch(childNode, totalWords, decay, isOOV = true, maxDepth = 6)
+                    val branchScore = evaluateBranch(childNode, totalWords, isOOV = true)
                     if (branchScore > 0.0) {
                         val existing = raw[nextKey] ?: 0.0
                         if (branchScore > existing) {
@@ -321,8 +320,8 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     private fun evaluateBranch(
         branchRoot: TrieNode,
         totalWords: Int,
-        decay: Double,
         isOOV: Boolean,
+        decay: Double = 0.80,
         maxDepth: Int = 6
     ): Double {
         var top1 = 0.0

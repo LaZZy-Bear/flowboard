@@ -3,7 +3,6 @@ package com.flowboard.ime.engine
 import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.MasterLayoutEntry
 import com.flowboard.ime.data.models.Profile
-import com.flowboard.ime.data.models.ProfileRules
 import com.flowboard.ime.data.models.TrieNode
 import org.junit.Assert.*
 import org.junit.Before
@@ -149,13 +148,13 @@ class ScoringEngineTest {
 
     @Test
     fun `State 8 triggers for connector 'a'`() {
-        val scores = engine.calculateScores("I saw a ")
+        engine.calculateScores("I saw a ")
         assertTrue("Engine status should mention State 8", engine.engineStatus.contains("State 8"))
     }
 
     @Test
     fun `State 7 triggers for non-connector word`() {
-        val scores = engine.calculateScores("run ")
+        engine.calculateScores("run ")
         assertTrue("Engine status should mention State 7", engine.engineStatus.contains("State 7"))
     }
 
