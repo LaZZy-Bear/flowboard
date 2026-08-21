@@ -295,6 +295,62 @@ class PersonalizationLiveTest {
         assertEquals("Character 'o' must win the TAP slot on key_7 when typing prefix 'ims'", "o", key7?.tap)
     }
 
+    @Test
+    fun testPersonalWordBigramAndTrigramSequenceTapPlacement() {
+        val filesDir = tempFolder.newFolder("files_bigram_trigram_test")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+
+        liveMgr.loadProfile()
+
+        // User types phrase "aight yet name" step-by-step (as spacebar is pressed after each word)
+        liveMgr.recordWordTyped("aight")
+        liveMgr.recordWordTyped("aight yet")
+        liveMgr.recordWordTyped("aight yet name")
+
+        assertTrue("Personal bigram must record 'aight' -> 'yet'",
+            repo.personalProfile.bigram["aight"]?.containsKey("yet") == true)
+        assertTrue("Personal trigram must record 'aight_yet' -> 'name'",
+            repo.personalProfile.trigram["aight_yet"]?.containsKey("name") == true)
+
+        // 1. User types "aight " (space after aight) -> next word is "yet", first char is 'y'
+        scoringEngine.resetTrieCache()
+        var scores = scoringEngine.calculateScores("aight ")
+        var layout = layoutManager.assignLayout(scores)
+        assertEquals("Character 'y' (char 1 of yet) must win TAP on key_9", "y", layout["key_9"]?.tap)
+
+        // 1b. User types 'y' -> next char is 'e' (char 2 of yet)
+        scores = scoringEngine.calculateScores("aight y")
+        layout = layoutManager.assignLayout(scores)
+        assertEquals("Character 'e' (char 2 of yet) must win TAP on key_7", "e", layout["key_7"]?.tap)
+
+        // 1c. User types 'e' -> next char is 't' (char 3 of yet)
+        scores = scoringEngine.calculateScores("aight ye")
+        layout = layoutManager.assignLayout(scores)
+        assertEquals("Character 't' (char 3 of yet) must win TAP on key_2", "t", layout["key_2"]?.tap)
+
+        // 2. User finishes "yet" and types space -> "aight yet " -> next word is "name", char 1 is 'n'
+        scoringEngine.resetTrieCache()
+        scores = scoringEngine.calculateScores("aight yet ")
+        layout = layoutManager.assignLayout(scores)
+        assertEquals("Character 'n' (char 1 of name) must win TAP on key_5", "n", layout["key_5"]?.tap)
+
+        // 2b. User types 'n' -> next char is 'a' (char 2 of name)
+        scores = scoringEngine.calculateScores("aight yet n")
+        layout = layoutManager.assignLayout(scores)
+        assertEquals("Character 'a' (char 2 of name) must win TAP on key_1", "a", layout["key_1"]?.tap)
+
+        // 2c. User types 'a' -> next char is 'm' (char 3 of name)
+        scores = scoringEngine.calculateScores("aight yet na")
+        layout = layoutManager.assignLayout(scores)
+        assertEquals("Character 'm' (char 3 of name) must win TAP on key_9", "m", layout["key_9"]?.tap)
+
+        // 2d. User types 'm' -> next char is 'e' (char 4 of name)
+        scores = scoringEngine.calculateScores("aight yet nam")
+        layout = layoutManager.assignLayout(scores)
+        assertEquals("Character 'e' (char 4 of name) must win TAP on key_7", "e", layout["key_7"]?.tap)
+    }
+
     private class MockContext(
         private val baseDir: java.io.File,
         private val prefsData: MutableMap<String, Any> = mutableMapOf()

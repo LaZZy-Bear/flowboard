@@ -30,24 +30,30 @@ import com.flowboard.ime.data.models.PersonalProfile
 class PersonalizationEngine(private val repo: FlowboardRepository) {
 
     companion object {
-        // Pair bonus levels (count threshold → score bonus)
-        private const val PAIR_HIGH = 1.5
-        private const val PAIR_MID = 0.8
-        private const val PAIR_LOW = 0.3
+        // Trigram pair bonus levels (2-word history match — high confidence)
+        private const val TRI_MAX = 50.0
+        private const val TRI_HIGH = 35.0
+        private const val TRI_MID = 25.0
+        private const val TRI_LOW = 18.0
 
-        // Frequency bonus levels
-        private const val FREQ_MAX = 2.0
-        private const val FREQ_HIGH = 1.2
-        private const val FREQ_MID = 0.5
-        private const val FREQ_LOW = 0.2
+        // Bigram pair bonus levels (1-word history match)
+        private const val BI_MAX = 35.0
+        private const val BI_HIGH = 25.0
+        private const val BI_MID = 18.0
+        private const val BI_LOW = 12.0
 
-        // Uncertainty gap: if top-2 gap < this, apply frequent-words boost
-        private const val UNCERTAINTY_GAP = 5.0
+        // Frequency bonus levels (word frequency / OOV)
+        private const val FREQ_MAX = 30.0
+        private const val FREQ_HIGH = 20.0
+        private const val FREQ_MID = 12.0
+        private const val FREQ_LOW = 6.0
+
+        // Uncertainty gap: if top-2 gap < this, apply frequent-words boost in word-start states
+        private const val UNCERTAINTY_GAP = 15.0
     }
 
     /**
      * Apply personalization bonuses to [finalScores].
-     * Only active in word-start states (1, 7, 8).
      *
      * @param finalScores  Mutable score map from ScoringEngine (modified in-place)
      * @param activeWordsArray  Completed words typed so far (before current word)
@@ -115,7 +121,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
                         val targetChar = nextWord[prefixLen].lowercase()
                         // Digits do not receive score bonuses on keyboard layout
                         if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
-                            val bonus = countToPairBonus(count) * multiplier
+                            val bonus = countToTrigramBonus(count) * multiplier
                             if (bonus > 0.0) {
                                 finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
                                 found = true
@@ -136,7 +142,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
                         val targetChar = nextWord[prefixLen].lowercase()
                         // Digits do not receive score bonuses on keyboard layout
                         if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
-                            val bonus = countToPairBonus(count) * multiplier
+                            val bonus = countToBigramBonus(count) * multiplier
                             if (bonus > 0.0) {
                                 finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
                             }
@@ -147,11 +153,19 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         }
     }
 
-    private fun countToPairBonus(count: Int): Double = when {
-        count >= 16 -> PAIR_HIGH
-        count >= 6  -> PAIR_MID
-        count >= 3  -> PAIR_LOW
-        count >= 1  -> PAIR_LOW * 0.7
+    private fun countToTrigramBonus(count: Int): Double = when {
+        count >= 16 -> TRI_MAX
+        count >= 6  -> TRI_HIGH
+        count >= 3  -> TRI_MID
+        count >= 1  -> TRI_LOW
+        else        -> 0.0
+    }
+
+    private fun countToBigramBonus(count: Int): Double = when {
+        count >= 16 -> BI_MAX
+        count >= 6  -> BI_HIGH
+        count >= 3  -> BI_MID
+        count >= 1  -> BI_LOW
         else        -> 0.0
     }
 
