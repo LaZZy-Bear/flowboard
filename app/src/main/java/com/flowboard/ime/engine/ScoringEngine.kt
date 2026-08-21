@@ -61,6 +61,11 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             // Conjunctions
             "and", "or", "but", "so", "as", "if", "than"
         )
+
+        /**
+         * Characters blocked from doubling (sticky key) unless explicitly learned/recorded in personalization.
+         */
+        val RESTRICTED_DOUBLE_CHARS = setOf("i", "v", "j", "q", "x", "u")
     }
 
     private var cachedTriePrefix: String = ""
@@ -473,6 +478,20 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         }
 
         if (realLastChar.isNotEmpty()) {
+            // ══════════════════════════════════════════
+            // CRITICAL FIX: Echo boost should ONLY apply when doubling
+            // the char is actually valid in the trie dictionary.
+            // Without this gate, the +3.0 echo buff inflates the score
+            // of the last-typed char (e.g. 'i' after typing "ai") even
+            // when no word supports doubling (e.g. "aii" doesn't exist).
+            // This causes the char to wrongly win the TAP slot via
+            // Lazy TAP ratio, making the layout appear "stuck".
+            // Deleting fixes it because lastAction becomes null → no echo.
+            // ══════════════════════════════════════════
+            if (!isDoubleCharValid(text, realLastChar)) {
+                return
+            }
+
             val isDragging = repeatCount >= 2 || (hasSpaceInBetween && repeatCount >= 1)
             val echoBuff: Double = when {
                 rules.echoHardcapChars.contains(realLastChar) -> rules.echoHardcapBuff
@@ -530,6 +549,9 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         }
 
         val safeChar = charToTest.lowercase()
+        // Sticky key / doubling ONLY applies if activePrefix already ends with the typed character
+        if (!activePrefix.endsWith(safeChar)) return false
+
         val testPrefix = activePrefix + safeChar
 
         fun checkTrie(root: TrieNode?): Boolean {
@@ -540,6 +562,16 @@ class ScoringEngine(private val repo: FlowboardRepository) {
                 if (node == null) return false
             }
             return true
+        }
+
+        // Check if character is restricted from being doubled (i, v, j, q, x, u)
+        if (RESTRICTED_DOUBLE_CHARS.contains(safeChar)) {
+            val inPersonalFreq = repo.personalProfile.wordFreq.keys.any { it.lowercase().startsWith(testPrefix) }
+            val inLearnedOOV = repo.personalProfile.learnedOOV.any { it.lowercase().startsWith(testPrefix) }
+            val isAllowedByPersonalization = inPersonalFreq || inLearnedOOV
+            if (!isAllowedByPersonalization) {
+                return false
+            }
         }
 
         return checkTrie(repo.trieDict) || checkTrie(repo.trieDictOOV)

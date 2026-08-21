@@ -199,7 +199,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
             val targetChar = word[prefixLen].lowercase()
             // Digits do not receive score bonuses on keyboard layout
             if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
-                val bonus = countToFreqBonus(count) * multiplier
+                val bonus = countToStartFreqBonus(count) * multiplier
                 if (bonus > 0.0) {
                     finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
                 }
@@ -225,7 +225,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
                 val targetChar = word[prefixLen].lowercase()
                 if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
                     val count = profile.wordFreq[word.lowercase()] ?: 1
-                    val bonus = countToFreqBonus(count) * multiplier * 1.5
+                    val bonus = countToPrefixBonus(count) * multiplier * 1.5
                     if (bonus > 0.0) {
                         finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
                     }
@@ -244,7 +244,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
                 if (!word.lowercase().startsWith(prefix)) continue
                 val targetChar = word[prefixLen].lowercase()
                 if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
-                    val bonus = countToFreqBonus(count) * multiplier
+                    val bonus = countToPrefixBonus(count) * multiplier
                     if (bonus > 0.0) {
                         finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
                     }
@@ -253,7 +253,16 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         }
     }
 
-    private fun countToFreqBonus(count: Int): Double = when {
+    private fun countToStartFreqBonus(count: Int): Double = when {
+        count >= 30 -> 10.0
+        count >= 15 -> 6.0
+        count >= 6  -> 3.0
+        count >= 3  -> 1.5
+        count >= 1  -> 0.8
+        else        -> 0.0
+    }
+
+    private fun countToPrefixBonus(count: Int): Double = when {
         count >= 30 -> FREQ_MAX
         count >= 15 -> FREQ_HIGH
         count >= 6  -> FREQ_MID

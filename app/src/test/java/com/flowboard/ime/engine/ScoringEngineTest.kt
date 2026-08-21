@@ -2,6 +2,7 @@ package com.flowboard.ime.engine
 
 import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.MasterLayoutEntry
+import com.flowboard.ime.data.models.PersonalProfile
 import com.flowboard.ime.data.models.Profile
 import com.flowboard.ime.data.models.TrieNode
 import org.junit.Assert.*
@@ -216,8 +217,48 @@ class ScoringEngineTest {
 
     @Test
     fun `isDoubleCharValid returns true for valid double`() {
-        val result = engine.isDoubleCharValid("th", "e")
-        assertTrue("Adding 'e' after 'th' is valid in trie", result)
+        insertWordInTrie(repo.trieDict!!, "see")
+        val result = engine.isDoubleCharValid("se", "e")
+        assertTrue("Adding 'e' after 'se' to make 'see' is valid in trie", result)
+    }
+
+    @Test
+    fun `isDoubleCharValid blocks restricted chars i, v, j, q, x, u without personalization`() {
+        insertWordInTrie(repo.trieDict!!, "see")
+        insertWordInTrie(repo.trieDict!!, "skiing")
+        insertWordInTrie(repo.trieDict!!, "vacuum")
+
+        // 'e' is not restricted -> valid because 'see' is in trie
+        assertTrue("Character 'e' is not restricted and valid in 'see'", engine.isDoubleCharValid("se", "e"))
+
+        // 'i', 'v', 'j', 'q', 'x', 'u' are restricted by default even if in main trie
+        assertFalse("Character 'i' is restricted by default", engine.isDoubleCharValid("ski", "i"))
+        assertFalse("Character 'v' is restricted by default", engine.isDoubleCharValid("ha", "v"))
+        assertFalse("Character 'x' is restricted by default", engine.isDoubleCharValid("max", "x"))
+        assertFalse("Character 'u' is restricted by default", engine.isDoubleCharValid("vacu", "u"))
+    }
+
+    @Test
+    fun `isDoubleCharValid allows restricted chars when learned in personalization`() {
+        val originalProfile = repo.personalProfile
+        insertWordInTrie(repo.trieDict!!, "skiing")
+
+        // 1. User records 'skiing' in personal word frequency
+        repo.personalProfile = PersonalProfile(wordFreq = mapOf("skiing" to 1))
+        assertTrue("Character 'i' should be allowed because 'skiing' is in personal wordFreq and trie",
+            engine.isDoubleCharValid("ski", "i"))
+
+        // 2. User records 'maxx' in learned OOV trie
+        val trieOOV = TrieNode()
+        insertWordInTrie(trieOOV, "maxx")
+        repo.trieDictOOV = trieOOV
+        repo.personalProfile = PersonalProfile(learnedOOV = listOf("maxx"))
+        assertTrue("Character 'x' should be allowed because 'maxx' is in learned OOV",
+            engine.isDoubleCharValid("max", "x"))
+
+        // Clean up
+        repo.personalProfile = originalProfile
+        repo.trieDictOOV = null
     }
 
     // ══════════════════════════════════════════

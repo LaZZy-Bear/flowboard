@@ -771,9 +771,18 @@ class FlowboardIMEService : InputMethodService() {
         updateFloatingWindowMode()
 
         // Reset typing state for a new input field
+        repo.lastActionKeyId = null
+        repo.lastActionSlot = null
+        repo.lastActionChar = null
+        repo.stickyChar = null
+
         synchronized(typedText) {
             typedText.clear()
             typedTextHistory.clear()
+            val existing = currentInputConnection?.getTextBeforeCursor(1000, 0)?.toString() ?: ""
+            if (existing.isNotEmpty()) {
+                typedText.append(existing)
+            }
         }
         isShiftActive = false
         isNumberMode = false
@@ -2196,18 +2205,23 @@ class FlowboardIMEService : InputMethodService() {
         if (isCommiting) return
         
         val ic = currentInputConnection ?: return
-        val textBeforeCursor = ic.getTextBeforeCursor(50, 0) ?: ""
+        val textBeforeCursor = ic.getTextBeforeCursor(1000, 0)?.toString() ?: ""
         
-        val lastWord = textBeforeCursor.takeLastWhile { it != ' ' && it != '\n' }.toString()
-        synchronized(typedText) {
-            typedText.clear()
-            typedText.append(lastWord)
-        }
+        val currentLocal = synchronized(typedText) { typedText.toString() }
         
-        if (::scoringEngine.isInitialized) {
-            scoringEngine.resetTrieCache()
+        // Only synchronize if cursor moved externally or text differs
+        if (textBeforeCursor != currentLocal) {
+            synchronized(typedText) {
+                typedText.clear()
+                typedText.append(textBeforeCursor)
+            }
+            
+            if (::scoringEngine.isInitialized) {
+                scoringEngine.resetTrieCache()
+            }
+            refreshLayout()
+            updatePredictions()
         }
-        updatePredictions()
     }
 
     override fun onComputeInsets(outInsets: Insets) {
@@ -2241,13 +2255,13 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun getFullTextBeforeCursor(appendChar: String = ""): String {
+        val local = synchronized(typedText) { typedText.toString() }
+        if (local.isNotEmpty()) {
+            return local + appendChar
+        }
         val ic = currentInputConnection
         val before = ic?.getTextBeforeCursor(1000, 0)?.toString() ?: ""
-        if (before.isNotEmpty()) {
-            return before + appendChar
-        }
-        val local = synchronized(typedText) { typedText.toString() }
-        return local + appendChar
+        return before + appendChar
     }
 
     private fun commitChar(char: String) {
@@ -2267,7 +2281,7 @@ class FlowboardIMEService : InputMethodService() {
             typedText.append(finalChar)
         }
 
-        val fullText = getFullTextBeforeCursor(finalChar)
+        val fullText = getFullTextBeforeCursor()
 
         if (finalChar == " ") {
             repo.lastActionKeyId = null
@@ -2281,7 +2295,6 @@ class FlowboardIMEService : InputMethodService() {
         if (languageManager.shiftState == LanguageManager.ShiftState.OFF) {
             // Re-render if shift state auto-reset from SHIFT_ONCE
             updateShiftButtonTint()
-            refreshLayout()
         }
 
         val ic = currentInputConnection

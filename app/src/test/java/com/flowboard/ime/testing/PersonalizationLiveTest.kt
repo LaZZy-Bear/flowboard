@@ -5,7 +5,9 @@ import com.flowboard.ime.engine.LayoutManager
 import com.flowboard.ime.engine.LiveLearningManager
 import com.flowboard.ime.engine.ScoringEngine
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Before
@@ -349,6 +351,72 @@ class PersonalizationLiveTest {
         scores = scoringEngine.calculateScores("aight yet nam")
         layout = layoutManager.assignLayout(scores)
         assertEquals("Character 'e' (char 4 of name) must win TAP on key_7", "e", layout["key_7"]?.tap)
+    }
+
+    @Test
+    fun testAiPrefixPartnerSwapTakesKey3Tap() {
+        val filesDir = tempFolder.newFolder("files_ai_test")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+
+        liveMgr.loadProfile()
+
+        // User typed "aight" once
+        liveMgr.recordWordTyped("aight")
+
+        // User is now typing "ai"
+        assertFalse("Character 'i' should not be sticky after 'ai'",
+            scoringEngine.isDoubleCharValid("ai", "i"))
+
+        repo.stickyChar = null
+        scoringEngine.resetTrieCache()
+        val scores = scoringEngine.calculateScores("ai")
+        val layout = layoutManager.assignLayout(scores)
+
+        // 'r' is #1 on key_6 -> key_6 TAP
+        assertEquals("Character 'r' should take Key 6 TAP", "r", layout["key_6"]?.tap)
+
+        // 'g' is #2 on key_6 -> does Domino Partner Swap to take Key 3 TAP!
+        assertEquals("Character 'g' should do Partner Swap to take Key 3 TAP", "g", layout["key_3"]?.tap)
+    }
+
+    @Test
+    fun testFullKeystrokeSequenceTypingAi() {
+        val filesDir = tempFolder.newFolder("files_seq_test")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+        liveMgr.loadProfile()
+
+        // ── Step 1: User types 'a' (key_1) ──
+        repo.lastActionKeyId = "key_1"
+        repo.lastActionSlot = "up"
+        repo.lastActionChar = "a"
+        var text = "a"
+        repo.stickyChar = if (scoringEngine.isDoubleCharValid(text, repo.lastActionChar!!)) repo.lastActionChar else null
+        scoringEngine.resetTrieCache()
+        var scores = scoringEngine.calculateScores(text)
+        var layout = layoutManager.assignLayout(scores)
+
+        // After 'a', 'i' is on Key 3 TAP
+        assertEquals("Character 'i' is TAP on Key 3 after typing 'a'", "i", layout["key_3"]?.tap)
+
+        // ── Step 2: User taps 'i' (key_3) ──
+        repo.lastActionKeyId = "key_3"
+        repo.lastActionSlot = "tap"
+        repo.lastActionChar = "i"
+        text = "ai"
+        repo.stickyChar = if (scoringEngine.isDoubleCharValid(text, repo.lastActionChar!!)) repo.lastActionChar else null
+        assertNull("Sticky key for 'i' must be null after typing 'ai'", repo.stickyChar)
+
+        scoringEngine.resetTrieCache()
+        scores = scoringEngine.calculateScores(text)
+        layout = layoutManager.assignLayout(scores)
+
+        // After 'ai':
+        // Key 3 TAP MUST NOT be 'i'!
+        assertNotEquals("Key 3 TAP must NOT be 'i' after typing 'ai'", "i", layout["key_3"]?.tap)
+        assertEquals("Key 6 TAP must be 'r' after typing 'ai'", "r", layout["key_6"]?.tap)
+        assertEquals("Key 3 TAP must be 'g' after typing 'ai'", "g", layout["key_3"]?.tap)
     }
 
     private class MockContext(
