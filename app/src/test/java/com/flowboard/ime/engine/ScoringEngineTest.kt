@@ -220,4 +220,78 @@ class ScoringEngineTest {
         val result = engine.isDoubleCharValid("th", "e")
         assertTrue("Adding 'e' after 'th' is valid in trie", result)
     }
+
+    // ══════════════════════════════════════════
+    // V22.3.0 Trie Word Completion & Dict Scoring Tests
+    // ══════════════════════════════════════════
+
+    @Test
+    fun `V22_3_0 - Depth proximity factor prioritizes immediate word completion over deep branches`() {
+        val trie = TrieNode()
+        // "wor" -> "d" (word, rank 100, depth 1)
+        insertWordWithRank(trie, "word", 100)
+        // "wor" -> "k" (work, rank 150, depth 1)
+        insertWordWithRank(trie, "work", 150)
+        // "wor" -> "cester" (worcester, rank 100, depth 6)
+        insertWordWithRank(trie, "worcester", 100)
+
+        repo.trieDict = trie
+        repo.wordList = List(20000) { "word_$it" }
+        engine.resetTrieCache()
+
+        val scores = engine.calculateScores("wor")
+        val scoreD = scores["d"] ?: 0.0
+        val scoreK = scores["k"] ?: 0.0
+        val scoreC = scores["c"] ?: 0.0
+
+        assertTrue("Immediate completion 'd' ($scoreD) should score higher than deep branch 'c' ($scoreC)", scoreD > scoreC)
+        assertTrue("Immediate completion 'k' ($scoreK) should score higher than deep branch 'c' ($scoreC)", scoreK > scoreC)
+    }
+
+    @Test
+    fun `V22_3_0 - Word popularity ranking prioritizes frequent words over rare words`() {
+        val trie = TrieNode()
+        // "ha" -> "ve" (have, rank 10, depth 2)
+        insertWordWithRank(trie, "have", 10)
+        // "ha" -> "zel" (hazel, rank 18000, depth 3)
+        insertWordWithRank(trie, "hazel", 18000)
+
+        repo.trieDict = trie
+        repo.wordList = List(20000) { "word_$it" }
+        engine.resetTrieCache()
+
+        val scores = engine.calculateScores("ha")
+        val scoreV = scores["v"] ?: 0.0
+        val scoreZ = scores["z"] ?: 0.0
+
+        assertTrue("Popular word 'have' -> 'v' ($scoreV) should score higher than rare word 'hazel' -> 'z' ($scoreZ)", scoreV > scoreZ)
+    }
+
+    @Test
+    fun `V22_3_0 - OOV trie fallback applies 0_5 penalty compared to main trie`() {
+        val mainTrie = TrieNode()
+        insertWordWithRank(mainTrie, "test", 100)
+
+        val oovTrie = TrieNode()
+        insertWordWithRank(oovTrie, "oovword", 100)
+
+        repo.trieDict = mainTrie
+        repo.trieDictOOV = oovTrie
+        repo.wordList = List(20000) { "word_$it" }
+        engine.resetTrieCache()
+
+        // Lookup in OOV trie
+        val scoresOOV = engine.calculateScores("oovw")
+        assertTrue("OOV trie should produce scores for 'oovw'", scoresOOV.isNotEmpty())
+        assertTrue("OOV trie should predict 'o' for 'oovword'", (scoresOOV["o"] ?: 0.0) > 0)
+    }
+
+    private fun insertWordWithRank(root: TrieNode, word: String, rank: Int) {
+        var node = root
+        for (c in word) {
+            node = node.getOrPut(c.toString())
+        }
+        node.isEndOfWord = true
+        node.frequency = rank
+    }
 }

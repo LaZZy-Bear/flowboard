@@ -270,6 +270,31 @@ class PersonalizationLiveTest {
         assertEquals(0, stats["oovCount"])
     }
 
+    @Test
+    fun testOOVWordMidWordPredictionAndTapPlacement() {
+        val filesDir = tempFolder.newFolder("files_oov_test")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+
+        liveMgr.loadProfile()
+
+        // User typed "imsombat"
+        liveMgr.recordWordTyped("hello imsombat")
+
+        // Now user starts typing "ims"
+        scoringEngine.resetTrieCache()
+        val scores = scoringEngine.calculateScores("ims")
+        val scoreO = scores["o"] ?: 0.0
+        val scoreE = scores["e"] ?: 0.0
+
+        assertTrue("Score for 'o' ($scoreO) should dominate 'e' ($scoreE) for learned OOV word 'imsombat'", scoreO > scoreE)
+
+        val layout = layoutManager.assignLayout(scores)
+        val key7 = layout["key_7"]
+        assertNotNull(key7)
+        assertEquals("Character 'o' must win the TAP slot on key_7 when typing prefix 'ims'", "o", key7?.tap)
+    }
+
     private class MockContext(
         private val baseDir: java.io.File,
         private val prefsData: MutableMap<String, Any> = mutableMapOf()

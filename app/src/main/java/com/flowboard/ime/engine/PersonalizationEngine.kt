@@ -71,10 +71,14 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
             applyPersonalWordPairs(finalScores, activeWordsArray, profile, prefix, prefixLen, multiplier)
         }
 
-        // System 2: Uncertain gap — boost frequent personal words in word-start states
-        val isWordStart = state == 1 || state == 7 || state == 8
-        if (isWordStart && repo.personalizationFreqEnabled) {
-            applyFrequentWordsIfUncertain(finalScores, profile, prefix, prefixLen, multiplier)
+        // System 2: Frequent words & learned OOV prefix boost
+        if (repo.personalizationFreqEnabled) {
+            val isWordStart = state == 1 || state == 7 || state == 8
+            if (isWordStart) {
+                applyFrequentWordsIfUncertain(finalScores, profile, prefix, prefixLen, multiplier)
+            } else if (prefixLen > 0) {
+                applyPersonalPrefixBoost(finalScores, profile, prefix, prefixLen, multiplier)
+            }
         }
     }
 
@@ -184,6 +188,52 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
                 val bonus = countToFreqBonus(count) * multiplier
                 if (bonus > 0.0) {
                     finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
+                }
+            }
+        }
+    }
+
+    /**
+     * Boosts next character when typing a prefix that matches a user's learned OOV or frequent personal word.
+     */
+    private fun applyPersonalPrefixBoost(
+        finalScores: HashMap<String, Double>,
+        profile: PersonalProfile,
+        prefix: String,
+        prefixLen: Int,
+        multiplier: Double
+    ) {
+        if (prefixLen == 0) return
+
+        // 1. Check learned OOV words (direct personal vocabulary)
+        for (word in profile.learnedOOV) {
+            if (word.length > prefixLen && word.lowercase().startsWith(prefix)) {
+                val targetChar = word[prefixLen].lowercase()
+                if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
+                    val count = profile.wordFreq[word.lowercase()] ?: 1
+                    val bonus = countToFreqBonus(count) * multiplier * 1.5
+                    if (bonus > 0.0) {
+                        finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
+                    }
+                }
+            }
+        }
+
+        // 2. Check frequent personal words
+        if (profile.wordFreq.isNotEmpty()) {
+            val topWords = profile.wordFreq.entries
+                .sortedByDescending { it.value }
+                .take(30)
+
+            for ((word, count) in topWords) {
+                if (word.length <= prefixLen) continue
+                if (!word.lowercase().startsWith(prefix)) continue
+                val targetChar = word[prefixLen].lowercase()
+                if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
+                    val bonus = countToFreqBonus(count) * multiplier
+                    if (bonus > 0.0) {
+                        finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
+                    }
                 }
             }
         }

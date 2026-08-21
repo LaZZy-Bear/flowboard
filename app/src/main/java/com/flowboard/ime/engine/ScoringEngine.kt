@@ -64,14 +64,16 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     }
 
     private var cachedTriePrefix: String = ""
-    private var cachedTrieNode: TrieNode? = null
+    private var cachedMainNode: TrieNode? = null
+    private var cachedOovNode: TrieNode? = null
 
     var engineStatus: String = "State 1 (Start)"
         private set
 
     fun resetTrieCache() {
         cachedTriePrefix = ""
-        cachedTrieNode = null
+        cachedMainNode = null
+        cachedOovNode = null
     }
 
     // ═══════════════════════════════════════
@@ -123,7 +125,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         val sU = if (isWordStart) getStartUnigramScores() else getUnigramScores()
         val sB = getBigramScores(last1)
         val sT = getTrigramScores(last2)
-        val sD = getDictScores(activePrefix, sT, sB, sU)
+        val sD = getDictScores(activePrefix)
         val sWB = getWordBigramScores(activeWordsArray, activePrefix)
         val sWT = getWordTrigramScores(activeWordsArray, activePrefix)
         val sSTC = if (state == 8 || activePrefix.isNotEmpty()) getSTCScores(activeWordsArray, activePrefix) else emptyMap()
@@ -227,75 +229,129 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     }
 
     /**
-     * Dictionary/Trie score with incremental prefix caching and OOV trie fallback.
-     * Ported from P22 getDictScores() in scoring.js.
+     * Dictionary/Trie score with Depth Proximity Factor, Word Popularity Ranking,
+     * Top-2 Branch Synergy, and OOV trie fallback/merging.
+     * Ported from P22 V22.3.0 getDictScores() and evaluateBranch() in scoring.js.
      */
-    private fun getDictScores(
-        prefix: String,
-        sT: Map<String, Double>,
-        sB: Map<String, Double>,
-        sU: Map<String, Double>
-    ): Map<String, Double> {
+    private fun getDictScores(prefix: String): Map<String, Double> {
         if (prefix.isEmpty()) {
             cachedTriePrefix = ""
-            cachedTrieNode = repo.trieDict
+            cachedMainNode = repo.trieDict
+            cachedOovNode = repo.trieDictOOV
             return emptyMap()
         }
 
-        var node: TrieNode?
+        var mainNode: TrieNode? = null
+        var oovNode: TrieNode? = null
 
         // Incremental cache: extend by one character if possible
         when {
-            cachedTrieNode != null &&
+            (cachedMainNode != null || cachedOovNode != null) &&
                     prefix.length == cachedTriePrefix.length + 1 &&
                     prefix.startsWith(cachedTriePrefix) -> {
                 val lastChar = prefix.last().toString()
-                node = cachedTrieNode!![lastChar]
+                mainNode = cachedMainNode?.get(lastChar)
+                oovNode = cachedOovNode?.get(lastChar)
             }
-            cachedTrieNode != null && prefix == cachedTriePrefix -> {
-                node = cachedTrieNode
+            (cachedMainNode != null || cachedOovNode != null) && prefix == cachedTriePrefix -> {
+                mainNode = cachedMainNode
+                oovNode = cachedOovNode
             }
             else -> {
-                // Full traversal
-                var current = repo.trieDict
+                // Full traversal in main trie
+                var currentMain = repo.trieDict
                 for (c in prefix) {
-                    current = current?.get(c.toString())
-                    if (current == null) break
+                    currentMain = currentMain?.get(c.toString())
+                    if (currentMain == null) break
                 }
-                node = current
-            }
-        }
+                mainNode = currentMain
 
-        // OOV Fallback: search secondary trie if main trie misses
-        if (node == null && repo.trieDictOOV != null) {
-            var current = repo.trieDictOOV
-            for (c in prefix) {
-                current = current?.get(c.toString())
-                if (current == null) break
+                // Full traversal in OOV trie
+                var currentOov = repo.trieDictOOV
+                for (c in prefix) {
+                    currentOov = currentOov?.get(c.toString())
+                    if (currentOov == null) break
+                }
+                oovNode = currentOov
             }
-            node = current
         }
 
         cachedTriePrefix = prefix
-        cachedTrieNode = node
+        cachedMainNode = mainNode
+        cachedOovNode = oovNode
 
-        if (node == null) return emptyMap()
+        if (mainNode == null && oovNode == null) return emptyMap()
+
+        // 🧠 Trie Branch Evaluation: Quick completion (low depth) + Word popularity (low index in word_list)
+        val totalWords = if (repo.wordList.isNotEmpty()) repo.wordList.size else 20000
+        val decay = 0.80
 
         val raw = HashMap<String, Double>()
-        for ((nextKey, _) in node.children) {
-            if (nextKey != "_w" && nextKey != "_f") {
-                val st = sT[nextKey] ?: 0.0
-                val sb = sB[nextKey] ?: 0.0
-                val su = sU[nextKey] ?: 0.0
-                raw[nextKey] = when {
-                    st > 0.0 -> st
-                    sb > 0.0 -> sb
-                    su > 0.0 -> su
-                    else -> 1.0
+
+        // 1. Evaluate Main Dictionary Branches
+        if (mainNode != null) {
+            for ((nextKey, childNode) in mainNode.children) {
+                if (nextKey != "_w" && nextKey != "_f") {
+                    val branchScore = evaluateBranch(childNode, totalWords, decay, isOOV = false, maxDepth = 6)
+                    if (branchScore > 0.0) {
+                        raw[nextKey] = branchScore
+                    }
                 }
             }
         }
+
+        // 2. Evaluate Secondary / Learned OOV Branches (combines with or boosts main dictionary)
+        if (oovNode != null) {
+            for ((nextKey, childNode) in oovNode.children) {
+                if (nextKey != "_w" && nextKey != "_f") {
+                    val branchScore = evaluateBranch(childNode, totalWords, decay, isOOV = true, maxDepth = 6)
+                    if (branchScore > 0.0) {
+                        val existing = raw[nextKey] ?: 0.0
+                        if (branchScore > existing) {
+                            raw[nextKey] = branchScore
+                        }
+                    }
+                }
+            }
+        }
+
         return normalizeScores(raw)
+    }
+
+    private fun evaluateBranch(
+        branchRoot: TrieNode,
+        totalWords: Int,
+        decay: Double,
+        isOOV: Boolean,
+        maxDepth: Int = 6
+    ): Double {
+        var top1 = 0.0
+        var top2 = 0.0
+
+        fun traverse(curr: TrieNode?, depth: Int) {
+            if (curr == null || depth > maxDepth) return
+            if (curr.isEndOfWord) {
+                // Lower index in wordList = higher popularity (1.0 -> 0.0)
+                var pop = 1.0 - (curr.frequency.toDouble() / totalWords)
+                if (isOOV) pop *= 0.5 // Penalty for OOV words
+                val depthFactor = Math.pow(decay, (depth - 1).toDouble()) // Depth 1 = 1.0, Depth 2 = 0.80, ...
+                val s = pop * depthFactor * 100.0
+                if (s > top1) {
+                    top2 = top1
+                    top1 = s
+                } else if (s > top2) {
+                    top2 = s
+                }
+            }
+            for ((k, child) in curr.children) {
+                if (k != "_w" && k != "_f") {
+                    traverse(child, depth + 1)
+                }
+            }
+        }
+
+        traverse(branchRoot, 1)
+        return top1 + (top2 * 0.15)
     }
 
     /**
