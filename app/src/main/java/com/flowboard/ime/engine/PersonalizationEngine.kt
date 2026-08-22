@@ -31,22 +31,22 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
 
     companion object {
         // Trigram pair bonus levels (2-word history match — high confidence)
-        private const val TRI_MAX = 50.0
-        private const val TRI_HIGH = 35.0
-        private const val TRI_MID = 25.0
-        private const val TRI_LOW = 18.0
+        private const val TRI_MAX = 85.0
+        private const val TRI_HIGH = 70.0
+        private const val TRI_MID = 55.0
+        private const val TRI_LOW = 40.0
 
         // Bigram pair bonus levels (1-word history match)
-        private const val BI_MAX = 35.0
-        private const val BI_HIGH = 25.0
-        private const val BI_MID = 18.0
-        private const val BI_LOW = 12.0
+        private const val BI_MAX = 75.0
+        private const val BI_HIGH = 60.0
+        private const val BI_MID = 45.0
+        private const val BI_LOW = 30.0
 
         // Frequency bonus levels (word frequency / OOV)
-        private const val FREQ_MAX = 30.0
-        private const val FREQ_HIGH = 20.0
-        private const val FREQ_MID = 12.0
-        private const val FREQ_LOW = 6.0
+        private const val FREQ_MAX = 75.0
+        private const val FREQ_HIGH = 60.0
+        private const val FREQ_MID = 45.0
+        private const val FREQ_LOW = 30.0
 
         // Uncertainty gap: if top-2 gap < this, apply frequent-words boost in word-start states
         private const val UNCERTAINTY_GAP = 15.0
@@ -186,7 +186,8 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         val sorted = finalScores.values.sortedDescending()
         if (sorted.size < 2) return
         val gap = sorted[0] - sorted[1]
-        if (gap >= UNCERTAINTY_GAP) return  // Engine is confident → no boost needed
+        val gapLimit = repo.personalizationUncertaintyGap
+        if (gap >= gapLimit) return  // Engine is confident → no boost needed
 
         // Boost frequent personal words (top 30 by frequency)
         val topWords = profile.wordFreq.entries
@@ -220,12 +221,13 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         if (prefixLen == 0) return
 
         // 1. Check learned OOV words (direct personal vocabulary)
+        val oovMultiplier = repo.personalizationOOVMultiplier
         for (word in profile.learnedOOV) {
             if (word.length > prefixLen && word.lowercase().startsWith(prefix)) {
                 val targetChar = word[prefixLen].lowercase()
                 if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
                     val count = profile.wordFreq[word.lowercase()] ?: 1
-                    val bonus = countToPrefixBonus(count) * multiplier * 1.5
+                    val bonus = countToPrefixBonus(count) * multiplier * oovMultiplier
                     if (bonus > 0.0) {
                         finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
                     }
@@ -254,20 +256,18 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
     }
 
     private fun countToStartFreqBonus(count: Int): Double = when {
-        count >= 30 -> 10.0
-        count >= 15 -> 6.0
-        count >= 6  -> 3.0
-        count >= 3  -> 1.5
-        count >= 1  -> 0.8
+        count >= 15 -> 25.0
+        count >= 6  -> 18.0
+        count >= 3  -> 12.0
+        count >= 1  -> 8.0
         else        -> 0.0
     }
 
     private fun countToPrefixBonus(count: Int): Double = when {
-        count >= 30 -> FREQ_MAX
-        count >= 15 -> FREQ_HIGH
-        count >= 6  -> FREQ_MID
-        count >= 3  -> FREQ_LOW
-        count >= 1  -> FREQ_LOW * 0.7
+        count >= 15 -> FREQ_MAX
+        count >= 6  -> FREQ_HIGH
+        count >= 3  -> FREQ_MID
+        count >= 1  -> repo.personalizationFirstTypeBonus
         else        -> 0.0
     }
 }

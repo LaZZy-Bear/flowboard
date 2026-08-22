@@ -532,37 +532,35 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     fun isDoubleCharValid(text: String, charToTest: String): Boolean {
         if (text.isEmpty() || charToTest.isEmpty()) return false
 
-        val engineText = text.lowercase()
-        val parts = engineText.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
-        val activePrefix = if (engineText.endsWith(" ") || engineText.isEmpty()) ""
-                           else parts.lastOrNull() ?: ""
+        val safeChar = charToTest.lowercase()
 
-        if (activePrefix.isEmpty()) return false
-        // No sticky on first char of word (prevents abbreviation lock like "BBC")
-        if (activePrefix.length == 1) return false
-
-        // No triple repetition
-        if (activePrefix.length >= 2) {
-            val prev = activePrefix[activePrefix.length - 2].toString()
-            val curr = activePrefix[activePrefix.length - 1].toString()
-            if (prev == charToTest && curr == charToTest) return false
+        // ⚡ Fast Exit 1: ถ้าเป็นตัวอักษรต้องห้ามเบิ้ล (i, v, j, q, x, u) และไม่มีข้อมูลใน Personalization -> return false ทันที (O(1))
+        if (RESTRICTED_DOUBLE_CHARS.contains(safeChar)) {
+            val hasPersonal = repo.personalProfile.learnedOOV.isNotEmpty() || repo.personalProfile.wordFreq.isNotEmpty()
+            if (!hasPersonal) return false
         }
 
-        val safeChar = charToTest.lowercase()
+        val engineText = text.lowercase()
+        if (engineText.endsWith(" ") || engineText.isEmpty()) return false
+
+        // ⚡ Fast Exit 2: ตัดคำเฉพาะคำสุดท้ายด้วย lastIndexOf แทน regex split เพื่อประสิทธิภาพสูงสุด
+        val lastSpace = engineText.lastIndexOf(' ')
+        val activePrefix = if (lastSpace == -1) engineText else engineText.substring(lastSpace + 1)
+
+        val prefixLen = activePrefix.length
+        if (prefixLen <= 1) return false
+
+        // No triple repetition
+        if (prefixLen >= 2) {
+            val prev = activePrefix[prefixLen - 2].toString()
+            val curr = activePrefix[prefixLen - 1].toString()
+            if (prev == safeChar && curr == safeChar) return false
+        }
+
         // Sticky key / doubling ONLY applies if activePrefix already ends with the typed character
         if (!activePrefix.endsWith(safeChar)) return false
 
         val testPrefix = activePrefix + safeChar
-
-        fun checkTrie(root: TrieNode?): Boolean {
-            if (root == null) return false
-            var node = root
-            for (c in testPrefix) {
-                node = node?.get(c.toString())
-                if (node == null) return false
-            }
-            return true
-        }
 
         // Check if character is restricted from being doubled (i, v, j, q, x, u)
         if (RESTRICTED_DOUBLE_CHARS.contains(safeChar)) {
@@ -572,6 +570,16 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             if (!isAllowedByPersonalization) {
                 return false
             }
+        }
+
+        fun checkTrie(root: TrieNode?): Boolean {
+            if (root == null) return false
+            var node = root
+            for (c in testPrefix) {
+                node = node?.get(c.toString())
+                if (node == null) return false
+            }
+            return true
         }
 
         return checkTrie(repo.trieDict) || checkTrie(repo.trieDictOOV)

@@ -52,6 +52,9 @@ object FlowboardRepository {
     var personalizationBoostMultiplier: Double = 1.0
     var personalizationPairsEnabled: Boolean = true
     var personalizationFreqEnabled: Boolean = true
+    var personalizationOOVMultiplier: Double = 1.3
+    var personalizationFirstTypeBonus: Double = 30.0
+    var personalizationUncertaintyGap: Double = 15.0
 
     // ══════════════════════════════════════════
     // Active Profile
