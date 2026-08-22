@@ -41,12 +41,12 @@ class SettingsFragment : Fragment() {
 
         // Languages click
         view.findViewById<View>(R.id.itemLanguage)?.setOnClickListener {
-            val languages = arrayOf("English (US) (Active)", "ภาษาไทย (เร็วๆ นี้ / Coming Soon)")
+            val languages = arrayOf("English (US) (Active)", "More Languages (Coming Soon)")
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Languages")
                 .setSingleChoiceItems(languages, 0) { dialog, which ->
                     if (which == 1) {
-                        Toast.makeText(requireContext(), "ภาษาไทยกำลังพัฒนาอยู่ในเวอร์ชันถัดไปครับ", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "More language packs will be supported soon", Toast.LENGTH_SHORT).show()
                     }
                     dialog.dismiss()
                 }
@@ -56,14 +56,21 @@ class SettingsFragment : Fragment() {
 
         // Setup Switch Toggles
         val switchSound = view.findViewById<MaterialSwitch>(R.id.switchSound)
+        val switchVibration = view.findViewById<MaterialSwitch>(R.id.switchVibration)
         val switchShowSuggestions = view.findViewById<MaterialSwitch>(R.id.switchShowSuggestions)
 
         switchSound?.isChecked = prefs.getBoolean("sound_on_keypress", false)
+        switchVibration?.isChecked = prefs.getBoolean("vibration_on_keypress", false)
         switchShowSuggestions?.isChecked = prefs.getBoolean("show_suggestions", true)
 
         switchSound?.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit { putBoolean("sound_on_keypress", isChecked) }
             mainActivity.notifyImeSettingsChanged("sound_on_keypress", isChecked)
+        }
+
+        switchVibration?.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit { putBoolean("vibration_on_keypress", isChecked) }
+            mainActivity.notifyImeSettingsChanged("vibration_on_keypress", isChecked)
         }
 
         switchShowSuggestions?.setOnCheckedChangeListener { _, isChecked ->

@@ -26,12 +26,6 @@ class KeyboardView @JvmOverloads constructor(
     private val keyViews = Array(9) { index ->
         KeyView(context).apply {
             keyIndex = index + 1 // 1..9 matching key_1..key_9
-            isCenterKey = (index == 4) // key_5 is the center
-            zoneType = when (index / 3) {
-                0 -> KeyView.ZoneType.TOP
-                1 -> KeyView.ZoneType.MID
-                else -> KeyView.ZoneType.BOT
-            }
         }
     }
 

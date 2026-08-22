@@ -70,6 +70,7 @@ import com.flowboard.ime.engine.ScoringEngine
 import com.flowboard.ime.engine.WordPredictionEngine
 import com.flowboard.ime.ui.KeyboardView
 import com.flowboard.ime.ui.SwipeDetector
+import com.flowboard.ime.util.SoundHapticManager
 import com.flowboard.ime.util.ThemeManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -115,7 +116,10 @@ class FlowboardIMEService : InputMethodService() {
                     refreshLayout()
                 }
                 "sound_on_keypress" -> {
-                    isSoundEnabled = intent.getBooleanExtra("setting_val_bool", false)
+                    soundHapticManager.isSoundEnabled = intent.getBooleanExtra("setting_val_bool", false)
+                }
+                "vibration_on_keypress" -> {
+                    soundHapticManager.isVibrationEnabled = intent.getBooleanExtra("setting_val_bool", false)
                 }
                 "show_suggestions" -> {
                     isShowSuggestions = intent.getBooleanExtra("setting_val_bool", true)
@@ -169,6 +173,10 @@ class FlowboardIMEService : InputMethodService() {
     // Prediction Bar
     private var predictionRow: View? = null
     private var predictionBar: LinearLayout? = null
+    private var notificationBar: LinearLayout? = null
+    private var notificationText: TextView? = null
+    private var notificationDismissRunnable: Runnable? = null
+    private val notificationHandler = Handler(Looper.getMainLooper())
     private var pred1: TextView? = null
     private var pred2: TextView? = null
     private var pred3: TextView? = null
@@ -249,7 +257,8 @@ class FlowboardIMEService : InputMethodService() {
     private var floatingY = 100 // default offset from bottom in dp
     private var currentFloatingScale: Float = 1f
     private var isMorePanelOpen = false
-    private var isSoundEnabled = false
+    private var morePanelPage = 0
+    private val soundHapticManager by lazy { SoundHapticManager(this) }
     private var isShowSuggestions = true
 
     private val shortcutLabels = Array(10) { "" }
@@ -257,7 +266,8 @@ class FlowboardIMEService : InputMethodService() {
 
     private fun loadSettings() {
         val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
-        isSoundEnabled = prefs.getBoolean("sound_on_keypress", false)
+        soundHapticManager.isSoundEnabled = prefs.getBoolean("sound_on_keypress", false)
+        soundHapticManager.isVibrationEnabled = prefs.getBoolean("vibration_on_keypress", false)
         isShowSuggestions = prefs.getBoolean("show_suggestions", true)
         isDockedLeftHanded = prefs.getBoolean("docked_side_tools_left", false)
         isFloatingLeftHanded = prefs.getBoolean("floating_side_tools_left", false)
@@ -407,6 +417,8 @@ class FlowboardIMEService : InputMethodService() {
         // Prediction Bar
         // ══════════════════════════════════════════
         predictionBar = rootView.findViewById(R.id.predictionBar)
+        notificationBar = rootView.findViewById(R.id.notificationBar)
+        notificationText = rootView.findViewById(R.id.notificationText)
         quickPasteBar = rootView.findViewById(R.id.quickPasteBar)
         quickPasteText = rootView.findViewById(R.id.quickPasteText)
         quickPasteDismiss = rootView.findViewById<View>(R.id.quickPasteDismiss)?.apply {
@@ -474,16 +486,18 @@ class FlowboardIMEService : InputMethodService() {
             }
         }
 
-        val morePanel = rootView.findViewById<GridLayout>(R.id.morePanel)
+        val morePanel = rootView.findViewById<View>(R.id.morePanel)
         if (isMorePanelOpen) {
             keyboardView?.visibility = View.GONE
             morePanel?.visibility = View.VISIBLE
             rootView.post {
                 keyboardView?.let { kv ->
-                    val lp = morePanel.layoutParams
-                    val kvHeight = kv.height
-                    lp.height = if (kvHeight > 0) kvHeight else (220 * resources.displayMetrics.density).toInt()
-                    morePanel.layoutParams = lp
+                    val lp = morePanel?.layoutParams
+                    if (lp != null) {
+                        val kvHeight = kv.height
+                        lp.height = if (kvHeight > 0) kvHeight else (220 * resources.displayMetrics.density).toInt()
+                        morePanel?.layoutParams = lp
+                    }
                 }
                 renderMorePanel()
             }
@@ -513,12 +527,18 @@ class FlowboardIMEService : InputMethodService() {
             if (isNumberMode) {
                 when (action) {
                     SwipeDetector.SwipeAction.TAP -> commitChar("0")
-                    SwipeDetector.SwipeAction.DOWN -> commitChar(" ")
+                    SwipeDetector.SwipeAction.DOWN -> {
+                        soundHapticManager.playSwipe()
+                        commitChar(" ", playAudio = false)
+                    }
                     else -> commitChar("0")
                 }
             } else {
                 when (action) {
-                    SwipeDetector.SwipeAction.DOWN -> commitChar("0")
+                    SwipeDetector.SwipeAction.DOWN -> {
+                        soundHapticManager.playSwipe()
+                        commitChar("0", playAudio = false)
+                    }
                     else -> commitChar(" ")
                 }
             }
@@ -540,6 +560,7 @@ class FlowboardIMEService : InputMethodService() {
             when (action) {
                 SwipeDetector.SwipeAction.TAP -> commitChar(".")
                 SwipeDetector.SwipeAction.UP -> {
+                    soundHapticManager.playSwipe()
                     showSubPanel(emojiPanel)
                 }
                 else -> {}
@@ -591,6 +612,7 @@ class FlowboardIMEService : InputMethodService() {
         updateActiveButton()
 
         btnSizeSmall?.setOnClickListener {
+            soundHapticManager.playTap()
             currentScale = 1.0f
             prefs.edit { putFloat("docked_keyboard_scale", currentScale) }
             applyDockedScale(currentScale)
@@ -598,6 +620,7 @@ class FlowboardIMEService : InputMethodService() {
         }
         
         btnSizeMedium?.setOnClickListener {
+            soundHapticManager.playTap()
             currentScale = 1.2f
             prefs.edit { putFloat("docked_keyboard_scale", currentScale) }
             applyDockedScale(currentScale)
@@ -605,6 +628,7 @@ class FlowboardIMEService : InputMethodService() {
         }
         
         btnSizeLarge?.setOnClickListener {
+            soundHapticManager.playTap()
             currentScale = 1.5f
             prefs.edit { putFloat("docked_keyboard_scale", currentScale) }
             applyDockedScale(currentScale)
@@ -612,6 +636,7 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         btnCloseHeightAdjust?.setOnClickListener {
+            soundHapticManager.playTap()
             heightAdjustLayout?.visibility = View.GONE
             keyboardView?.visibility = View.VISIBLE
             renderToolbar()
@@ -647,27 +672,33 @@ class FlowboardIMEService : InputMethodService() {
             }
 
             btnSelect?.setOnClickListener {
+                soundHapticManager.playTap()
                 isTextSelecting = !isTextSelecting
                 updateSelectButtonState()
             }
 
             btnSelectAll?.setOnClickListener {
+                soundHapticManager.playTap()
                 currentInputConnection?.performContextMenuAction(android.R.id.selectAll)
             }
 
             btnCut?.setOnClickListener {
+                soundHapticManager.playTap()
                 currentInputConnection?.performContextMenuAction(android.R.id.cut)
             }
 
             btnCopy?.setOnClickListener {
+                soundHapticManager.playTap()
                 currentInputConnection?.performContextMenuAction(android.R.id.copy)
             }
 
             btnPaste?.setOnClickListener {
+                soundHapticManager.playTap()
                 currentInputConnection?.performContextMenuAction(android.R.id.paste)
             }
 
             btnDelete?.setOnClickListener {
+                soundHapticManager.playTap()
                 handleDelete()
             }
 
@@ -708,6 +739,7 @@ class FlowboardIMEService : InputMethodService() {
             val btnOpenFullThemes = panel.findViewById<TextView>(R.id.btnOpenFullThemes)
 
             fun applyThemeDirect(themeName: String, darkOverride: Boolean? = null) {
+                soundHapticManager.playTap()
                 isDarkModeOverride = darkOverride
                 getSharedPreferences("flowboard_settings", MODE_PRIVATE).edit {
                     putString("active_theme", themeName)
@@ -732,6 +764,7 @@ class FlowboardIMEService : InputMethodService() {
             pCoral?.setOnClickListener { applyThemeDirect("Warm Bokeh", false) }
 
             btnOpenFullThemes?.setOnClickListener {
+                soundHapticManager.playTap()
                 val intent = Intent(this, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra("OPEN_PAGE", "themes")
@@ -882,6 +915,7 @@ class FlowboardIMEService : InputMethodService() {
             speechRecognizer = null
         } catch (_: Exception) {}
         liveLearningManager.saveProfileIfDirty()
+        soundHapticManager.release()
         try {
             unregisterReceiver(settingsReceiver)
         } catch (_: Exception) {
@@ -1124,7 +1158,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun isAnySubPanelOpen(): Boolean {
-        val morePanel = keyboardRoot?.findViewById<GridLayout>(R.id.morePanel)
+        val morePanel = keyboardRoot?.findViewById<View>(R.id.morePanel)
         return isMorePanelOpen ||
                 (morePanel?.isVisible == true) ||
                 (clipboardPanel?.isVisible == true) ||
@@ -1137,7 +1171,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun hideAllSubPanels() {
-        keyboardRoot?.findViewById<GridLayout>(R.id.morePanel)?.visibility = View.GONE
+        keyboardRoot?.findViewById<View>(R.id.morePanel)?.visibility = View.GONE
         clipboardPanel?.visibility = View.GONE
         textEditPanel?.visibility = View.GONE
         quickThemePanel?.visibility = View.GONE
@@ -1203,6 +1237,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun sendDpadKey(keyCode: Int, isShift: Boolean) {
+        soundHapticManager.playTap()
         val ic = currentInputConnection ?: return
         val now = SystemClock.uptimeMillis()
         if (isShift) {
@@ -1334,6 +1369,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun executeToolbarAction(action: ToolbarAction) {
+        soundHapticManager.playTap()
         when (action) {
             ToolbarAction.HANDEDNESS -> {
                 if (isFloatingMode) {
@@ -1429,7 +1465,8 @@ class FlowboardIMEService : InputMethodService() {
                 }
 
                 isMorePanelOpen = true
-                val morePanel = keyboardRoot?.findViewById<GridLayout>(R.id.morePanel)
+                morePanelPage = 0
+                val morePanel = keyboardRoot?.findViewById<View>(R.id.morePanel)
                 showSubPanel(morePanel)
                 renderMorePanel()
             }
@@ -1437,27 +1474,92 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun renderMorePanel() {
-        val panel = keyboardRoot?.findViewById<GridLayout>(R.id.morePanel) ?: return
-        panel.removeAllViews()
-        
+        val grid = keyboardRoot?.findViewById<GridLayout>(R.id.morePanelGrid) ?: return
+        grid.removeAllViews()
+
         val context = getThemedContext()
         val density = resources.displayMetrics.density
         val p = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
         val activeTheme = p.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
         val colors = ThemeManager.getThemeColors(context, activeTheme, isEffectiveDarkMode())
-        
-        for (action in allActions) {
+
+        val morePageDot1 = keyboardRoot?.findViewById<View>(R.id.morePageDot1)
+        val morePageDot2 = keyboardRoot?.findViewById<View>(R.id.morePageDot2)
+        val btnMorePage1 = keyboardRoot?.findViewById<View>(R.id.btnMorePage1)
+        val btnMorePage2 = keyboardRoot?.findViewById<View>(R.id.btnMorePage2)
+
+        // 9 items per page (3x3)
+        val pageSize = 9
+        val pageActions = if (morePanelPage == 0) {
+            allActions.take(pageSize)
+        } else {
+            allActions.drop(pageSize)
+        }
+
+        // Update Dots
+        val activeColor = colors.accent
+        val inactiveColor = Color.argb(80, Color.red(colors.textTap), Color.green(colors.textTap), Color.blue(colors.textTap))
+
+        if (morePanelPage == 0) {
+            morePageDot1?.backgroundTintList = ColorStateList.valueOf(activeColor)
+            morePageDot2?.backgroundTintList = ColorStateList.valueOf(inactiveColor)
+        } else {
+            morePageDot1?.backgroundTintList = ColorStateList.valueOf(inactiveColor)
+            morePageDot2?.backgroundTintList = ColorStateList.valueOf(activeColor)
+        }
+
+        btnMorePage1?.setOnClickListener {
+            if (morePanelPage != 0) {
+                soundHapticManager.playSwipe()
+                morePanelPage = 0
+                renderMorePanel()
+            }
+        }
+
+        btnMorePage2?.setOnClickListener {
+            if (morePanelPage != 1) {
+                soundHapticManager.playSwipe()
+                morePanelPage = 1
+                renderMorePanel()
+            }
+        }
+
+        val moreSwipeDetector = SwipeDetector(thresholdPx = 25f * density) { action ->
+            when (action) {
+                SwipeDetector.SwipeAction.LEFT -> {
+                    if (morePanelPage == 0) {
+                        soundHapticManager.playSwipe()
+                        morePanelPage = 1
+                        renderMorePanel()
+                    }
+                }
+                SwipeDetector.SwipeAction.RIGHT -> {
+                    if (morePanelPage == 1) {
+                        soundHapticManager.playSwipe()
+                        morePanelPage = 0
+                        renderMorePanel()
+                    }
+                }
+                else -> {}
+            }
+        }
+        keyboardRoot?.findViewById<View>(R.id.morePanel)?.setOnTouchListener { _, event ->
+            moreSwipeDetector.onTouchEvent(event)
+            true
+        }
+
+        for (action in pageActions) {
             val itemLayout = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
                 val padding = (6 * density).toInt()
                 setPadding(padding, padding, padding, padding)
-                
+
                 val outValue = TypedValue()
                 context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
                 setBackgroundResource(outValue.resourceId)
             }
-            
+
             val iconRes = when (action) {
                 ToolbarAction.HANDEDNESS -> R.drawable.ic_handedness
                 ToolbarAction.THEME -> R.drawable.ic_theme
@@ -1472,22 +1574,22 @@ class FlowboardIMEService : InputMethodService() {
                 ToolbarAction.DELETE -> R.drawable.ic_backspace
                 ToolbarAction.MORE -> R.drawable.ic_more
             }
-            
+
             val iv = ImageView(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
-                    (32 * density).toInt(),
-                    (32 * density).toInt()
+                    (30 * density).toInt(),
+                    (30 * density).toInt()
                 )
                 setImageResource(iconRes)
                 setColorFilter(colors.textTap)
             }
-            
+
             val tv = TextView(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
                 ).apply {
-                    topMargin = (3 * density).toInt()
+                    topMargin = (2 * density).toInt()
                 }
                 @Suppress("SetTextI18n")
                 text = when (action) {
@@ -1507,21 +1609,21 @@ class FlowboardIMEService : InputMethodService() {
                 setTextColor(colors.textTap)
                 gravity = Gravity.CENTER
             }
-            
+
             itemLayout.addView(iv)
             itemLayout.addView(tv)
-            
+
             itemLayout.setOnClickListener {
                 executeToolbarAction(action)
             }
-            
+
             itemLayout.setOnLongClickListener { v ->
                 val clipData = android.content.ClipData.newPlainText("action", action.name)
                 val shadowBuilder = View.DragShadowBuilder(v)
                 v.startDragAndDrop(clipData, shadowBuilder, v, 0)
                 true
             }
-            
+
             val params = GridLayout.LayoutParams().apply {
                 width = 0
                 height = 0
@@ -1529,7 +1631,21 @@ class FlowboardIMEService : InputMethodService() {
                 rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
             }
             itemLayout.layoutParams = params
-            panel.addView(itemLayout)
+            grid.addView(itemLayout)
+        }
+
+        // Fill remaining slots on page with dummy invisible cells to maintain consistent 3x3 layout dimensions
+        val dummyCount = pageSize - pageActions.size
+        for (i in 0 until dummyCount) {
+            val dummy = View(context).apply {
+                layoutParams = GridLayout.LayoutParams().apply {
+                    width = 0
+                    height = 0
+                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                    rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                }
+            }
+            grid.addView(dummy)
         }
     }
 
@@ -2199,6 +2315,12 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         if (charToType.isNotEmpty()) {
+            if (action == SwipeDetector.SwipeAction.TAP) {
+                soundHapticManager.playTap()
+            } else {
+                soundHapticManager.playSwipe()
+            }
+
             if (action != SwipeDetector.SwipeAction.DOWN) {
                 val slotStr = when (action) {
                     SwipeDetector.SwipeAction.TAP -> "tap"
@@ -2215,14 +2337,39 @@ class FlowboardIMEService : InputMethodService() {
                 repo.lastActionSlot = null
                 repo.lastActionChar = null
             }
-            commitChar(charToType)
+            commitChar(charToType, playAudio = false)
         }
     }
 
+    private fun showPredictionNotification(message: String, durationMs: Long = 2000L) {
+        notificationDismissRunnable?.let { notificationHandler.removeCallbacks(it) }
+
+        notificationText?.text = message
+        notificationBar?.visibility = View.VISIBLE
+        quickPasteBar?.visibility = View.GONE
+        predictionBar?.visibility = View.GONE
+
+        val wasPredictionRowVisible = predictionRow?.visibility == View.VISIBLE
+        predictionRow?.visibility = View.VISIBLE
+
+        notificationDismissRunnable = Runnable {
+            notificationBar?.visibility = View.GONE
+            if (isNumberMode) {
+                predictionBar?.visibility = View.GONE
+                predictionRow?.visibility = if (wasPredictionRowVisible) View.VISIBLE else View.GONE
+            } else if (isShowSuggestions) {
+                updatePredictions()
+            } else {
+                predictionRow?.visibility = View.GONE
+            }
+        }
+        notificationHandler.postDelayed(notificationDismissRunnable!!, durationMs)
+    }
+
     private fun handleNumberModeDownSwipe(keyIndex: Int) {
+        soundHapticManager.playSwipe()
         val shortcutText = shortcutTexts.getOrNull(keyIndex)
         if (!shortcutText.isNullOrEmpty()) {
-            playClick(0)
             lastLocalActionTime = SystemClock.uptimeMillis()
             synchronized(typedText) {
                 typedTextHistory.add(typedText.toString())
@@ -2239,6 +2386,8 @@ class FlowboardIMEService : InputMethodService() {
             repo.lastActionSlot = null
             repo.lastActionChar = null
             repo.stickyChar = null
+        } else {
+            showPredictionNotification("No shortcut assigned to Key $keyIndex")
         }
     }
 
@@ -2325,9 +2474,15 @@ class FlowboardIMEService : InputMethodService() {
         return before + appendChar
     }
 
-    private fun commitChar(char: String) {
+    private fun commitChar(char: String, playAudio: Boolean = true) {
         lastLocalActionTime = SystemClock.uptimeMillis()
-        playClick(if (char == " ") 32 else 0)
+        if (playAudio) {
+            if (char == " ") {
+                soundHapticManager.playSpace()
+            } else {
+                soundHapticManager.playTap()
+            }
+        }
         
         // Smart Quote Normalization (P21 feature) (Task 7)
         val normalizedChar = char
@@ -2539,6 +2694,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun handleUndo() {
+        soundHapticManager.playTap()
         val lastState = synchronized(typedText) {
             if (typedTextHistory.isNotEmpty()) {
                 val current = typedText.toString()
@@ -2568,6 +2724,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun handleRedo() {
+        soundHapticManager.playTap()
         val nextState = synchronized(typedText) {
             if (typedTextRedoHistory.isNotEmpty()) {
                 val current = typedText.toString()
@@ -2597,6 +2754,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun handleClearAll() {
+        soundHapticManager.playTap()
         val ic = currentInputConnection ?: return
         val currentLen = synchronized(typedText) {
             val len = typedText.length
@@ -2858,14 +3016,11 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun playClick(keyCode: Int) {
-        if (!isSoundEnabled) return
-        
-        val am = getSystemService(AUDIO_SERVICE) as? AudioManager
         when (keyCode) {
-            32 -> am?.playSoundEffect(AudioManager.FX_KEYPRESS_SPACEBAR)
-            KeyEvent.KEYCODE_DEL -> am?.playSoundEffect(AudioManager.FX_KEYPRESS_DELETE)
-            10, 66 -> am?.playSoundEffect(AudioManager.FX_KEYPRESS_RETURN)
-            else -> am?.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD)
+            32 -> soundHapticManager.playSpace()
+            KeyEvent.KEYCODE_DEL -> soundHapticManager.playDelete()
+            10, 66 -> soundHapticManager.playReturn()
+            else -> soundHapticManager.playTap()
         }
     }
 
@@ -2906,6 +3061,9 @@ class FlowboardIMEService : InputMethodService() {
         pred2?.setTextColor(textTapColor)
         pred3?.backgroundTintList = keyBgTintList
         pred3?.setTextColor(textTapColor)
+
+        notificationBar?.backgroundTintList = keyBgTintList
+        notificationText?.setTextColor(textTapColor)
         
         btnDelete?.backgroundTintList = keyBgTintList
         btnDelete?.imageTintList = ColorStateList.valueOf(textTapColor)

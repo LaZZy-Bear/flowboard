@@ -241,12 +241,8 @@ class KeyView @JvmOverloads constructor(
 
         // ── Key Background ──
         boundsRect.set(0f, 0f, w, h - shadowOffset)
-        if (isPressed) {
-            bgPaint.shader = null
-            bgPaint.color = colorKeyActive
-        } else {
-            bgPaint.shader = normalGradientShader
-        }
+        bgPaint.shader = null
+        bgPaint.color = if (isPressed) colorKeyActive else colorKeyBg
         canvas.drawRoundRect(boundsRect, cornerRadius, cornerRadius, bgPaint)
 
         // ════════════════════════════════════════
@@ -259,10 +255,7 @@ class KeyView @JvmOverloads constructor(
         // ── Center Character (Tap) ──
         if (keySlots.tap.isNotEmpty()) {
             tapTextPaint.textSize = tapTextSize
-            tapTextPaint.color = when {
-                isCenterKey && !isAltMode -> colorAccent
-                else -> colorTextTap
-            }
+            tapTextPaint.color = colorTextTap
             var textY = centerY - (tapTextPaint.descent() + tapTextPaint.ascent()) / 2f
             
             // Shift tall Thai characters downwards slightly to prevent overlapping with top text

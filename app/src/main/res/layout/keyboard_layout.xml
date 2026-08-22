@@ -203,6 +203,28 @@
                         android:contentDescription="Dismiss" />
                 </LinearLayout>
 
+                <!-- Notification Bar (Temporarily shows info like empty shortcut alert) -->
+                <LinearLayout
+                    android:id="@+id/notificationBar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_gravity="center"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:background="@drawable/prediction_key_bg"
+                    android:paddingHorizontal="16dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/notificationText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_tap"
+                        android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+
                 <LinearLayout
                     android:id="@+id/predictionBar"
                     android:layout_width="match_parent"
@@ -280,17 +302,65 @@
                 android:layout_weight="1" />
 
             <!-- More Panel Container (initially GONE) -->
-            <GridLayout
+            <LinearLayout
                 android:id="@+id/morePanel"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:columnCount="3"
-                android:rowCount="3"
-                android:padding="6dp"
+                android:orientation="vertical"
                 android:visibility="gone">
-                <!-- Dynamically populated in code -->
-            </GridLayout>
+
+                <GridLayout
+                    android:id="@+id/morePanelGrid"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:columnCount="3"
+                    android:rowCount="3"
+                    android:padding="6dp">
+                    <!-- Dynamically populated in code -->
+                </GridLayout>
+
+                <!-- Small Pagination Row at the bottom -->
+                <LinearLayout
+                    android:id="@+id/morePanelPagination"
+                    android:layout_width="match_parent"
+                    android:layout_height="22dp"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingBottom="4dp">
+
+                    <FrameLayout
+                        android:id="@+id/btnMorePage1"
+                        android:layout_width="28dp"
+                        android:layout_height="20dp"
+                        android:foreground="?attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <View
+                            android:id="@+id/morePageDot1"
+                            android:layout_width="8dp"
+                            android:layout_height="8dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/page_dot_active" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:id="@+id/btnMorePage2"
+                        android:layout_width="28dp"
+                        android:layout_height="20dp"
+                        android:foreground="?attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <View
+                            android:id="@+id/morePageDot2"
+                            android:layout_width="8dp"
+                            android:layout_height="8dp"
+                            android:layout_gravity="center"
+                            android:background="@drawable/page_dot_inactive" />
+                    </FrameLayout>
+                </LinearLayout>
+            </LinearLayout>
 
             <!-- Text Editing Panel (initially GONE) -->
             <include
