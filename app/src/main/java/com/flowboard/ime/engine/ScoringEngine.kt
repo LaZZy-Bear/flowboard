@@ -551,11 +551,9 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         if (prefixLen <= 1) return false
 
         // No triple repetition
-        if (prefixLen >= 2) {
-            val prev = activePrefix[prefixLen - 2].toString()
-            val curr = activePrefix[prefixLen - 1].toString()
-            if (prev == safeChar && curr == safeChar) return false
-        }
+        val prev = activePrefix[prefixLen - 2].toString()
+        val curr = activePrefix[prefixLen - 1].toString()
+        if (prev == safeChar && curr == safeChar) return false
 
         // Sticky key / doubling ONLY applies if activePrefix already ends with the typed character
         if (!activePrefix.endsWith(safeChar)) return false

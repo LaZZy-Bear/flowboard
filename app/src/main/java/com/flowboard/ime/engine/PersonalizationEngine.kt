@@ -46,10 +46,6 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         private const val FREQ_MAX = 75.0
         private const val FREQ_HIGH = 60.0
         private const val FREQ_MID = 45.0
-        private const val FREQ_LOW = 30.0
-
-        // Uncertainty gap: if top-2 gap < this, apply frequent-words boost in word-start states
-        private const val UNCERTAINTY_GAP = 15.0
     }
 
     /**
