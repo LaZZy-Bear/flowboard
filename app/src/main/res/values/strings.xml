@@ -114,7 +114,7 @@
     <string name="adapt_to_typing_history">Adapt to your typing history</string>
     <string name="general_section">General</string>
     <string name="word_pairs">Word Pairs</string>
-    <string name="word_pairs_desc">Predict frequent 2-3 word combinations</string>
+    <string name="word_pairs_desc">Predict frequent 2&#8211;3 word combinations</string>
     <string name="frequent_words">Frequent Words</string>
     <string name="frequent_words_desc">Prioritize top personal words</string>
     <string name="alphanumeric_words">Alphanumeric Words</string>
@@ -127,7 +127,7 @@
     <string name="learned_word_priority_desc">Multiplier for new words</string>
     <string name="learned_word_priority_default">1.3x (Default)</string>
     <string name="first_type_bonus">First-Type Bonus</string>
-    <string name="first_type_bonus_desc">Immediate score push (1-2 times)</string>
+    <string name="first_type_bonus_desc">Immediate score push (1&#8211;2 times)</string>
     <string name="first_type_bonus_default">+30 (Default)</string>
     <string name="uncertainty_gap">Uncertainty Gap</string>
     <string name="uncertainty_gap_desc">Confidence threshold</string>
