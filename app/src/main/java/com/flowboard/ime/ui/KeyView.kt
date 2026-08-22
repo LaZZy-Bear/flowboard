@@ -56,9 +56,6 @@ class KeyView @JvmOverloads constructor(
             invalidate()
         }
 
-    /** Whether this is the center key (key_5) — center text is accent-colored */
-    var isCenterKey: Boolean = false
-
     /** Whether the keyboard is in Alt Mode */
     var isAltMode: Boolean = false
 

@@ -60,6 +60,8 @@
     <string name="english_us">English (US)</string>
     <string name="sound_on_keypress">Sound on keypress</string>
     <string name="sound_on_keypress_desc">Play sound effects when typing</string>
+    <string name="vibration_on_keypress">Vibration on keypress</string>
+    <string name="vibration_on_keypress_desc">Haptic feedback on tap and swipe</string>
     <string name="show_suggestions">Show suggestions</string>
     <string name="show_suggestions_desc">Display prediction bar above keyboard</string>
     <string name="personalization_and_learning">Personalization &amp; Learning</string>

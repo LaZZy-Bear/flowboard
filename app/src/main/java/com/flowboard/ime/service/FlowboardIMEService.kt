@@ -21,7 +21,6 @@ import com.flowboard.ime.data.EmojiRepository
 import com.flowboard.ime.ui.EmojiAdapter
 import android.content.pm.PackageManager
 import com.flowboard.ime.data.ClipboardManagerHelper
-import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -496,7 +495,7 @@ class FlowboardIMEService : InputMethodService() {
                     if (lp != null) {
                         val kvHeight = kv.height
                         lp.height = if (kvHeight > 0) kvHeight else (220 * resources.displayMetrics.density).toInt()
-                        morePanel?.layoutParams = lp
+                        morePanel.layoutParams = lp
                     }
                 }
                 renderMorePanel()
@@ -1473,6 +1472,7 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun renderMorePanel() {
         val grid = keyboardRoot?.findViewById<GridLayout>(R.id.morePanelGrid) ?: return
         grid.removeAllViews()
@@ -1543,8 +1543,11 @@ class FlowboardIMEService : InputMethodService() {
                 else -> {}
             }
         }
-        keyboardRoot?.findViewById<View>(R.id.morePanel)?.setOnTouchListener { _, event ->
+        keyboardRoot?.findViewById<View>(R.id.morePanel)?.setOnTouchListener { v, event ->
             moreSwipeDetector.onTouchEvent(event)
+            if (event.action == MotionEvent.ACTION_UP) {
+                v.performClick()
+            }
             true
         }
 
@@ -1636,7 +1639,7 @@ class FlowboardIMEService : InputMethodService() {
 
         // Fill remaining slots on page with dummy invisible cells to maintain consistent 3x3 layout dimensions
         val dummyCount = pageSize - pageActions.size
-        for (i in 0 until dummyCount) {
+        repeat(dummyCount) {
             val dummy = View(context).apply {
                 layoutParams = GridLayout.LayoutParams().apply {
                     width = 0
