@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Section 1: Appearance Mode -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="APPEARANCE MODE"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:orientation="horizontal">
+
+            <!-- Auto / System Default -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardThemeAuto"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeColor="?attr/colorPrimary"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:src="@drawable/ic_sun"
+                            app:tint="#FFA000" />
+
+                        <ImageView
+                            android:id="@+id/checkThemeAuto"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="top|end"
+                            android:background="@drawable/send_btn_bg"
+                            android:padding="2dp"
+                            android:src="@drawable/ic_check"
+                            android:visibility="gone"
+                            app:tint="@android:color/white" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Auto"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Light Mode -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardThemeLight"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="3dp"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeColor="?attr/colorPrimary"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:src="@drawable/ic_sun"
+                            app:tint="#F57C00" />
+
+                        <ImageView
+                            android:id="@+id/checkThemeLight"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="top|end"
+                            android:background="@drawable/send_btn_bg"
+                            android:padding="2dp"
+                            android:src="@drawable/ic_check"
+                            android:visibility="gone"
+                            app:tint="@android:color/white" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Light"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Dark Mode -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardThemeDark"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeColor="?attr/colorPrimary"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:src="@drawable/ic_moon"
+                            app:tint="#7C4DFF" />
+
+                        <ImageView
+                            android:id="@+id/checkThemeDark"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="top|end"
+                            android:background="@drawable/send_btn_bg"
+                            android:padding="2dp"
+                            android:src="@drawable/ic_check"
+                            android:visibility="gone"
+                            app:tint="@android:color/white" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Dark"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+        <!-- Section 2: Color Themes (Ocean Blue, Mint Teal, Sunset Coral) -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="COLOR THEMES"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:orientation="horizontal">
+
+            <!-- Ocean Blue (Blue) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardColorBlue"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeColor="?attr/colorPrimary"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:background="#E3F2FD"
+                        android:padding="8dp">
+
+                        <View
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:background="@drawable/send_btn_bg"
+                            android:backgroundTint="#0984E3" />
+
+                        <ImageView
+                            android:id="@+id/checkColorBlue"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="top|end"
+                            android:background="@drawable/send_btn_bg"
+                            android:padding="2dp"
+                            android:src="@drawable/ic_check"
+                            android:visibility="gone"
+                            app:tint="@android:color/white" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Ocean Blue"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Mint Teal (Geo Grid) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardColorTeal"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeColor="?attr/colorPrimary"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:background="#ECEFF1"
+                        android:padding="8dp">
+
+                        <View
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:background="@drawable/send_btn_bg"
+                            android:backgroundTint="#00B894" />
+
+                        <ImageView
+                            android:id="@+id/checkColorTeal"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="top|end"
+                            android:background="@drawable/send_btn_bg"
+                            android:padding="2dp"
+                            android:src="@drawable/ic_check"
+                            android:visibility="gone"
+                            app:tint="@android:color/white" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Mint Teal"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+        <!-- Sunset Coral (Warm Bokeh) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardColorCoral"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:clickable="true"
+            android:focusable="true"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp"
+            app:strokeColor="?attr/colorPrimary"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:background="#FAF5EC"
+                    android:padding="8dp">
+
+                    <View
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:background="@drawable/send_btn_bg"
+                        android:backgroundTint="#E17055" />
+
+                    <ImageView
+                        android:id="@+id/checkColorCoral"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="top|end"
+                        android:background="@drawable/send_btn_bg"
+                        android:padding="2dp"
+                        android:src="@drawable/ic_check"
+                        android:visibility="gone"
+                        app:tint="@android:color/white" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Sunset Coral"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -97,20 +97,68 @@ class FlowboardIMEService : InputMethodService() {
 
     private val settingsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d(TAG, "Settings or theme changed — updating keyboard state")
-            context?.let { ctx ->
-                liveLearningManager.loadProfile()
-                AssetLoader(ctx).updatePersonalizationState(ctx, repo)
-            }
-            loadSettings()
-            setHandedness(if (isFloatingMode) isFloatingLeftHanded else isDockedLeftHanded)
-            val root = keyboardRoot
-            if (root != null) {
-                applySettingsAndTheme(root, getThemedContext())
-                refreshLayout()
-                updatePredictions()
-            } else {
-                setInputView(onCreateInputView())
+            val key = intent?.getStringExtra("setting_key")
+            Log.d(TAG, "Settings or theme changed in memory: key=$key")
+
+            when (key) {
+                "active_theme" -> {
+                    val themeName = intent.getStringExtra("setting_val_str") ?: "Clean Minimal"
+                    isDarkModeOverride = when (themeName) {
+                        "Dark" -> true
+                        "Light" -> false
+                        else -> null
+                    }
+                    val root = keyboardRoot ?: return
+                    applySettingsAndTheme(root, getThemedContext())
+                    keyboardView?.refreshTheme()
+                    renderToolbar()
+                    refreshLayout()
+                }
+                "sound_on_keypress" -> {
+                    isSoundEnabled = intent.getBooleanExtra("setting_val_bool", false)
+                }
+                "show_suggestions" -> {
+                    isShowSuggestions = intent.getBooleanExtra("setting_val_bool", true)
+                    predictionRow?.visibility = if (isShowSuggestions) View.VISIBLE else View.GONE
+                }
+                "docked_side_tools_left" -> {
+                    isDockedLeftHanded = intent.getBooleanExtra("setting_val_bool", false)
+                    setHandedness(if (isFloatingMode) isFloatingLeftHanded else isDockedLeftHanded)
+                }
+                "floating_side_tools_left" -> {
+                    isFloatingLeftHanded = intent.getBooleanExtra("setting_val_bool", false)
+                    setHandedness(if (isFloatingMode) isFloatingLeftHanded else isDockedLeftHanded)
+                }
+                "delete_btn_follow_side_tools", "delete_btn_fixed_side" -> {
+                    updateDeleteButtonPosition()
+                }
+                else -> {
+                    if (key?.startsWith("shortcut_") == true) {
+                        val num = intent.getIntExtra("shortcut_key_num", 0)
+                        if (num in 1..9) {
+                            shortcutLabels[num] = intent.getStringExtra("shortcut_label") ?: ""
+                            shortcutTexts[num] = intent.getStringExtra("shortcut_text") ?: ""
+                            if (isNumberMode) {
+                                refreshLayout()
+                            }
+                        }
+                    } else {
+                        // Personalization / clear data / general reload
+                        loadSettings()
+                        context?.let { ctx ->
+                            liveLearningManager.loadProfile()
+                            AssetLoader(ctx).updatePersonalizationState(ctx, repo)
+                        }
+                        val root = keyboardRoot
+                        if (root != null) {
+                            applySettingsAndTheme(root, getThemedContext())
+                            keyboardView?.refreshTheme()
+                            refreshLayout()
+                            renderToolbar()
+                            updatePredictions()
+                        }
+                    }
+                }
             }
         }
     }
@@ -201,12 +249,16 @@ class FlowboardIMEService : InputMethodService() {
     private var floatingY = 100 // default offset from bottom in dp
     private var currentFloatingScale: Float = 1f
     private var isMorePanelOpen = false
+    private var isSoundEnabled = false
+    private var isShowSuggestions = true
 
     private val shortcutLabels = Array(10) { "" }
     private val shortcutTexts = Array(10) { "" }
 
     private fun loadSettings() {
         val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+        isSoundEnabled = prefs.getBoolean("sound_on_keypress", false)
+        isShowSuggestions = prefs.getBoolean("show_suggestions", true)
         isDockedLeftHanded = prefs.getBoolean("docked_side_tools_left", false)
         isFloatingLeftHanded = prefs.getBoolean("floating_side_tools_left", false)
         isFloatingMode = prefs.getBoolean("is_floating_mode", false)
@@ -306,7 +358,7 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(settingsReceiver, IntentFilter("com.flowboard.ime.ACTION_SETTINGS_CHANGED"), RECEIVER_NOT_EXPORTED)
+            registerReceiver(settingsReceiver, IntentFilter("com.flowboard.ime.ACTION_SETTINGS_CHANGED"), RECEIVER_EXPORTED)
         } else {
             @Suppress("UnspecifiedRegisterReceiverFlag")
             registerReceiver(settingsReceiver, IntentFilter("com.flowboard.ime.ACTION_SETTINGS_CHANGED"))
@@ -316,6 +368,7 @@ class FlowboardIMEService : InputMethodService() {
     @SuppressLint("ClickableViewAccessibility", "InflateParams")
     override fun onCreateInputView(): View {
         Log.d(TAG, "onCreateInputView")
+        loadSettings()
         
         val themedContext = getThemedContext()
         val inflater = LayoutInflater.from(themedContext)
@@ -649,11 +702,9 @@ class FlowboardIMEService : InputMethodService() {
             val btnThemeLight = panel.findViewById<TextView>(R.id.btnThemeLight)
             val btnThemeDark = panel.findViewById<TextView>(R.id.btnThemeDark)
             val btnThemeSystem = panel.findViewById<TextView>(R.id.btnThemeSystem)
-            val pPurple = panel.findViewById<FrameLayout>(R.id.palettePurple)
             val pOcean = panel.findViewById<FrameLayout>(R.id.paletteOcean)
             val pTeal = panel.findViewById<FrameLayout>(R.id.paletteTeal)
             val pCoral = panel.findViewById<FrameLayout>(R.id.paletteCoral)
-            val pMidnight = panel.findViewById<FrameLayout>(R.id.paletteMidnight)
             val btnOpenFullThemes = panel.findViewById<TextView>(R.id.btnOpenFullThemes)
 
             fun applyThemeDirect(themeName: String, darkOverride: Boolean? = null) {
@@ -676,16 +727,14 @@ class FlowboardIMEService : InputMethodService() {
             btnThemeDark?.setOnClickListener { applyThemeDirect("Dark", true) }
             btnThemeSystem?.setOnClickListener { applyThemeDirect("System default", null) }
 
-            pPurple?.setOnClickListener { applyThemeDirect("Clean Minimal", false) }
             pOcean?.setOnClickListener { applyThemeDirect("Blue", false) }
             pTeal?.setOnClickListener { applyThemeDirect("Geo Grid", false) }
             pCoral?.setOnClickListener { applyThemeDirect("Warm Bokeh", false) }
-            pMidnight?.setOnClickListener { applyThemeDirect("Dark", true) }
 
             btnOpenFullThemes?.setOnClickListener {
                 val intent = Intent(this, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    putExtra("OPEN_PAGE", "themes.html")
+                    putExtra("OPEN_PAGE", "themes")
                 }
                 startActivity(intent)
             }
@@ -767,9 +816,10 @@ class FlowboardIMEService : InputMethodService() {
             scoringEngine.resetTrieCache()
         }
         
-        keyboardRoot?.let { applySettingsAndTheme(it, getThemedContext()) }
         updateSendButtonIcon(info)
-        updateFloatingWindowMode()
+        if (isFloatingMode) {
+            updateFloatingWindowMode()
+        }
 
         // Reset typing state for a new input field
         repo.lastActionKeyId = null
@@ -1365,7 +1415,7 @@ class FlowboardIMEService : InputMethodService() {
             ToolbarAction.SETTINGS -> {
                 val intent = Intent(this, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    putExtra("OPEN_PAGE", "settings.html")
+                    putExtra("OPEN_PAGE", "settings")
                 }
                 startActivity(intent)
             }
@@ -2173,32 +2223,22 @@ class FlowboardIMEService : InputMethodService() {
         val shortcutText = shortcutTexts.getOrNull(keyIndex)
         if (!shortcutText.isNullOrEmpty()) {
             playClick(0)
-            currentInputConnection?.commitText(shortcutText, 1)
-            typedTextRedoHistory.clear()
-        } else {
-            showToastMessage("No shortcut set for Key $keyIndex")
-        }
-    }
-
-    private fun showToastMessage(message: String) {
-        Handler(Looper.getMainLooper()).post {
-            try {
-                Toast.makeText(this@FlowboardIMEService, message, Toast.LENGTH_SHORT).show()
-            } catch (_: Exception) {}
-            // Also flash feedback on the prediction bar chip so it is 100% visible immediately
-            pred1?.text = message
-            pred1?.visibility = View.VISIBLE
-            pred2?.visibility = View.GONE
-            pred3?.visibility = View.GONE
-            predictionBar?.visibility = View.VISIBLE
-            predictionRow?.visibility = View.VISIBLE
-            Handler(Looper.getMainLooper()).postDelayed({
-                if (isNumberMode) {
-                    predictionBar?.visibility = View.INVISIBLE
-                } else {
-                    updatePredictions()
-                }
-            }, 1200)
+            lastLocalActionTime = SystemClock.uptimeMillis()
+            synchronized(typedText) {
+                typedTextHistory.add(typedText.toString())
+                typedTextRedoHistory.clear()
+                typedText.append(shortcutText)
+            }
+            val ic = currentInputConnection
+            if (ic != null) {
+                isCommiting = true
+                ic.commitText(shortcutText, 1)
+                isCommiting = false
+            }
+            repo.lastActionKeyId = null
+            repo.lastActionSlot = null
+            repo.lastActionChar = null
+            repo.stickyChar = null
         }
     }
 
@@ -2210,8 +2250,8 @@ class FlowboardIMEService : InputMethodService() {
         
         if (isCommiting) return
 
-        // Fast path: if selection change was from local keyboard action in last 150ms
-        if (SystemClock.uptimeMillis() - lastLocalActionTime < 150) {
+        // Fast path: if selection change was from local keyboard action in last 350ms
+        if (SystemClock.uptimeMillis() - lastLocalActionTime < 350) {
             return
         }
 
@@ -2340,13 +2380,40 @@ class FlowboardIMEService : InputMethodService() {
         repo.lastActionChar = null
         repo.stickyChar = null
 
+        var deleteCount = 1
         synchronized(typedText) {
             typedTextHistory.add(typedText.toString())
             typedTextRedoHistory.clear()
             if (typedText.isNotEmpty()) {
-                val lastCp = Character.codePointBefore(typedText, typedText.length)
-                val count = Character.charCount(lastCp)
+                val len = typedText.length
+                var i = len
+                val cp = Character.codePointBefore(typedText, i)
+                val charCount = Character.charCount(cp)
+                var count = charCount
+                i -= charCount
+
+                while (i > 0) {
+                    val prevCp = Character.codePointBefore(typedText, i)
+                    val prevCharCount = Character.charCount(prevCp)
+                    if (cp == 0xFE0F || cp == 0xFE0E || (cp in 0x1F3FB..0x1F3FF) || cp == 0x20E3 || prevCp == 0x200D) {
+                        count += prevCharCount
+                        i -= prevCharCount
+                        if (prevCp == 0x200D && i > 0) {
+                            val beforeZwjCp = Character.codePointBefore(typedText, i)
+                            val beforeZwjCount = Character.charCount(beforeZwjCp)
+                            count += beforeZwjCount
+                            i -= beforeZwjCount
+                        }
+                    } else if (isRegionalIndicator(cp) && isRegionalIndicator(prevCp)) {
+                        count += prevCharCount
+                        break
+                    } else {
+                        break
+                    }
+                }
+
                 typedText.delete(typedText.length - minOf(count, typedText.length), typedText.length)
+                deleteCount = count
                 if (::scoringEngine.isInitialized) {
                     scoringEngine.resetTrieCache()
                 }
@@ -2354,53 +2421,8 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         val ic = currentInputConnection ?: return
-        val selectedText = ic.getSelectedText(0)
         isCommiting = true
-        if (!selectedText.isNullOrEmpty()) {
-            ic.commitText("", 1)
-        } else {
-            val textBefore = ic.getTextBeforeCursor(16, 0)
-            if (textBefore.isNullOrEmpty()) {
-                ic.deleteSurroundingTextInCodePoints(1, 0)
-            } else {
-                var deleteCount = 0
-                val len = textBefore.length
-                var i = len
-
-                if (i > 0) {
-                    val cp = Character.codePointBefore(textBefore, i)
-                    val charCount = Character.charCount(cp)
-                    deleteCount += charCount
-                    i -= charCount
-
-                    while (i > 0) {
-                        val prevCp = Character.codePointBefore(textBefore, i)
-                        val prevCharCount = Character.charCount(prevCp)
-                        if (cp == 0xFE0F || cp == 0xFE0E || (cp in 0x1F3FB..0x1F3FF) || cp == 0x20E3 || prevCp == 0x200D) {
-                            deleteCount += prevCharCount
-                            i -= prevCharCount
-                            if (prevCp == 0x200D && i > 0) {
-                                val beforeZwjCp = Character.codePointBefore(textBefore, i)
-                                val beforeZwjCount = Character.charCount(beforeZwjCp)
-                                deleteCount += beforeZwjCount
-                                i -= beforeZwjCount
-                            }
-                        } else if (isRegionalIndicator(cp) && isRegionalIndicator(prevCp)) {
-                            deleteCount += prevCharCount
-                            break
-                        } else {
-                            break
-                        }
-                    }
-                }
-
-                if (deleteCount > 0) {
-                    ic.deleteSurroundingText(deleteCount, 0)
-                } else {
-                    ic.deleteSurroundingTextInCodePoints(1, 0)
-                }
-            }
-        }
+        ic.deleteSurroundingText(deleteCount, 0)
         isCommiting = false
 
         refreshLayout()
@@ -2836,8 +2858,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun playClick(keyCode: Int) {
-        val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
-        if (!prefs.getBoolean("sound_on_keypress", false)) return
+        if (!isSoundEnabled) return
         
         val am = getSystemService(AUDIO_SERVICE) as? AudioManager
         when (keyCode) {

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Flowboard" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="android:windowBackground">@color/kb_background</item>
-        <item name="android:colorAccent">@color/accent</item>
+    <style name="Theme.Flowboard" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/accent</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorAccent">@color/accent</item>
     </style>
 </resources>
