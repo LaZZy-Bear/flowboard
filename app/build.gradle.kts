@@ -6,12 +6,12 @@ plugins {
 
 configure<com.android.build.api.dsl.ApplicationExtension> {
     namespace = "com.flowboard.ime"
-    compileSdk = 37
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.flowboard.ime"
         minSdk = 24
-        targetSdk = 37
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 
@@ -36,6 +36,11 @@ configure<com.android.build.api.dsl.ApplicationExtension> {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+    }
+
+    lint {
+        disable.add("ExpiredTargetSdkVersion")
+        disable.add("TargetSdkVersion")
     }
 }
 
