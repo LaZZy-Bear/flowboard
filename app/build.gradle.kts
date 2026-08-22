@@ -6,12 +6,12 @@ plugins {
 
 configure<com.android.build.api.dsl.ApplicationExtension> {
     namespace = "com.flowboard.ime"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.flowboard.ime"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0.0"
 
@@ -47,20 +47,20 @@ kotlin {
 
 dependencies {
     // Kotlin Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     // Kotlinx Serialization (JSON)
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     // AndroidX
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.fragment:fragment-ktx:1.8.6")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.core:core-ktx:1.19.0")
+    implementation("androidx.appcompat:appcompat:1.8.0")
+    implementation("androidx.fragment:fragment-ktx:1.9.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
+    implementation("com.google.android.material:material:1.14.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
 }
