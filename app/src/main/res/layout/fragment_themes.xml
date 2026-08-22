@@ -17,7 +17,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            android:text="APPEARANCE MODE"
+            android:text="@string/appearance_mode"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -56,6 +56,7 @@
                         <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
+                            android:contentDescription="@null"
                             android:src="@drawable/ic_sun"
                             app:tint="#FFA000" />
 
@@ -65,6 +66,7 @@
                             android:layout_height="18dp"
                             android:layout_gravity="top|end"
                             android:background="@drawable/send_btn_bg"
+                            android:contentDescription="@null"
                             android:padding="2dp"
                             android:src="@drawable/ic_check"
                             android:visibility="gone"
@@ -75,7 +77,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Auto"
+                        android:text="@string/theme_auto"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -110,6 +112,7 @@
                         <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
+                            android:contentDescription="@null"
                             android:src="@drawable/ic_sun"
                             app:tint="#F57C00" />
 
@@ -119,6 +122,7 @@
                             android:layout_height="18dp"
                             android:layout_gravity="top|end"
                             android:background="@drawable/send_btn_bg"
+                            android:contentDescription="@null"
                             android:padding="2dp"
                             android:src="@drawable/ic_check"
                             android:visibility="gone"
@@ -129,7 +133,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Light"
+                        android:text="@string/theme_light"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -164,6 +168,7 @@
                         <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
+                            android:contentDescription="@null"
                             android:src="@drawable/ic_moon"
                             app:tint="#7C4DFF" />
 
@@ -173,6 +178,7 @@
                             android:layout_height="18dp"
                             android:layout_gravity="top|end"
                             android:background="@drawable/send_btn_bg"
+                            android:contentDescription="@null"
                             android:padding="2dp"
                             android:src="@drawable/ic_check"
                             android:visibility="gone"
@@ -183,7 +189,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Dark"
+                        android:text="@string/theme_dark"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -197,7 +203,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            android:text="COLOR THEMES"
+            android:text="@string/color_themes"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -246,6 +252,7 @@
                             android:layout_height="20dp"
                             android:layout_gravity="top|end"
                             android:background="@drawable/send_btn_bg"
+                            android:contentDescription="@null"
                             android:padding="2dp"
                             android:src="@drawable/ic_check"
                             android:visibility="gone"
@@ -256,7 +263,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Ocean Blue"
+                        android:text="@string/theme_ocean_blue"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -301,6 +308,7 @@
                             android:layout_height="20dp"
                             android:layout_gravity="top|end"
                             android:background="@drawable/send_btn_bg"
+                            android:contentDescription="@null"
                             android:padding="2dp"
                             android:src="@drawable/ic_check"
                             android:visibility="gone"
@@ -311,7 +319,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Mint Teal"
+                        android:text="@string/theme_mint_teal"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -357,6 +365,7 @@
                         android:layout_height="20dp"
                         android:layout_gravity="top|end"
                         android:background="@drawable/send_btn_bg"
+                        android:contentDescription="@null"
                         android:padding="2dp"
                         android:src="@drawable/ic_check"
                         android:visibility="gone"
@@ -367,7 +376,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Sunset Coral"
+                    android:text="@string/theme_sunset_coral"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="14sp"
                     android:textStyle="bold" />

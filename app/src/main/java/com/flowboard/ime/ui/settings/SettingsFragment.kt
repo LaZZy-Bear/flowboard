@@ -102,15 +102,15 @@ class SettingsFragment : Fragment() {
 
         if (!isEnabled) {
             cardWarning.visibility = View.VISIBLE
-            tvTitle?.text = "Keyboard Not Activated"
-            tvDesc?.text = "Flowboard is not turned on in system settings."
-            btnAction?.text = "Turn On Flowboard"
+            tvTitle?.setText(R.string.keyboard_not_activated_title)
+            tvDesc?.setText(R.string.keyboard_not_activated_desc)
+            btnAction?.setText(R.string.turn_on_flowboard)
             btnAction?.setOnClickListener { mainActivity.enableKeyboard() }
         } else if (!isSelected) {
             cardWarning.visibility = View.VISIBLE
-            tvTitle?.text = "Keyboard Not Active"
-            tvDesc?.text = "Flowboard is enabled, but not selected as current active keyboard."
-            btnAction?.text = "Select Flowboard"
+            tvTitle?.setText(R.string.keyboard_not_active_title)
+            tvDesc?.setText(R.string.keyboard_not_active_desc)
+            btnAction?.setText(R.string.select_flowboard)
             btnAction?.setOnClickListener { mainActivity.selectKeyboard() }
         } else {
             cardWarning.visibility = View.GONE

@@ -3,9 +3,9 @@
     <item
         android:id="@+id/nav_settings"
         android:icon="@drawable/ic_settings"
-        android:title="Settings" />
+        android:title="@string/nav_settings" />
     <item
         android:id="@+id/nav_themes"
         android:icon="@drawable/ic_theme"
-        android:title="Themes" />
+        android:title="@string/nav_themes" />
 </menu>

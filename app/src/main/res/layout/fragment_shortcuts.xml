@@ -16,7 +16,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="9-KEY QUICK TEXT SHORTCUTS"
+            android:text="@string/shortcuts_header"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -25,7 +25,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="Tap a key slot below to assign a phrase that types when you swipe DOWN in Number mode."
+            android:text="@string/shortcuts_instruction"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="13sp" />
 
@@ -62,7 +62,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="1"
+                                android:text="@string/shortcut_key_1"
                                 android:textColor="?attr/colorPrimary"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -71,7 +71,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="end"
-                                android:text="⚡"
+                                android:text="@string/shortcut_icon_bolt"
                                 android:textColor="?attr/colorPrimary"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -83,7 +83,7 @@
                             android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:text="Empty"
+                            android:text="@string/shortcut_empty"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -113,7 +113,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="2"
+                                android:text="@string/shortcut_key_2"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -122,7 +122,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="end"
-                                android:text="⚡"
+                                android:text="@string/shortcut_icon_bolt"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -134,7 +134,7 @@
                             android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:text="Empty"
+                            android:text="@string/shortcut_empty"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -164,7 +164,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="3"
+                                android:text="@string/shortcut_key_3"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -173,7 +173,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="end"
-                                android:text="⚡"
+                                android:text="@string/shortcut_icon_bolt"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -185,7 +185,7 @@
                             android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:text="Empty"
+                            android:text="@string/shortcut_empty"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -218,7 +218,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="4"
+                                android:text="@string/shortcut_key_4"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -227,7 +227,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="end"
-                                android:text="⚡"
+                                android:text="@string/shortcut_icon_bolt"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -239,7 +239,7 @@
                             android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:text="Empty"
+                            android:text="@string/shortcut_empty"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -269,7 +269,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="5"
+                                android:text="@string/shortcut_key_5"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -278,7 +278,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="end"
-                                android:text="⚡"
+                                android:text="@string/shortcut_icon_bolt"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -290,7 +290,7 @@
                             android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:text="Empty"
+                            android:text="@string/shortcut_empty"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -320,7 +320,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="6"
+                                android:text="@string/shortcut_key_6"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -329,7 +329,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="end"
-                                android:text="⚡"
+                                android:text="@string/shortcut_icon_bolt"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -341,7 +341,7 @@
                             android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:text="Empty"
+                            android:text="@string/shortcut_empty"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -374,7 +374,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="7"
+                                android:text="@string/shortcut_key_7"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -383,7 +383,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="end"
-                                android:text="⚡"
+                                android:text="@string/shortcut_icon_bolt"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -395,7 +395,7 @@
                             android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:text="Empty"
+                            android:text="@string/shortcut_empty"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -425,7 +425,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="8"
+                                android:text="@string/shortcut_key_8"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -434,7 +434,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="end"
-                                android:text="⚡"
+                                android:text="@string/shortcut_icon_bolt"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -446,7 +446,7 @@
                             android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:text="Empty"
+                            android:text="@string/shortcut_empty"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -476,7 +476,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="9"
+                                android:text="@string/shortcut_key_9"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -485,7 +485,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:gravity="end"
-                                android:text="⚡"
+                                android:text="@string/shortcut_icon_bolt"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="13sp"
                                 android:textStyle="bold" />
@@ -497,7 +497,7 @@
                             android:layout_marginTop="4dp"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:text="Empty"
+                            android:text="@string/shortcut_empty"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -525,7 +525,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:text="Configure Key 1"
+                    android:text="@string/configure_key_format"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
@@ -535,7 +535,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
-                    android:hint="Key Label (Short name shown on key)"
+                    android:hint="@string/shortcut_label_hint"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
@@ -554,7 +554,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:hint="Expansion Text (Full phrase to insert)"
+                    android:hint="@string/shortcut_expansion_hint"
                     app:boxCornerRadiusBottomEnd="12dp"
                     app:boxCornerRadiusBottomStart="12dp"
                     app:boxCornerRadiusTopEnd="12dp"
@@ -581,7 +581,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
-                        android:text="Clear"
+                        android:text="@string/clear"
                         app:cornerRadius="20dp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -590,7 +590,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:layout_weight="1"
-                        android:text="Save"
+                        android:text="@string/save"
                         app:cornerRadius="20dp" />
                 </LinearLayout>
 

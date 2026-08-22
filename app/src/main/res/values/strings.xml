@@ -43,4 +43,110 @@
     <string name="speak_now">Speak now&#8230;</string>
     <string name="microphone">Microphone</string>
     <string name="tap_to_start_stop">Tap to start / stop</string>
+
+    <!-- Navigation Menu -->
+    <string name="nav_settings">Settings</string>
+    <string name="nav_themes">Themes</string>
+
+    <!-- Settings Fragment -->
+    <string name="settings_title">Keyboard Settings</string>
+    <string name="keyboard_not_active_title">Keyboard Not Active</string>
+    <string name="keyboard_not_activated_title">Keyboard Not Activated</string>
+    <string name="keyboard_not_active_desc">Flowboard is enabled, but not selected as current active keyboard.</string>
+    <string name="keyboard_not_activated_desc">Flowboard is not turned on in system settings.</string>
+    <string name="select_flowboard">Select Flowboard</string>
+    <string name="turn_on_flowboard">Turn On Flowboard</string>
+    <string name="languages">Languages</string>
+    <string name="english_us">English (US)</string>
+    <string name="sound_on_keypress">Sound on keypress</string>
+    <string name="sound_on_keypress_desc">Play sound effects when typing</string>
+    <string name="show_suggestions">Show suggestions</string>
+    <string name="show_suggestions_desc">Display prediction bar above keyboard</string>
+    <string name="personalization_and_learning">Personalization &amp; Learning</string>
+    <string name="personalization_and_learning_desc">Word pairs, boost intensity &amp; vocabulary storage</string>
+    <string name="sidebar_and_delete_button">Side Bar &amp; Delete Button</string>
+    <string name="sidebar_and_delete_button_desc">Docked side, floating side &amp; delete button position</string>
+    <string name="quick_text_shortcuts_title">Quick Text Shortcuts (9-Key)</string>
+    <string name="quick_text_shortcuts_desc">Phrases on swipe down in Number mode (1–9)</string>
+
+    <!-- Themes Fragment -->
+    <string name="appearance_mode">APPEARANCE MODE</string>
+    <string name="color_themes">COLOR THEMES</string>
+    <string name="theme_ocean_blue">Ocean Blue</string>
+    <string name="theme_mint_teal">Mint Teal</string>
+    <string name="theme_sunset_coral">Sunset Coral</string>
+
+    <!-- Shortcuts Fragment -->
+    <string name="shortcuts_header">9-KEY QUICK TEXT SHORTCUTS</string>
+    <string name="shortcuts_instruction">Tap a key slot below to assign a phrase that types when you swipe DOWN in Number mode.</string>
+    <string name="shortcut_key_1">1</string>
+    <string name="shortcut_key_2">2</string>
+    <string name="shortcut_key_3">3</string>
+    <string name="shortcut_key_4">4</string>
+    <string name="shortcut_key_5">5</string>
+    <string name="shortcut_key_6">6</string>
+    <string name="shortcut_key_7">7</string>
+    <string name="shortcut_key_8">8</string>
+    <string name="shortcut_key_9">9</string>
+    <string name="shortcut_icon_bolt">⚡</string>
+    <string name="shortcut_empty">Empty</string>
+    <string name="configure_key_format">Configure Key %1$d</string>
+    <string name="shortcut_label_hint">Key Label (Short name shown on key)</string>
+    <string name="shortcut_expansion_hint">Expansion Text (Full phrase to insert)</string>
+    <string name="clear">Clear</string>
+    <string name="save">Save</string>
+
+    <!-- Sidebar Settings Fragment -->
+    <string name="docked_sidebar_title">Docked Sidebar Position</string>
+    <string name="docked_sidebar_desc">Side tools placement when keyboard is docked at bottom.</string>
+    <string name="sidebar_right_default">Right Side (Default)</string>
+    <string name="sidebar_left">Left Side</string>
+    <string name="floating_sidebar_title">Floating Sidebar Position</string>
+    <string name="floating_sidebar_desc">Side tools placement when keyboard is in floating window mode.</string>
+    <string name="delete_btn_title">Delete Button Position</string>
+    <string name="delete_btn_desc">Choose whether backspace moves with side tools or stays fixed.</string>
+    <string name="delete_btn_follow">Follow Side Tools (Default)</string>
+    <string name="delete_btn_fixed_right">Always Fixed Right</string>
+    <string name="delete_btn_fixed_left">Always Fixed Left</string>
+
+    <!-- Personalization Fragment -->
+    <string name="enable_personalization">Enable Personalization</string>
+    <string name="adapt_to_typing_history">Adapt to your typing history</string>
+    <string name="general_section">General</string>
+    <string name="word_pairs">Word Pairs</string>
+    <string name="word_pairs_desc">Predict frequent 2-3 word combinations</string>
+    <string name="frequent_words">Frequent Words</string>
+    <string name="frequent_words_desc">Prioritize top personal words</string>
+    <string name="alphanumeric_words">Alphanumeric Words</string>
+    <string name="alphanumeric_words_desc">Learn slang with digits (e.g. B4, GR8)</string>
+    <string name="advanced_tuning">Advanced Tuning</string>
+    <string name="boost_intensity">Boost Intensity</string>
+    <string name="boost_intensity_desc">Overall bonus scale</string>
+    <string name="boost_intensity_default">1.0x (Default)</string>
+    <string name="learned_word_priority">Learned Word Priority</string>
+    <string name="learned_word_priority_desc">Multiplier for new words</string>
+    <string name="learned_word_priority_default">1.3x (Default)</string>
+    <string name="first_type_bonus">First-Type Bonus</string>
+    <string name="first_type_bonus_desc">Immediate score push (1-2 times)</string>
+    <string name="first_type_bonus_default">+30 (Default)</string>
+    <string name="uncertainty_gap">Uncertainty Gap</string>
+    <string name="uncertainty_gap_desc">Confidence threshold</string>
+    <string name="uncertainty_gap_default">15.0 (Default)</string>
+    <string name="capacity_limits">Capacity Limits</string>
+    <string name="max_frequent_words">Max Frequent Words</string>
+    <string name="max_frequent_words_desc">Word frequency limit</string>
+    <string name="max_frequent_words_default">1,000 (Default)</string>
+    <string name="max_word_pairs">Max Word Pairs</string>
+    <string name="max_word_pairs_desc">N-gram limit</string>
+    <string name="max_word_pairs_default">1,000 (Default)</string>
+    <string name="max_custom_words">Max Custom Words</string>
+    <string name="max_custom_words_desc">Learned vocabulary limit</string>
+    <string name="max_custom_words_default">500 (Default)</string>
+    <string name="data_and_privacy">Data &amp; Privacy</string>
+    <string name="stat_default_zero">0</string>
+    <string name="stat_tracked">Tracked</string>
+    <string name="stat_pairs">Pairs</string>
+    <string name="stat_custom">Custom</string>
+    <string name="clear_learned_data">Clear Learned Data</string>
+    <string name="privacy_footer">100% on-device. Your typing data never leaves your phone.</string>
 </resources>

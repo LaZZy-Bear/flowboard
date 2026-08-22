@@ -137,7 +137,7 @@ class ShortcutsFragment : Fragment() {
         val etLabel = view.findViewById<TextInputEditText>(R.id.etShortcutLabel)
         val etText = view.findViewById<TextInputEditText>(R.id.etShortcutText)
 
-        tvTitle?.text = "Configure Key $keyNum"
+        tvTitle?.text = getString(R.string.configure_key_format, keyNum)
         val label = prefs.getString("shortcut_label_$keyNum", "") ?: ""
         val text = prefs.getString("shortcut_text_$keyNum", "") ?: ""
 

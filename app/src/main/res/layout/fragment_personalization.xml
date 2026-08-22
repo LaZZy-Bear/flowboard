@@ -38,6 +38,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:layout_gravity="center"
+                        android:contentDescription="@null"
                         android:src="@drawable/ic_wand"
                         app:tint="?attr/colorPrimary" />
                 </FrameLayout>
@@ -52,7 +53,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Enable Personalization"
+                        android:text="@string/enable_personalization"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -61,7 +62,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Adapt to your typing history"
+                        android:text="@string/adapt_to_typing_history"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -78,7 +79,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="General"
+            android:text="@string/general_section"
             android:textColor="?attr/colorPrimary"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -115,7 +116,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Word Pairs"
+                            android:text="@string/word_pairs"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -124,7 +125,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Predict frequent 2-3 word combinations"
+                            android:text="@string/word_pairs_desc"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -159,7 +160,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Frequent Words"
+                            android:text="@string/frequent_words"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -168,7 +169,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Prioritize top personal words"
+                            android:text="@string/frequent_words_desc"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -203,7 +204,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Alphanumeric Words"
+                            android:text="@string/alphanumeric_words"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -212,7 +213,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Learn slang with digits (e.g. B4, GR8)"
+                            android:text="@string/alphanumeric_words_desc"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -231,7 +232,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="Advanced Tuning"
+            android:text="@string/advanced_tuning"
             android:textColor="?attr/colorPrimary"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -270,7 +271,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Boost Intensity"
+                            android:text="@string/boost_intensity"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -279,7 +280,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Overall bonus scale"
+                            android:text="@string/boost_intensity_desc"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -291,7 +292,7 @@
                         android:background="@drawable/bg_badge_dropdown"
                         android:paddingHorizontal="12dp"
                         android:paddingVertical="6dp"
-                        android:text="1.0x (Default)"
+                        android:text="@string/boost_intensity_default"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -322,7 +323,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Learned Word Priority"
+                            android:text="@string/learned_word_priority"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -331,7 +332,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Multiplier for new words"
+                            android:text="@string/learned_word_priority_desc"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -343,7 +344,7 @@
                         android:background="@drawable/bg_badge_dropdown"
                         android:paddingHorizontal="12dp"
                         android:paddingVertical="6dp"
-                        android:text="1.3x (Default)"
+                        android:text="@string/learned_word_priority_default"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -374,7 +375,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="First-Type Bonus"
+                            android:text="@string/first_type_bonus"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -383,7 +384,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Immediate score push (1-2 times)"
+                            android:text="@string/first_type_bonus_desc"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -395,7 +396,7 @@
                         android:background="@drawable/bg_badge_dropdown"
                         android:paddingHorizontal="12dp"
                         android:paddingVertical="6dp"
-                        android:text="+30 (Default)"
+                        android:text="@string/first_type_bonus_default"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -426,7 +427,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Uncertainty Gap"
+                            android:text="@string/uncertainty_gap"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -435,7 +436,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Confidence threshold"
+                            android:text="@string/uncertainty_gap_desc"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -447,7 +448,7 @@
                         android:background="@drawable/bg_badge_dropdown"
                         android:paddingHorizontal="12dp"
                         android:paddingVertical="6dp"
-                        android:text="15.0 (Default)"
+                        android:text="@string/uncertainty_gap_default"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -460,7 +461,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="Capacity Limits"
+            android:text="@string/capacity_limits"
             android:textColor="?attr/colorPrimary"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -499,7 +500,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Max Frequent Words"
+                            android:text="@string/max_frequent_words"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -508,7 +509,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Word frequency limit"
+                            android:text="@string/max_frequent_words_desc"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -520,7 +521,7 @@
                         android:background="@drawable/bg_badge_dropdown"
                         android:paddingHorizontal="12dp"
                         android:paddingVertical="6dp"
-                        android:text="1,000 (Default)"
+                        android:text="@string/max_frequent_words_default"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -551,7 +552,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Max Word Pairs"
+                            android:text="@string/max_word_pairs"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -560,7 +561,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="N-gram limit"
+                            android:text="@string/max_word_pairs_desc"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -572,7 +573,7 @@
                         android:background="@drawable/bg_badge_dropdown"
                         android:paddingHorizontal="12dp"
                         android:paddingVertical="6dp"
-                        android:text="1,000 (Default)"
+                        android:text="@string/max_word_pairs_default"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -603,7 +604,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Max Custom Words"
+                            android:text="@string/max_custom_words"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -612,7 +613,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Learned vocabulary limit"
+                            android:text="@string/max_custom_words_desc"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
                     </LinearLayout>
@@ -624,7 +625,7 @@
                         android:background="@drawable/bg_badge_dropdown"
                         android:paddingHorizontal="12dp"
                         android:paddingVertical="6dp"
-                        android:text="500 (Default)"
+                        android:text="@string/max_custom_words_default"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -637,7 +638,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="Data &amp; Privacy"
+            android:text="@string/data_and_privacy"
             android:textColor="?attr/colorPrimary"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -660,6 +661,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:baselineAligned="false"
                     android:orientation="horizontal">
 
                     <!-- Tile 1: Tracked -->
@@ -677,7 +679,7 @@
                             android:id="@+id/tvStatTracked"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0"
+                            android:text="@string/stat_default_zero"
                             android:textColor="?attr/colorPrimary"
                             android:textSize="22sp"
                             android:textStyle="bold" />
@@ -686,7 +688,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Tracked"
+                            android:text="@string/stat_tracked"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -706,7 +708,7 @@
                             android:id="@+id/tvStatPairs"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0"
+                            android:text="@string/stat_default_zero"
                             android:textColor="?attr/colorPrimary"
                             android:textSize="22sp"
                             android:textStyle="bold" />
@@ -715,7 +717,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Pairs"
+                            android:text="@string/stat_pairs"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -735,7 +737,7 @@
                             android:id="@+id/tvStatCustom"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="0"
+                            android:text="@string/stat_default_zero"
                             android:textColor="?attr/colorPrimary"
                             android:textSize="22sp"
                             android:textStyle="bold" />
@@ -744,7 +746,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="Custom"
+                            android:text="@string/stat_custom"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -757,7 +759,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="52dp"
                     android:layout_marginTop="16dp"
-                    android:text="Clear Learned Data"
+                    android:text="@string/clear_learned_data"
                     android:textColor="#C62828"
                     android:textSize="14sp"
                     android:textStyle="bold"
@@ -775,7 +777,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:gravity="center"
-                    android:text="100% on-device. Your typing data never leaves your phone."
+                    android:text="@string/privacy_footer"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="11sp" />
 

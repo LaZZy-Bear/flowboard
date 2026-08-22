@@ -30,7 +30,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Docked Sidebar Position"
+                    android:text="@string/docked_sidebar_title"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
@@ -40,7 +40,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:layout_marginBottom="12dp"
-                    android:text="Side tools placement when keyboard is docked at bottom."
+                    android:text="@string/docked_sidebar_desc"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="13sp" />
 
@@ -53,13 +53,13 @@
                         android:id="@+id/rbDockedRight"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Right Side (Default)" />
+                        android:text="@string/sidebar_right_default" />
 
                     <com.google.android.material.radiobutton.MaterialRadioButton
                         android:id="@+id/rbDockedLeft"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Left Side" />
+                        android:text="@string/sidebar_left" />
                 </RadioGroup>
 
             </LinearLayout>
@@ -83,7 +83,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Floating Sidebar Position"
+                    android:text="@string/floating_sidebar_title"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
@@ -93,7 +93,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:layout_marginBottom="12dp"
-                    android:text="Side tools placement when keyboard is in floating window mode."
+                    android:text="@string/floating_sidebar_desc"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="13sp" />
 
@@ -106,13 +106,13 @@
                         android:id="@+id/rbFloatingRight"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Right Side (Default)" />
+                        android:text="@string/sidebar_right_default" />
 
                     <com.google.android.material.radiobutton.MaterialRadioButton
                         android:id="@+id/rbFloatingLeft"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Left Side" />
+                        android:text="@string/sidebar_left" />
                 </RadioGroup>
 
             </LinearLayout>
@@ -136,7 +136,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Delete Button Position"
+                    android:text="@string/delete_btn_title"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
@@ -146,7 +146,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:layout_marginBottom="12dp"
-                    android:text="Choose whether backspace moves with side tools or stays fixed."
+                    android:text="@string/delete_btn_desc"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="13sp" />
 
@@ -159,19 +159,19 @@
                         android:id="@+id/rbDeleteFollow"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Follow Side Tools (Default)" />
+                        android:text="@string/delete_btn_follow" />
 
                     <com.google.android.material.radiobutton.MaterialRadioButton
                         android:id="@+id/rbDeleteFixedRight"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Always Fixed Right" />
+                        android:text="@string/delete_btn_fixed_right" />
 
                     <com.google.android.material.radiobutton.MaterialRadioButton
                         android:id="@+id/rbDeleteFixedLeft"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Always Fixed Left" />
+                        android:text="@string/delete_btn_fixed_left" />
                 </RadioGroup>
 
             </LinearLayout>
