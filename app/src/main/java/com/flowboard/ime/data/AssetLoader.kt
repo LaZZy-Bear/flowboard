@@ -169,18 +169,17 @@ class AssetLoader(private val context: Context) {
             Log.d(TAG, "Personalization enabled: bigram=${repo.personalProfile.bigram.size}, freq=${repo.personalProfile.wordFreq.size}, oov=${repo.personalProfile.learnedOOV.size}, mult=${repo.personalizationBoostMultiplier}")
         } else {
             repo.isPersonalizationEnabled = false
-            repo.trieDictOOV = repo.baseTrieDictOOV?.deepCopy()
+            repo.trieDictOOV = TrieNode()
             Log.d(TAG, "Personalization disabled (userPref=$userPrefEnabled, isEmpty=${repo.personalProfile.isEmpty})")
         }
     }
 
     /**
-     * Injects learned OOV words from the personal profile into the OOV trie at runtime.
-     * This adds personal vocabulary on top of a clean clone of the base OOV trie.
+     * Injects learned OOV words from the personal profile into the isolated user-learned trie.
      */
     private fun injectLearnedOOVWords(repo: FlowboardRepository) {
         val learnedWords = repo.personalProfile.learnedOOV
-        val cleanTrie = repo.baseTrieDictOOV?.deepCopy() ?: return
+        val cleanTrie = TrieNode()
         if (learnedWords.isNotEmpty()) {
             for (word in learnedWords) {
                 if (word.isEmpty()) continue

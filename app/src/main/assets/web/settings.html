@@ -242,6 +242,22 @@
                 <span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
             </div>
 
+            <div class="h-[1px] bg-surface-variant mx-4"></div>
+
+            <!-- Quick Text Shortcuts Menu Item -->
+            <div id="shortcuts-layout-btn" class="flex items-center justify-between gap-4 p-4 min-h-[56px] hover:bg-surface-container-low transition-colors cursor-pointer">
+                <div class="flex items-center gap-4 flex-1">
+                    <div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined">bolt</span>
+                    </div>
+                    <div>
+                        <h3 class="text-title-md font-title-md">Quick Text Shortcuts (9-Key)</h3>
+                        <p class="text-body-md font-body-md text-on-surface-variant">Phrases on swipe down in Number mode (1–9)</p>
+                    </div>
+                </div>
+                <span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+            </div>
+
         </div>
 
         <!-- Inline Ad -->
@@ -581,6 +597,129 @@
         </main>
     </div>
 
+    <!-- Sub-page Overlay for Quick Text Shortcuts (9-Key) -->
+    <div id="shortcuts-subpage" class="fixed inset-0 bg-background z-50 transform translate-x-full transition-transform duration-300 flex flex-col pb-safe">
+        <!-- Sub-page Header -->
+        <header class="bg-surface dark:bg-surface-dim flex items-center gap-3 w-full px-screen-margin py-3 max-w-full sticky top-0 z-40 border-b border-surface-variant/40">
+            <button id="shortcuts-back-btn" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container-high transition-colors text-on-surface">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </button>
+            <h1 class="text-headline-md font-headline-md font-semibold text-primary">Text Shortcuts (9-Key)</h1>
+        </header>
+
+        <!-- Sub-page Content -->
+        <main class="flex-1 overflow-y-auto px-screen-margin py-4 space-y-4">
+            <!-- Info Card -->
+            <div class="bg-primary/10 border border-primary/20 rounded-xl p-3.5 flex items-start gap-3 text-on-surface">
+                <span class="material-symbols-outlined text-primary text-xl mt-0.5">bolt</span>
+                <div class="text-xs space-y-1">
+                    <p class="font-semibold text-primary">How it works:</p>
+                    <p class="text-on-surface-variant">In Number mode (<span class="font-bold text-on-surface">?12</span>), swipe down on keys 1–9 to quickly paste your saved phrases.</p>
+                </div>
+            </div>
+
+            <!-- 3x3 Key Matrix Preview -->
+            <div>
+                <div class="flex items-center justify-between mb-2 px-1">
+                    <span class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Select Key to Configure</span>
+                    <span id="shortcuts-selected-badge" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary text-white">Key 1</span>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2 bg-surface-container-high/40 p-2.5 rounded-2xl border border-surface-variant/60">
+                    <button type="button" onclick="window.selectShortcutKey(1)" id="sub-key-slot-1" class="sub-key-slot aspect-square rounded-xl bg-surface-container-lowest border-2 border-primary p-2 flex flex-col justify-between items-center transition-all shadow-sm active:scale-95">
+                        <span class="text-xs font-bold text-primary self-start">1</span>
+                        <span class="key-label text-sm font-bold text-on-surface truncate max-w-full">⚡</span>
+                        <span class="key-preview text-[10px] text-on-surface-variant/80 truncate w-full text-center">Empty</span>
+                    </button>
+                    <button type="button" onclick="window.selectShortcutKey(2)" id="sub-key-slot-2" class="sub-key-slot aspect-square rounded-xl bg-surface-container-lowest border-2 border-transparent p-2 flex flex-col justify-between items-center transition-all shadow-sm active:scale-95">
+                        <span class="text-xs font-bold text-on-surface-variant self-start">2</span>
+                        <span class="key-label text-sm font-bold text-on-surface truncate max-w-full">⚡</span>
+                        <span class="key-preview text-[10px] text-on-surface-variant/80 truncate w-full text-center">Empty</span>
+                    </button>
+                    <button type="button" onclick="window.selectShortcutKey(3)" id="sub-key-slot-3" class="sub-key-slot aspect-square rounded-xl bg-surface-container-lowest border-2 border-transparent p-2 flex flex-col justify-between items-center transition-all shadow-sm active:scale-95">
+                        <span class="text-xs font-bold text-on-surface-variant self-start">3</span>
+                        <span class="key-label text-sm font-bold text-on-surface truncate max-w-full">⚡</span>
+                        <span class="key-preview text-[10px] text-on-surface-variant/80 truncate w-full text-center">Empty</span>
+                    </button>
+                    <button type="button" onclick="window.selectShortcutKey(4)" id="sub-key-slot-4" class="sub-key-slot aspect-square rounded-xl bg-surface-container-lowest border-2 border-transparent p-2 flex flex-col justify-between items-center transition-all shadow-sm active:scale-95">
+                        <span class="text-xs font-bold text-on-surface-variant self-start">4</span>
+                        <span class="key-label text-sm font-bold text-on-surface truncate max-w-full">⚡</span>
+                        <span class="key-preview text-[10px] text-on-surface-variant/80 truncate w-full text-center">Empty</span>
+                    </button>
+                    <button type="button" onclick="window.selectShortcutKey(5)" id="sub-key-slot-5" class="sub-key-slot aspect-square rounded-xl bg-surface-container-lowest border-2 border-transparent p-2 flex flex-col justify-between items-center transition-all shadow-sm active:scale-95">
+                        <span class="text-xs font-bold text-on-surface-variant self-start">5</span>
+                        <span class="key-label text-sm font-bold text-on-surface truncate max-w-full">⚡</span>
+                        <span class="key-preview text-[10px] text-on-surface-variant/80 truncate w-full text-center">Empty</span>
+                    </button>
+                    <button type="button" onclick="window.selectShortcutKey(6)" id="sub-key-slot-6" class="sub-key-slot aspect-square rounded-xl bg-surface-container-lowest border-2 border-transparent p-2 flex flex-col justify-between items-center transition-all shadow-sm active:scale-95">
+                        <span class="text-xs font-bold text-on-surface-variant self-start">6</span>
+                        <span class="key-label text-sm font-bold text-on-surface truncate max-w-full">⚡</span>
+                        <span class="key-preview text-[10px] text-on-surface-variant/80 truncate w-full text-center">Empty</span>
+                    </button>
+                    <button type="button" onclick="window.selectShortcutKey(7)" id="sub-key-slot-7" class="sub-key-slot aspect-square rounded-xl bg-surface-container-lowest border-2 border-transparent p-2 flex flex-col justify-between items-center transition-all shadow-sm active:scale-95">
+                        <span class="text-xs font-bold text-on-surface-variant self-start">7</span>
+                        <span class="key-label text-sm font-bold text-on-surface truncate max-w-full">⚡</span>
+                        <span class="key-preview text-[10px] text-on-surface-variant/80 truncate w-full text-center">Empty</span>
+                    </button>
+                    <button type="button" onclick="window.selectShortcutKey(8)" id="sub-key-slot-8" class="sub-key-slot aspect-square rounded-xl bg-surface-container-lowest border-2 border-transparent p-2 flex flex-col justify-between items-center transition-all shadow-sm active:scale-95">
+                        <span class="text-xs font-bold text-on-surface-variant self-start">8</span>
+                        <span class="key-label text-sm font-bold text-on-surface truncate max-w-full">⚡</span>
+                        <span class="key-preview text-[10px] text-on-surface-variant/80 truncate w-full text-center">Empty</span>
+                    </button>
+                    <button type="button" onclick="window.selectShortcutKey(9)" id="sub-key-slot-9" class="sub-key-slot aspect-square rounded-xl bg-surface-container-lowest border-2 border-transparent p-2 flex flex-col justify-between items-center transition-all shadow-sm active:scale-95">
+                        <span class="text-xs font-bold text-on-surface-variant self-start">9</span>
+                        <span class="key-label text-sm font-bold text-on-surface truncate max-w-full">⚡</span>
+                        <span class="key-preview text-[10px] text-on-surface-variant/80 truncate w-full text-center">Empty</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Form Card -->
+            <div class="bg-surface-container-lowest rounded-2xl p-4 border border-surface-variant shadow-sm flex flex-col gap-3.5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs" id="sub-form-key-number">
+                            1
+                        </div>
+                        <span class="font-bold text-sm text-on-surface" id="sub-form-title">Configure Key 1</span>
+                    </div>
+                    <button type="button" onclick="window.clearShortcutKey()" class="text-xs text-red-600 hover:text-red-700 font-semibold px-2 py-1 rounded hover:bg-red-50 transition-colors flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">delete</span>
+                        Clear
+                    </button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-on-surface mb-1">
+                        Custom Short Label (2–4 chars)
+                    </label>
+                    <input type="text" id="sub-input-label" maxlength="6" placeholder="e.g. Home, Work, Email (leave empty for default bolt)" 
+                        class="w-full text-sm rounded-xl border-surface-variant bg-surface focus:border-primary focus:ring-primary py-2 px-3">
+                    <span class="text-[11px] text-on-surface-variant mt-1 block">Displayed on the bottom of the number key</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-on-surface mb-1">
+                        Phrase / Text to Paste
+                    </label>
+                    <textarea id="sub-input-text" rows="3" placeholder="Enter text to paste when swiping down on this key..."
+                        class="w-full text-sm rounded-xl border-surface-variant bg-surface focus:border-primary focus:ring-primary p-3"></textarea>
+                </div>
+
+                <button type="button" onclick="window.saveShortcutKey()" class="w-full py-2.5 bg-primary text-white rounded-xl font-semibold text-sm shadow-md hover:bg-primary-container active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-lg">save</span>
+                    Save Shortcut
+                </button>
+            </div>
+
+            <!-- Toast -->
+            <div id="sub-save-toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-on-surface text-surface px-4 py-2 rounded-full text-xs font-medium shadow-lg opacity-0 transition-opacity pointer-events-none flex items-center gap-2 z-50">
+                <span class="material-symbols-outlined text-emerald-400 text-sm">check_circle</span>
+                <span id="sub-save-toast-text">Shortcut saved successfully</span>
+            </div>
+        </main>
+    </div>
+
     <script>
         // Check activation status of keyboard
         function checkKeyboardStatus() {
@@ -826,6 +965,137 @@
                 const openBtn = document.getElementById('sidebar-layout-btn');
                 const backBtn = document.getElementById('sidebar-back-btn');
 
+                const shortcutsSubpage = document.getElementById('shortcuts-subpage');
+                const shortcutsOpenBtn = document.getElementById('shortcuts-layout-btn');
+                const shortcutsBackBtn = document.getElementById('shortcuts-back-btn');
+                let shortcutsData = {};
+                let currentSelectedKey = 1;
+
+                const loadShortcuts = () => {
+                    try {
+                        if (typeof Android !== 'undefined' && Android.getShortcutsJson) {
+                            const jsonStr = Android.getShortcutsJson();
+                            shortcutsData = JSON.parse(jsonStr || "{}");
+                        } else {
+                            for (let i = 1; i <= 9; i++) {
+                                const label = localStorage.getItem(`shortcut_label_${i}`) || "";
+                                const text = localStorage.getItem(`shortcut_text_${i}`) || "";
+                                shortcutsData[i] = { label, text };
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Error loading shortcuts:", e);
+                    }
+                    renderShortcutsGrid();
+                    window.selectShortcutKey(currentSelectedKey);
+                };
+
+                const renderShortcutsGrid = () => {
+                    for (let i = 1; i <= 9; i++) {
+                        const item = shortcutsData[i] || { label: "", text: "" };
+                        const btn = document.getElementById(`sub-key-slot-${i}`);
+                        if (!btn) continue;
+
+                        const labelEl = btn.querySelector('.key-label');
+                        const previewEl = btn.querySelector('.key-preview');
+
+                        if (item.label && item.label.trim()) {
+                            labelEl.textContent = item.label.trim();
+                            labelEl.classList.add("text-primary");
+                        } else {
+                            labelEl.textContent = "⚡";
+                            labelEl.classList.remove("text-primary");
+                        }
+
+                        if (item.text && item.text.trim()) {
+                            previewEl.textContent = item.text.trim();
+                            previewEl.classList.add("text-on-surface");
+                            previewEl.classList.remove("text-on-surface-variant/80");
+                        } else {
+                            previewEl.textContent = "Empty";
+                            previewEl.classList.remove("text-on-surface");
+                            previewEl.classList.add("text-on-surface-variant/80");
+                        }
+                    }
+                };
+
+                window.selectShortcutKey = function(keyNum) {
+                    currentSelectedKey = keyNum;
+                    const badge = document.getElementById("shortcuts-selected-badge");
+                    const numBadge = document.getElementById("sub-form-key-number");
+                    const title = document.getElementById("sub-form-title");
+                    if (badge) badge.textContent = `Key ${keyNum}`;
+                    if (numBadge) numBadge.textContent = keyNum;
+                    if (title) title.textContent = `Configure Key ${keyNum}`;
+
+                    for (let i = 1; i <= 9; i++) {
+                        const btn = document.getElementById(`sub-key-slot-${i}`);
+                        const numEl = btn?.querySelector('span:first-child');
+                        if (i === keyNum) {
+                            btn?.classList.remove("border-transparent");
+                            btn?.classList.add("border-primary", "bg-primary/5");
+                            numEl?.classList.remove("text-on-surface-variant");
+                            numEl?.classList.add("text-primary");
+                        } else {
+                            btn?.classList.remove("border-primary", "bg-primary/5");
+                            btn?.classList.add("border-transparent");
+                            numEl?.classList.remove("text-primary");
+                            numEl?.classList.add("text-on-surface-variant");
+                        }
+                    }
+
+                    const item = shortcutsData[keyNum] || { label: "", text: "" };
+                    const labelInput = document.getElementById("sub-input-label");
+                    const textInput = document.getElementById("sub-input-text");
+                    if (labelInput) labelInput.value = item.label || "";
+                    if (textInput) textInput.value = item.text || "";
+                };
+
+                window.saveShortcutKey = function() {
+                    const labelInput = document.getElementById("sub-input-label");
+                    const textInput = document.getElementById("sub-input-text");
+                    const label = labelInput ? labelInput.value.trim() : "";
+                    const text = textInput ? textInput.value.trim() : "";
+
+                    shortcutsData[currentSelectedKey] = { label, text };
+
+                    try {
+                        if (typeof Android !== 'undefined' && Android.saveShortcut) {
+                            Android.saveShortcut(currentSelectedKey, label, text);
+                        } else {
+                            localStorage.setItem(`shortcut_label_${currentSelectedKey}`, label);
+                            localStorage.setItem(`shortcut_text_${currentSelectedKey}`, text);
+                        }
+                    } catch (e) {
+                        console.error("Error saving shortcut:", e);
+                    }
+
+                    renderShortcutsGrid();
+                    showShortcutToast(`Key ${currentSelectedKey} saved successfully`);
+                };
+
+                window.clearShortcutKey = function() {
+                    const labelInput = document.getElementById("sub-input-label");
+                    const textInput = document.getElementById("sub-input-text");
+                    if (labelInput) labelInput.value = "";
+                    if (textInput) textInput.value = "";
+                    window.saveShortcutKey();
+                };
+
+                const showShortcutToast = (msg) => {
+                    const toast = document.getElementById("sub-save-toast");
+                    const textEl = document.getElementById("sub-save-toast-text");
+                    if (textEl && msg) textEl.textContent = msg;
+                    if (toast) {
+                        toast.classList.remove("opacity-0");
+                        toast.classList.add("opacity-100");
+                        setTimeout(() => {
+                            toast.classList.remove("opacity-100");
+                            toast.classList.add("opacity-0");
+                        }, 2000);
+                    }
+                };
+
                 if (openBtn && subpage) {
                     openBtn.addEventListener('click', () => {
                         subpage.classList.remove('translate-x-full');
@@ -833,13 +1103,28 @@
                     });
                 }
 
+                if (shortcutsOpenBtn && shortcutsSubpage) {
+                    shortcutsOpenBtn.addEventListener('click', () => {
+                        loadShortcuts();
+                        shortcutsSubpage.classList.remove('translate-x-full');
+                        history.pushState({ subpage: 'shortcuts' }, '');
+                    });
+                }
+
                 const closeSubpages = () => {
                     if (subpage) subpage.classList.add('translate-x-full');
                     if (personSubpage) personSubpage.classList.add('translate-x-full');
+                    if (shortcutsSubpage) shortcutsSubpage.classList.add('translate-x-full');
                 };
 
                 if (backBtn) {
                     backBtn.addEventListener('click', () => {
+                        history.back();
+                    });
+                }
+
+                if (shortcutsBackBtn) {
+                    shortcutsBackBtn.addEventListener('click', () => {
                         history.back();
                     });
                 }
@@ -891,7 +1176,6 @@
         });
 
         window.addEventListener('focus', checkKeyboardStatus);
-        setInterval(checkKeyboardStatus, 1500);
     </script>
 </body>
 </html>

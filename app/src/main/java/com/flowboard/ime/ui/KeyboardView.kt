@@ -25,6 +25,7 @@ class KeyboardView @JvmOverloads constructor(
     /** The 9 key views arranged in a 3×3 grid */
     private val keyViews = Array(9) { index ->
         KeyView(context).apply {
+            keyIndex = index + 1 // 1..9 matching key_1..key_9
             isCenterKey = (index == 4) // key_5 is the center
             zoneType = when (index / 3) {
                 0 -> KeyView.ZoneType.TOP
@@ -34,8 +35,8 @@ class KeyboardView @JvmOverloads constructor(
         }
     }
 
-    /** Callback for when a key action occurs (swipe/tap + key data) */
-    var onKeyAction: ((action: SwipeDetector.SwipeAction, keySlots: KeySlots) -> Unit)? = null
+    /** Callback for when a key action occurs (swipe/tap + key data + keyIndex) */
+    var onKeyAction: ((action: SwipeDetector.SwipeAction, keySlots: KeySlots, keyIndex: Int) -> Unit)? = null
         set(value) {
             field = value
             keyViews.forEach { it.onKeyAction = value }

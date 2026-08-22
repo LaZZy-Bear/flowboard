@@ -66,10 +66,14 @@ class ScoringEngine(private val repo: FlowboardRepository) {
          * Characters blocked from doubling (sticky key) unless explicitly learned/recorded in personalization.
          */
         val RESTRICTED_DOUBLE_CHARS = setOf("i", "v", "j", "q", "x", "u")
+
+        private val SPACE_REGEX = Regex("\\s+")
+        private val WORD_CLEAN_REGEX = Regex("[^a-z']")
     }
 
     private var cachedTriePrefix: String = ""
     private var cachedMainNode: TrieNode? = null
+    private var cachedBaseOovNode: TrieNode? = null
     private var cachedOovNode: TrieNode? = null
 
     var engineStatus: String = "State 1 (Start)"
@@ -78,6 +82,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     fun resetTrieCache() {
         cachedTriePrefix = ""
         cachedMainNode = null
+        cachedBaseOovNode = null
         cachedOovNode = null
     }
 
@@ -93,7 +98,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         val isSpace = last1 == " "
 
         // Parse active prefix and word history
-        val parts = engineText.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }
+        val parts = engineText.trim().split(SPACE_REGEX).filter { it.isNotEmpty() }
         val activePrefix: String
         val activeWordsArray: List<String>
         if (isSpace || engineText.isEmpty()) {
@@ -107,7 +112,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         // Determine last word before space (for connector detection)
         val lastWordBeforeSpace = activeWordsArray.lastOrNull()
             ?.lowercase()
-            ?.replace(Regex("[^a-z']"), "") ?: ""
+            ?.replace(WORD_CLEAN_REGEX, "") ?: ""
 
         // Determine state
         val state = when {
@@ -242,24 +247,28 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         if (prefix.isEmpty()) {
             cachedTriePrefix = ""
             cachedMainNode = repo.trieDict
+            cachedBaseOovNode = repo.baseTrieDictOOV
             cachedOovNode = repo.trieDictOOV
             return emptyMap()
         }
 
         val mainNode: TrieNode?
+        val baseOovNode: TrieNode?
         val oovNode: TrieNode?
 
         // Incremental cache: extend by one character if possible
         when {
-            (cachedMainNode != null || cachedOovNode != null) &&
+            (cachedMainNode != null || cachedBaseOovNode != null || cachedOovNode != null) &&
                     prefix.length == cachedTriePrefix.length + 1 &&
                     prefix.startsWith(cachedTriePrefix) -> {
                 val lastChar = prefix.last().toString()
                 mainNode = cachedMainNode?.get(lastChar)
+                baseOovNode = cachedBaseOovNode?.get(lastChar)
                 oovNode = cachedOovNode?.get(lastChar)
             }
-            (cachedMainNode != null || cachedOovNode != null) && prefix == cachedTriePrefix -> {
+            (cachedMainNode != null || cachedBaseOovNode != null || cachedOovNode != null) && prefix == cachedTriePrefix -> {
                 mainNode = cachedMainNode
+                baseOovNode = cachedBaseOovNode
                 oovNode = cachedOovNode
             }
             else -> {
@@ -271,7 +280,15 @@ class ScoringEngine(private val repo: FlowboardRepository) {
                 }
                 mainNode = currentMain
 
-                // Full traversal in OOV trie
+                // Full traversal in base OOV trie
+                var currentBaseOov = repo.baseTrieDictOOV
+                for (c in prefix) {
+                    currentBaseOov = currentBaseOov?.get(c.toString())
+                    if (currentBaseOov == null) break
+                }
+                baseOovNode = currentBaseOov
+
+                // Full traversal in dynamic OOV trie
                 var currentOov = repo.trieDictOOV
                 for (c in prefix) {
                     currentOov = currentOov?.get(c.toString())
@@ -283,9 +300,10 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
         cachedTriePrefix = prefix
         cachedMainNode = mainNode
+        cachedBaseOovNode = baseOovNode
         cachedOovNode = oovNode
 
-        if (mainNode == null && oovNode == null) return emptyMap()
+        if (mainNode == null && baseOovNode == null && oovNode == null) return emptyMap()
 
         // 🧠 Trie Branch Evaluation: Quick completion (low depth) + Word popularity (low index in word_list)
         val totalWords = if (repo.wordList.isNotEmpty()) repo.wordList.size else 20000
@@ -304,7 +322,22 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             }
         }
 
-        // 2. Evaluate Secondary / Learned OOV Branches (combines with or boosts main dictionary)
+        // 2. Evaluate Base OOV Dictionary Branches
+        if (baseOovNode != null) {
+            for ((nextKey, childNode) in baseOovNode.children) {
+                if (nextKey != "_w" && nextKey != "_f") {
+                    val branchScore = evaluateBranch(childNode, totalWords, isOOV = true)
+                    if (branchScore > 0.0) {
+                        val existing = raw[nextKey] ?: 0.0
+                        if (branchScore > existing) {
+                            raw[nextKey] = branchScore
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Evaluate Dynamic / User Learned OOV Branches
         if (oovNode != null) {
             for ((nextKey, childNode) in oovNode.children) {
                 if (nextKey != "_w" && nextKey != "_f") {

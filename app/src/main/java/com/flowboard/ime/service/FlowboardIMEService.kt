@@ -38,6 +38,7 @@ import android.view.Gravity
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.widget.Toast
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -98,14 +99,21 @@ class FlowboardIMEService : InputMethodService() {
 
     private val settingsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            Log.d(TAG, "Settings or theme changed — refreshing input view")
+            Log.d(TAG, "Settings or theme changed — updating keyboard state")
             context?.let { ctx ->
                 liveLearningManager.loadProfile()
                 AssetLoader(ctx).updatePersonalizationState(ctx, repo)
             }
             loadSettings()
             setHandedness(if (isFloatingMode) isFloatingLeftHanded else isDockedLeftHanded)
-            setInputView(onCreateInputView())
+            val root = keyboardRoot
+            if (root != null) {
+                applySettingsAndTheme(root, getThemedContext())
+                refreshLayout()
+                updatePredictions()
+            } else {
+                setInputView(onCreateInputView())
+            }
         }
     }
 
@@ -196,6 +204,9 @@ class FlowboardIMEService : InputMethodService() {
     private var currentFloatingScale: Float = 1f
     private var isMorePanelOpen = false
 
+    private val shortcutLabels = Array(10) { "" }
+    private val shortcutTexts = Array(10) { "" }
+
     private fun loadSettings() {
         val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
         isDockedLeftHanded = prefs.getBoolean("docked_side_tools_left", false)
@@ -205,6 +216,10 @@ class FlowboardIMEService : InputMethodService() {
         floatingY = prefs.getInt("floating_y", 100)
         currentFloatingScale = prefs.getFloat("floating_scale", 1f).coerceIn(0.88f, 1.20f)
         isDarkModeOverride = if (prefs.contains("dark_mode_override")) prefs.getBoolean("dark_mode_override", false) else null
+        for (i in 1..9) {
+            shortcutLabels[i] = prefs.getString("shortcut_label_$i", "")?.trim() ?: ""
+            shortcutTexts[i] = prefs.getString("shortcut_text_$i", "")?.trim() ?: ""
+        }
         loadActiveShortcuts()
     }
 
@@ -235,6 +250,9 @@ class FlowboardIMEService : InputMethodService() {
     private var lastDragHandleClickTime = 0L
     private var isMinimized = false
     private var isCommiting = false
+    private var lastLocalActionTime = 0L
+    private var lastFetchedBeforeCursor = ""
+    private var lastFetchedTime = 0L
 
     // Window position drag states
     private var initialX = 0
@@ -302,15 +320,6 @@ class FlowboardIMEService : InputMethodService() {
     @SuppressLint("ClickableViewAccessibility", "InflateParams")
     override fun onCreateInputView(): View {
         Log.d(TAG, "onCreateInputView")
-        
-        // Ensure Phase A critical data is loaded before inflating anything.
-        // This prevents the keyboard from flashing blank when switching from another IME.
-        if (!repo.isReady.value) {
-            Log.d(TAG, "Waiting for critical data before creating view...")
-            runBlocking {
-                repo.isReady.first { it }
-            }
-        }
         
         val themedContext = getThemedContext()
         val inflater = LayoutInflater.from(themedContext)
@@ -390,11 +399,11 @@ class FlowboardIMEService : InputMethodService() {
                         val r = object : Runnable {
                             override fun run() {
                                 handleDelete()
-                                handler.postDelayed(this, 50)
+                                handler.postDelayed(this, 90)
                             }
                         }
                         deleteRunnable = r
-                        handler.postDelayed(r, 400)
+                        handler.postDelayed(r, 350)
                         true
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -411,8 +420,8 @@ class FlowboardIMEService : InputMethodService() {
         // 3×3 Key Grid
         // ══════════════════════════════════════════
         keyboardView = rootView.findViewById<KeyboardView>(R.id.keyboardView).apply {
-            onKeyAction = { action, keySlots ->
-                handleKeyAction(action, keySlots)
+            onKeyAction = { action, keySlots, keyIndex ->
+                handleKeyAction(action, keySlots, keyIndex)
             }
         }
 
@@ -758,10 +767,6 @@ class FlowboardIMEService : InputMethodService() {
         super.onStartInputView(info, restarting)
         Log.d(TAG, "onStartInputView (restarting=$restarting)")
 
-        loadSettings()
-        liveLearningManager.loadProfile()
-        AssetLoader(this).updatePersonalizationState(this, repo)
-
         if (::scoringEngine.isInitialized) {
             scoringEngine.resetTrieCache()
         }
@@ -779,7 +784,9 @@ class FlowboardIMEService : InputMethodService() {
         synchronized(typedText) {
             typedText.clear()
             typedTextHistory.clear()
-            val existing = currentInputConnection?.getTextBeforeCursor(1000, 0)?.toString() ?: ""
+            val existing = try {
+                currentInputConnection?.getTextBeforeCursor(64, 0)?.toString() ?: ""
+            } catch (_: Exception) { "" }
             if (existing.isNotEmpty()) {
                 typedText.append(existing)
             }
@@ -2130,20 +2137,13 @@ class FlowboardIMEService : InputMethodService() {
     // Input Handling
     // ══════════════════════════════════════════
 
-    private fun getKeyId(keySlots: KeySlots): String? {
-        val down = keySlots.down
-        if (down.isEmpty()) return null
-        val num = down.toIntOrNull()
-        return if (num != null) "key_$num" else null
-    }
-
-    private fun handleKeyAction(action: SwipeDetector.SwipeAction, keySlots: KeySlots) {
+    private fun handleKeyAction(action: SwipeDetector.SwipeAction, keySlots: KeySlots, keyIndex: Int) {
         if (isNumberMode && action == SwipeDetector.SwipeAction.DOWN) {
-            handleNumberModeDownSwipe(keySlots)
+            handleNumberModeDownSwipe(keyIndex)
             return
         }
 
-        val keyId = getKeyId(keySlots)
+        val keyId = "key_$keyIndex"
         val charToType = when (action) {
             SwipeDetector.SwipeAction.TAP -> keySlots.tap
             SwipeDetector.SwipeAction.UP -> keySlots.up
@@ -2153,7 +2153,7 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         if (charToType.isNotEmpty()) {
-            if (keyId != null && action != SwipeDetector.SwipeAction.DOWN) {
+            if (action != SwipeDetector.SwipeAction.DOWN) {
                 val slotStr = when (action) {
                     SwipeDetector.SwipeAction.TAP -> "tap"
                     SwipeDetector.SwipeAction.UP -> "up"
@@ -2173,27 +2173,37 @@ class FlowboardIMEService : InputMethodService() {
         }
     }
 
-    private fun handleNumberModeDownSwipe(keySlots: KeySlots) {
-        val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
-        val isPremium = prefs.getBoolean("is_premium_user", false)
-        
-        if (isPremium) {
-            val macroKey = "macro_${keySlots.tap}"
-            val macroText = prefs.getString(macroKey, null)
-            if (!macroText.isNullOrEmpty()) {
-                commitChar(macroText)
-            }
+    private fun handleNumberModeDownSwipe(keyIndex: Int) {
+        val shortcutText = shortcutTexts.getOrNull(keyIndex)
+        if (!shortcutText.isNullOrEmpty()) {
+            playClick(0)
+            currentInputConnection?.commitText(shortcutText, 1)
+            typedTextRedoHistory.clear()
         } else {
-            showPremiumUpsell()
+            showToastMessage("No shortcut set for Key $keyIndex")
         }
     }
 
-    private fun showPremiumUpsell() {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("OPEN_PAGE", "premium.html")
+    private fun showToastMessage(message: String) {
+        Handler(Looper.getMainLooper()).post {
+            try {
+                Toast.makeText(this@FlowboardIMEService, message, Toast.LENGTH_SHORT).show()
+            } catch (_: Exception) {}
+            // Also flash feedback on the prediction bar chip so it is 100% visible immediately
+            pred1?.text = message
+            pred1?.visibility = View.VISIBLE
+            pred2?.visibility = View.GONE
+            pred3?.visibility = View.GONE
+            predictionBar?.visibility = View.VISIBLE
+            predictionRow?.visibility = View.VISIBLE
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (isNumberMode) {
+                    predictionBar?.visibility = View.INVISIBLE
+                } else {
+                    updatePredictions()
+                }
+            }, 1200)
         }
-        startActivity(intent)
     }
 
     override fun onUpdateSelection(
@@ -2203,9 +2213,22 @@ class FlowboardIMEService : InputMethodService() {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
         
         if (isCommiting) return
+
+        // Fast path: if selection change was from local keyboard action in last 150ms
+        if (SystemClock.uptimeMillis() - lastLocalActionTime < 150) {
+            return
+        }
+
+        // Fast path: 1-char cursor move
+        if ((newSelStart == oldSelStart + 1 && newSelEnd == oldSelEnd + 1 && oldSelStart == oldSelEnd) ||
+            (newSelStart == oldSelStart - 1 && newSelEnd == oldSelEnd - 1 && oldSelStart == oldSelEnd)) {
+            return
+        }
         
         val ic = currentInputConnection ?: return
-        val textBeforeCursor = ic.getTextBeforeCursor(1000, 0)?.toString() ?: ""
+        val textBeforeCursor = try {
+            ic.getTextBeforeCursor(64, 0)?.toString() ?: ""
+        } catch (_: Exception) { "" }
         
         val currentLocal = synchronized(typedText) { typedText.toString() }
         
@@ -2260,11 +2283,14 @@ class FlowboardIMEService : InputMethodService() {
             return local + appendChar
         }
         val ic = currentInputConnection
-        val before = ic?.getTextBeforeCursor(1000, 0)?.toString() ?: ""
+        val before = try {
+            ic?.getTextBeforeCursor(64, 0)?.toString() ?: ""
+        } catch (_: Exception) { "" }
         return before + appendChar
     }
 
     private fun commitChar(char: String) {
+        lastLocalActionTime = SystemClock.uptimeMillis()
         playClick(if (char == " ") 32 else 0)
         
         // Smart Quote Normalization (P21 feature) (Task 7)
@@ -2311,6 +2337,7 @@ class FlowboardIMEService : InputMethodService() {
     private fun isRegionalIndicator(cp: Int): Boolean = cp in 0x1F1E6..0x1F1FF
 
     private fun handleDelete() {
+        lastLocalActionTime = SystemClock.uptimeMillis()
         playClick(KeyEvent.KEYCODE_DEL)
         repo.lastActionKeyId = null
         repo.lastActionSlot = null
@@ -2462,6 +2489,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun usePrediction(textView: TextView) {
+        lastLocalActionTime = SystemClock.uptimeMillis()
         playClick(0)
         val word = textView.text.toString()
         if (word.isEmpty()) return
@@ -2592,9 +2620,15 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         if (isNumberMode) {
-            val layout = if (symbolPageIndex == 0) repo.symbolPage1 else repo.symbolPage2
+            val baseLayout = if (symbolPageIndex == 0) repo.symbolPage1 else repo.symbolPage2
+            val numberLayout = baseLayout.mapValues { (keyId, slots) ->
+                val keyNum = keyId.removePrefix("key_").toIntOrNull() ?: 1
+                val customLabel = shortcutLabels.getOrElse(keyNum) { "" }
+                val downSymbol = if (customLabel.isNotEmpty()) customLabel else "⚡"
+                slots.copy(down = downSymbol)
+            }
             keyboardView?.isAltMode = false
-            keyboardView?.updateLayout(layout)
+            keyboardView?.updateLayout(numberLayout)
             return
         }
 

@@ -43,6 +43,9 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         private val SINGULAR_INDICATORS = setOf(
             "a", "an", "one", "this", "that", "each", "every", "another"
         )
+
+        private val SPACE_REGEX = Regex("\\s+")
+        private val CLEAN_WORD_REGEX = Regex("[^a-z0-9']")
     }
 
     /**
@@ -55,7 +58,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         }
 
         val isSpace = trimmed.endsWith(' ')
-        val rawTokens = trimmed.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+        val rawTokens = trimmed.trim().split(SPACE_REGEX).filter { it.isNotEmpty() }
         if (rawTokens.isEmpty()) {
             return emptyList()
         }
@@ -411,7 +414,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
     }
 
     private fun cleanWord(word: String): String {
-        return word.lowercase().replace(Regex("[^a-z0-9']"), "")
+        return word.lowercase().replace(CLEAN_WORD_REGEX, "")
     }
 
     private fun applyCasing(word: String, isAllCaps: Boolean, isFirstUpper: Boolean): String {

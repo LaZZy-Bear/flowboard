@@ -111,9 +111,13 @@ class KeyView @JvmOverloads constructor(
 
     // ── Gesture Detector ──
     private var swipeDetector: SwipeDetector? = null
+    private val boltDrawable = androidx.core.content.ContextCompat.getDrawable(context, com.flowboard.ime.R.drawable.ic_bolt)?.mutate()
+
+    /** The 1-based index of this key (1..9) */
+    var keyIndex: Int = 1
 
     /** Callback for when the user performs a gesture on this key */
-    var onKeyAction: ((action: SwipeDetector.SwipeAction, keySlots: KeySlots) -> Unit)? = null
+    var onKeyAction: ((action: SwipeDetector.SwipeAction, keySlots: KeySlots, keyIndex: Int) -> Unit)? = null
 
     init {
         isClickable = true
@@ -137,7 +141,7 @@ class KeyView @JvmOverloads constructor(
         ) { action ->
             isPressed = false
             invalidate()
-            onKeyAction?.invoke(action, keySlots)
+            onKeyAction?.invoke(action, keySlots, keyIndex)
         }
     }
 
@@ -173,7 +177,7 @@ class KeyView @JvmOverloads constructor(
         colorAccent = colors.accent
         shadowPaint.color = if (colors.isDark) "#151517".toColorInt() else "#CACAD0".toColorInt()
         updateZoneColor()
-        gradientDirty = true
+        updateGradientShader()
     }
 
     private fun updateZoneColor() {
@@ -185,12 +189,23 @@ class KeyView @JvmOverloads constructor(
         }
     }
 
+    private var normalGradientShader: Shader? = null
+
+    private fun updateGradientShader() {
+        val h = if (height > 0) height.toFloat() else 100f * dp
+        updateZoneColor()
+        normalGradientShader = LinearGradient(
+            0f, 0f, 0f, h,
+            colorZoneStart, colorKeyBg,
+            Shader.TileMode.CLAMP
+        )
+    }
+
     /**
      * Update the character assignment for this key and trigger a redraw.
      */
     fun bind(slots: KeySlots) {
         this.keySlots = slots
-        resolveColors()
         invalidate()
     }
 
@@ -211,7 +226,7 @@ class KeyView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        gradientDirty = true
+        updateGradientShader()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -219,17 +234,6 @@ class KeyView @JvmOverloads constructor(
 
         val w = width.toFloat()
         val h = height.toFloat()
-
-        // ── Rebuild gradient if needed ──
-        if (gradientDirty || bgPaint.shader == null) {
-            updateZoneColor()
-            bgPaint.shader = LinearGradient(
-                0f, 0f, 0f, h,
-                colorZoneStart, colorKeyBg,
-                Shader.TileMode.CLAMP
-            )
-            gradientDirty = false
-        }
 
         // ── Key Shadow (simulates the CSS box-shadow: 0 2px 0px) ──
         shadowRect.set(1f * dp, shadowOffset, w - 1f * dp, h)
@@ -240,11 +244,10 @@ class KeyView @JvmOverloads constructor(
         if (isPressed) {
             bgPaint.shader = null
             bgPaint.color = colorKeyActive
+        } else {
+            bgPaint.shader = normalGradientShader
         }
         canvas.drawRoundRect(boundsRect, cornerRadius, cornerRadius, bgPaint)
-        if (isPressed) {
-            gradientDirty = true // Reset gradient on next draw after release
-        }
 
         // ════════════════════════════════════════
         // TEXT RENDERING
@@ -313,15 +316,29 @@ class KeyView @JvmOverloads constructor(
 
         // ── Bottom (Swipe Down) ──
         if (keySlots.down.isNotEmpty()) {
-            swipeTextPaint.textAlign = Paint.Align.CENTER
-            swipeTextPaint.textSize = bottomSmallTextSize
-            swipeTextPaint.alpha = 128 // Dimmer for bottom slot
-            canvas.drawText(
-                keySlots.down,
-                centerX,
-                contentBottom - 6f * dp,
-                swipeTextPaint
-            )
+            if (keySlots.down == "⚡" || keySlots.down == "\u26A1" || keySlots.down == "__BOLT__") {
+                val boltWidth = (10f * dp).toInt()
+                val boltHeight = (12f * dp).toInt()
+                val iconLeft = (centerX - boltWidth / 2f).toInt()
+                val iconBottom = (contentBottom - 4f * dp).toInt()
+                val iconTop = iconBottom - boltHeight
+                boltDrawable?.let { d ->
+                    d.setBounds(iconLeft, iconTop, iconLeft + boltWidth, iconBottom)
+                    d.setTint(colorTextSwipe)
+                    d.alpha = 180
+                    d.draw(canvas)
+                }
+            } else {
+                swipeTextPaint.textAlign = Paint.Align.CENTER
+                swipeTextPaint.textSize = if (keySlots.down.length > 3) bottomSmallTextSize * 0.85f else bottomSmallTextSize
+                swipeTextPaint.alpha = 180
+                canvas.drawText(
+                    keySlots.down,
+                    centerX,
+                    contentBottom - 6f * dp,
+                    swipeTextPaint
+                )
+            }
         }
 
         // Reset text align

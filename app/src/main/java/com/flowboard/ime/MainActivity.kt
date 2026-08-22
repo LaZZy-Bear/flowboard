@@ -215,5 +215,29 @@ class MainActivity : AppCompatActivity() {
                 // ignore
             }
         }
+
+        @JavascriptInterface
+        fun getShortcutsJson(): String {
+            val prefs = activity.getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+            val json = org.json.JSONObject()
+            for (i in 1..9) {
+                val item = org.json.JSONObject()
+                item.put("label", prefs.getString("shortcut_label_$i", "") ?: "")
+                item.put("text", prefs.getString("shortcut_text_$i", "") ?: "")
+                json.put(i.toString(), item)
+            }
+            return json.toString()
+        }
+
+        @JavascriptInterface
+        fun saveShortcut(keyNum: Int, label: String, text: String) {
+            val prefs = activity.getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+            prefs.edit {
+                putString("shortcut_label_$keyNum", label.trim())
+                putString("shortcut_text_$keyNum", text.trim())
+            }
+            val intent = Intent("com.flowboard.ime.ACTION_SETTINGS_CHANGED")
+            activity.sendBroadcast(intent)
+        }
     }
 }
