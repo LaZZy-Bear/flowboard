@@ -31,7 +31,6 @@ object FlowboardRepository {
     var trieDict: TrieNode? = null
     var trieDictOOV: TrieNode? = null                  // Secondary OOV fallback trie
     var baseTrieDictOOV: TrieNode? = null              // Immutable base for OOV trie (for resetting)
-    var liveLearnedTrie: TrieNode = TrieNode()         // User-learned OOV trie (fast, immutable base protection)
     var wordList: List<String> = emptyList()
     var wordReverseMap: Map<String, Int> = emptyMap()
     var clusteredBigram: ClusteredWordBigram = ClusteredWordBigram.EMPTY

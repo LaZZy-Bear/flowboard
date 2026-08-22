@@ -75,9 +75,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 /**
  * The main InputMethodService for Flowboard.
@@ -251,8 +249,6 @@ class FlowboardIMEService : InputMethodService() {
     private var isMinimized = false
     private var isCommiting = false
     private var lastLocalActionTime = 0L
-    private var lastFetchedBeforeCursor = ""
-    private var lastFetchedTime = 0L
 
     // Window position drag states
     private var initialX = 0
@@ -1176,7 +1172,7 @@ class FlowboardIMEService : InputMethodService() {
     @Suppress("SetTextI18n")
     private fun startVoiceRecognition() {
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            android.widget.Toast.makeText(this, "Microphone permission required for Voice typing", android.widget.Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Microphone permission required for Voice typing", Toast.LENGTH_LONG).show()
             try {
                 val intent = Intent(this, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -1188,7 +1184,7 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            android.widget.Toast.makeText(this, "Voice recognition service not available on this device", android.widget.Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Voice recognition service not available on this device", Toast.LENGTH_SHORT).show()
             return
         }
 

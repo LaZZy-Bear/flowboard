@@ -316,7 +316,7 @@ class KeyView @JvmOverloads constructor(
 
         // ── Bottom (Swipe Down) ──
         if (keySlots.down.isNotEmpty()) {
-            if (keySlots.down == "⚡" || keySlots.down == "\u26A1" || keySlots.down == "__BOLT__") {
+            if (keySlots.down == "⚡" || keySlots.down == "__BOLT__") {
                 val boltWidth = (10f * dp).toInt()
                 val boltHeight = (12f * dp).toInt()
                 val iconLeft = (centerX - boltWidth / 2f).toInt()
