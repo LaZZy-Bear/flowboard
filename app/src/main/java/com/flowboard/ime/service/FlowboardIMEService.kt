@@ -122,7 +122,7 @@ class FlowboardIMEService : InputMethodService() {
                 }
                 "show_suggestions" -> {
                     isShowSuggestions = intent.getBooleanExtra("setting_val_bool", true)
-                    predictionRow?.visibility = if (isShowSuggestions) View.VISIBLE else View.GONE
+                    updatePredictions()
                 }
                 "docked_side_tools_left" -> {
                     isDockedLeftHanded = intent.getBooleanExtra("setting_val_bool", false)
@@ -459,11 +459,11 @@ class FlowboardIMEService : InputMethodService() {
                         val r = object : Runnable {
                             override fun run() {
                                 handleDelete()
-                                handler.postDelayed(this, 90)
+                                handler.postDelayed(this, 67)
                             }
                         }
                         deleteRunnable = r
-                        handler.postDelayed(r, 350)
+                        handler.postDelayed(r, 260)
                         true
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -696,9 +696,38 @@ class FlowboardIMEService : InputMethodService() {
                 currentInputConnection?.performContextMenuAction(android.R.id.paste)
             }
 
-            btnDelete?.setOnClickListener {
-                soundHapticManager.playTap()
-                handleDelete()
+            btnDelete?.apply {
+                setOnClickListener {
+                    soundHapticManager.playTap()
+                    handleDelete()
+                }
+                var deleteRunnable: Runnable? = null
+                val handler = Handler(Looper.getMainLooper())
+                @SuppressLint("ClickableViewAccessibility")
+                setOnTouchListener { v, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            v.isPressed = true
+                            soundHapticManager.playTap()
+                            handleDelete()
+                            val r = object : Runnable {
+                                override fun run() {
+                                    handleDelete()
+                                    handler.postDelayed(this, 67)
+                                }
+                            }
+                            deleteRunnable = r
+                            handler.postDelayed(r, 260)
+                            true
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            v.isPressed = false
+                            deleteRunnable?.let { handler.removeCallbacks(it) }
+                            true
+                        }
+                        else -> false
+                    }
+                }
             }
 
             btnArrowUp?.setOnClickListener {
@@ -1006,11 +1035,11 @@ class FlowboardIMEService : InputMethodService() {
                                 val r = object : Runnable {
                                     override fun run() {
                                         handleDelete()
-                                        handler.postDelayed(this, 50)
+                                        handler.postDelayed(this, 67)
                                     }
                                 }
                                 deleteRunnable = r
-                                handler.postDelayed(r, 400)
+                                handler.postDelayed(r, 260)
                                 true
                             }
                             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -1855,13 +1884,13 @@ class FlowboardIMEService : InputMethodService() {
 
         if (isFloatingMode) {
             val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
-            val showSuggestions = prefs.getBoolean("show_suggestions", true)
-            predictionRowView?.visibility = if (showSuggestions) View.VISIBLE else View.GONE
+            predictionRowView?.visibility = View.VISIBLE
             btnDelete?.visibility = View.GONE
             floatingControlBar?.visibility = View.VISIBLE
             dragHandleArea?.visibility = View.VISIBLE
             resizeHandleRight?.visibility = View.VISIBLE
             setupDragHandle()
+            updatePredictions()
 
             val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
             val gd = android.graphics.drawable.GradientDrawable()
@@ -1962,10 +1991,10 @@ class FlowboardIMEService : InputMethodService() {
             root.scaleY = 1f
         } else {
             val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
-            val showSuggestions = prefs.getBoolean("show_suggestions", true)
-            predictionRowView?.visibility = if (showSuggestions) View.VISIBLE else View.GONE
+            predictionRowView?.visibility = View.VISIBLE
             btnDelete?.visibility = View.VISIBLE
             floatingControlBar?.visibility = View.GONE
+            updatePredictions()
             
             // Remove rounded background for docked mode
             val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
@@ -2282,14 +2311,11 @@ class FlowboardIMEService : InputMethodService() {
         
         btnNumbers?.text = if (isNumberMode) "Aa" else "?12"
         
-        val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
-        val showSuggestions = prefs.getBoolean("show_suggestions", true)
         if (isNumberMode) {
-            predictionBar?.visibility = View.INVISIBLE
-            predictionRow?.visibility = if (!isFloatingMode) View.VISIBLE else View.GONE
+            predictionBar?.visibility = View.GONE
+            predictionRow?.visibility = View.VISIBLE
         } else {
-            predictionRow?.visibility = if (showSuggestions && !isFloatingMode) View.VISIBLE else View.GONE
-            predictionBar?.visibility = View.VISIBLE
+            predictionRow?.visibility = View.VISIBLE
             updatePredictions()
         }
         
@@ -2359,11 +2385,10 @@ class FlowboardIMEService : InputMethodService() {
             notificationBar?.visibility = View.GONE
             if (isNumberMode) {
                 predictionBar?.visibility = View.GONE
-                predictionRow?.visibility = if (wasPredictionRowVisible) View.VISIBLE else View.GONE
-            } else if (isShowSuggestions) {
-                updatePredictions()
+                predictionRow?.visibility = View.VISIBLE
             } else {
-                predictionRow?.visibility = View.GONE
+                predictionRow?.visibility = View.VISIBLE
+                updatePredictions()
             }
         }
         notificationHandler.postDelayed(notificationDismissRunnable!!, durationMs)
@@ -2538,6 +2563,33 @@ class FlowboardIMEService : InputMethodService() {
         repo.lastActionChar = null
         repo.stickyChar = null
 
+        val ic = currentInputConnection ?: return
+
+        // 1. Check if user has selected / highlighted text (คลุมดำ)
+        val selectedText = try {
+            ic.getSelectedText(0)
+        } catch (_: Exception) {
+            null
+        }
+
+        if (!selectedText.isNullOrEmpty()) {
+            synchronized(typedText) {
+                typedTextHistory.add(typedText.toString())
+                typedTextRedoHistory.clear()
+                typedText.clear()
+                if (::scoringEngine.isInitialized) {
+                    scoringEngine.resetTrieCache()
+                }
+            }
+            isCommiting = true
+            ic.commitText("", 1)
+            isCommiting = false
+            refreshLayout()
+            updatePredictions()
+            return
+        }
+
+        // 2. Normal delete when no text is selected
         var deleteCount = 1
         synchronized(typedText) {
             typedTextHistory.add(typedText.toString())
@@ -2578,7 +2630,6 @@ class FlowboardIMEService : InputMethodService() {
             }
         }
 
-        val ic = currentInputConnection ?: return
         isCommiting = true
         ic.deleteSurroundingText(deleteCount, 0)
         isCommiting = false
@@ -2698,82 +2749,82 @@ class FlowboardIMEService : InputMethodService() {
 
     private fun handleUndo() {
         soundHapticManager.playTap()
-        val lastState = synchronized(typedText) {
-            if (typedTextHistory.isNotEmpty()) {
-                val current = typedText.toString()
-                typedTextRedoHistory.add(current)
-                typedTextHistory.removeAt(typedTextHistory.size - 1)
-            } else {
-                null
-            }
+        val ic = currentInputConnection ?: return
+
+        // 1. Try system ContextMenu Action for Undo
+        val handled = try {
+            ic.performContextMenuAction(android.R.id.undo)
+        } catch (_: Exception) {
+            false
         }
-        if (lastState != null) {
-            val ic = currentInputConnection ?: return
-            val currentLen = synchronized(typedText) { typedText.length }
-            if (currentLen > 0) {
-                ic.deleteSurroundingText(currentLen, 0)
-            }
-            ic.commitText(lastState, 1)
-            synchronized(typedText) {
-                typedText.clear()
-                typedText.append(lastState)
-            }
-            if (::scoringEngine.isInitialized) {
-                scoringEngine.resetTrieCache()
-            }
-            refreshLayout()
-            updatePredictions()
+
+        // 2. Dispatch Ctrl+Z KeyEvent to target editor
+        if (!handled) {
+            val now = SystemClock.uptimeMillis()
+            val meta = KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_Z, 0, meta))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_Z, 0, meta))
         }
+
+        synchronized(typedText) {
+            typedText.clear()
+        }
+        if (::scoringEngine.isInitialized) {
+            scoringEngine.resetTrieCache()
+        }
+        refreshLayout()
+        updatePredictions()
     }
 
     private fun handleRedo() {
         soundHapticManager.playTap()
-        val nextState = synchronized(typedText) {
-            if (typedTextRedoHistory.isNotEmpty()) {
-                val current = typedText.toString()
-                typedTextHistory.add(current)
-                typedTextRedoHistory.removeAt(typedTextRedoHistory.size - 1)
-            } else {
-                null
-            }
+        val ic = currentInputConnection ?: return
+
+        // 1. Try system ContextMenu Action for Redo
+        val handled = try {
+            ic.performContextMenuAction(android.R.id.redo)
+        } catch (_: Exception) {
+            false
         }
-        if (nextState != null) {
-            val ic = currentInputConnection ?: return
-            val currentLen = synchronized(typedText) { typedText.length }
-            if (currentLen > 0) {
-                ic.deleteSurroundingText(currentLen, 0)
-            }
-            ic.commitText(nextState, 1)
-            synchronized(typedText) {
-                typedText.clear()
-                typedText.append(nextState)
-            }
-            if (::scoringEngine.isInitialized) {
-                scoringEngine.resetTrieCache()
-            }
-            refreshLayout()
-            updatePredictions()
+
+        // 2. Dispatch Ctrl+Y and Ctrl+Shift+Z KeyEvents to target editor
+        if (!handled) {
+            val now = SystemClock.uptimeMillis()
+            val metaCtrlY = KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_Y, 0, metaCtrlY))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_Y, 0, metaCtrlY))
+
+            val metaCtrlShiftZ = KeyEvent.META_CTRL_ON or KeyEvent.META_SHIFT_ON or KeyEvent.META_CTRL_LEFT_ON or KeyEvent.META_SHIFT_LEFT_ON
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_Z, 0, metaCtrlShiftZ))
+            ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_Z, 0, metaCtrlShiftZ))
         }
+
+        synchronized(typedText) {
+            typedText.clear()
+        }
+        if (::scoringEngine.isInitialized) {
+            scoringEngine.resetTrieCache()
+        }
+        refreshLayout()
+        updatePredictions()
     }
 
     private fun handleClearAll() {
         soundHapticManager.playTap()
         val ic = currentInputConnection ?: return
-        val currentLen = synchronized(typedText) {
-            val len = typedText.length
-            if (len > 0) {
-                typedTextHistory.add(typedText.toString())
-                typedTextRedoHistory.clear()
-                typedText.clear()
-            }
-            len
+        synchronized(typedText) {
+            typedTextHistory.add(typedText.toString())
+            typedTextRedoHistory.clear()
+            typedText.clear()
         }
-        if (currentLen > 0) {
-            ic.deleteSurroundingText(currentLen, 0)
-        } else {
-            ic.performContextMenuAction(android.R.id.selectAll)
-            sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
-        }
+        ic.performContextMenuAction(android.R.id.selectAll)
+        ic.commitText("", 1)
+        val now = SystemClock.uptimeMillis()
+        val meta = KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
+        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_A, 0, meta))
+        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_A, 0, meta))
+        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL, 0, 0))
+        ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL, 0, 0))
         if (::scoringEngine.isInitialized) {
             scoringEngine.resetTrieCache()
         }
@@ -2902,6 +2953,14 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun updatePredictions() {
+        if (!isShowSuggestions) {
+            pred1?.text = ""
+            pred2?.text = ""
+            pred3?.text = ""
+            predictionBar?.visibility = View.GONE
+            return
+        }
+
         if (quickPasteBar?.visibility == View.VISIBLE) {
             val text = typedText.toString().trim()
             if (text.isNotEmpty()) {
@@ -3032,12 +3091,13 @@ class FlowboardIMEService : InputMethodService() {
         
         // 1. Toggles (Number row, Suggestions)
         val showNumberRow = prefs.getBoolean("show_number_row", false)
-        val showSuggestions = prefs.getBoolean("show_suggestions", true)
+        isShowSuggestions = prefs.getBoolean("show_suggestions", true)
         
         val numberRow = rootView.findViewById<View>(R.id.numberRow)
         numberRow?.visibility = if (showNumberRow) View.VISIBLE else View.GONE
         
-        predictionRow?.visibility = if (showSuggestions) View.VISIBLE else View.GONE
+        predictionRow?.visibility = View.VISIBLE
+        updatePredictions()
         
         // 2. Load theme colors
         val activeTheme = prefs.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
@@ -3127,6 +3187,26 @@ class FlowboardIMEService : InputMethodService() {
         
         btnSend?.backgroundTintList = accentTintList
         rootView.findViewById<ImageView>(R.id.btnSendIcon)?.imageTintList = ColorStateList.valueOf(colors.sendText)
+
+        // Undo & Redo Panel Theme
+        undoRedoPanel?.let { panel ->
+            panel.findViewById<TextView>(R.id.cardUndo)?.apply {
+                backgroundTintList = keyBgTintList
+                setTextColor(textTapColor)
+                compoundDrawableTintList = ColorStateList.valueOf(textTapColor)
+            }
+            panel.findViewById<TextView>(R.id.cardRedo)?.apply {
+                backgroundTintList = keyBgTintList
+                setTextColor(textTapColor)
+                compoundDrawableTintList = ColorStateList.valueOf(textTapColor)
+            }
+            panel.findViewById<TextView>(R.id.cardClearAll)?.apply {
+                backgroundTintList = keyBgTintList
+                setTextColor(textTapColor)
+                compoundDrawableTintList = ColorStateList.valueOf(textTapColor)
+            }
+        }
+
         updateEmojiCategoryHighlight(currentEmojiCategory)
         keyboardView?.refreshTheme()
     }
