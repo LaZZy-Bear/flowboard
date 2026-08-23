@@ -6,7 +6,6 @@ import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.PersonalProfile
 import com.flowboard.ime.data.models.TrieNode
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
