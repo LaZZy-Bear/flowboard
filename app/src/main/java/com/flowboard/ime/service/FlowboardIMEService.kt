@@ -13,6 +13,7 @@ import android.graphics.Typeface
 import android.inputmethodservice.InputMethodService
 import androidx.core.graphics.toColorInt
 import androidx.core.view.isVisible
+import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.flowboard.ime.data.ClipboardItem
@@ -2378,7 +2379,6 @@ class FlowboardIMEService : InputMethodService() {
         quickPasteBar?.visibility = View.GONE
         predictionBar?.visibility = View.GONE
 
-        val wasPredictionRowVisible = predictionRow?.visibility == View.VISIBLE
         predictionRow?.visibility = View.VISIBLE
 
         notificationDismissRunnable = Runnable {
@@ -3193,17 +3193,17 @@ class FlowboardIMEService : InputMethodService() {
             panel.findViewById<TextView>(R.id.cardUndo)?.apply {
                 backgroundTintList = keyBgTintList
                 setTextColor(textTapColor)
-                compoundDrawableTintList = ColorStateList.valueOf(textTapColor)
+                TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(textTapColor))
             }
             panel.findViewById<TextView>(R.id.cardRedo)?.apply {
                 backgroundTintList = keyBgTintList
                 setTextColor(textTapColor)
-                compoundDrawableTintList = ColorStateList.valueOf(textTapColor)
+                TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(textTapColor))
             }
             panel.findViewById<TextView>(R.id.cardClearAll)?.apply {
                 backgroundTintList = keyBgTintList
                 setTextColor(textTapColor)
-                compoundDrawableTintList = ColorStateList.valueOf(textTapColor)
+                TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(textTapColor))
             }
         }
 
