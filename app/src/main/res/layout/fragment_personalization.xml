@@ -77,6 +77,13 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Options Container that gets dimmed / disabled when switchPersonalization is off -->
+        <LinearLayout
+            android:id="@+id/containerPersonalizationOptions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
         <!-- Section 1: General -->
         <TextView
             android:layout_width="wrap_content"
@@ -790,6 +797,7 @@
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

@@ -25,7 +25,9 @@ import com.flowboard.ime.data.models.PersonalProfile
  *
  * Both systems only activate in word-start states (1, 7, 8).
  *
- * Learned OOV injection is handled by AssetLoader at startup (not at runtime here).
+ * Note on Layout Rules:
+ *   - Digits (0-9) MUST NEVER receive score bonuses (they remain strictly on the swipe-down slot).
+ *   - Supported symbols in masterLayout ('-', '.', ''') CAN receive score bonuses and compete for the TAP slot.
  */
 class PersonalizationEngine(private val repo: FlowboardRepository) {
 
@@ -99,7 +101,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         if (activeWordsArray.isEmpty()) return
 
         val cleanWords = activeWordsArray.map {
-            it.lowercase().replace(Regex("[^a-z0-9']"), "")
+            it.lowercase().replace(Regex("[^a-z0-9'.-]"), "").trim('.', '-', '\'')
         }.filter { it.isNotEmpty() }
         if (cleanWords.isEmpty()) return
 
@@ -115,8 +117,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
                 for ((nextWord, count) in triEntry) {
                     if (nextWord.length > prefixLen && (prefixLen == 0 || nextWord.lowercase().startsWith(prefix))) {
                         val targetChar = nextWord[prefixLen].lowercase()
-                        // Digits do not receive score bonuses on keyboard layout
-                        if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
+                        if (isScorableChar(targetChar)) {
                             val bonus = countToTrigramBonus(count) * multiplier
                             if (bonus > 0.0) {
                                 finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
@@ -136,8 +137,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
                 for ((nextWord, count) in biEntry) {
                     if (nextWord.length > prefixLen && (prefixLen == 0 || nextWord.lowercase().startsWith(prefix))) {
                         val targetChar = nextWord[prefixLen].lowercase()
-                        // Digits do not receive score bonuses on keyboard layout
-                        if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
+                        if (isScorableChar(targetChar)) {
                             val bonus = countToBigramBonus(count) * multiplier
                             if (bonus > 0.0) {
                                 finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
@@ -194,8 +194,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
             if (word.length <= prefixLen) continue
             if (prefixLen > 0 && !word.lowercase().startsWith(prefix)) continue
             val targetChar = word[prefixLen].lowercase()
-            // Digits do not receive score bonuses on keyboard layout
-            if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
+            if (isScorableChar(targetChar)) {
                 val bonus = countToStartFreqBonus(count) * multiplier
                 if (bonus > 0.0) {
                     finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
@@ -221,7 +220,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         for (word in profile.learnedOOV) {
             if (word.length > prefixLen && word.lowercase().startsWith(prefix)) {
                 val targetChar = word[prefixLen].lowercase()
-                if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
+                if (isScorableChar(targetChar)) {
                     val count = profile.wordFreq[word.lowercase()] ?: 1
                     val bonus = countToPrefixBonus(count) * multiplier * oovMultiplier
                     if (bonus > 0.0) {
@@ -241,7 +240,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
                 if (word.length <= prefixLen) continue
                 if (!word.lowercase().startsWith(prefix)) continue
                 val targetChar = word[prefixLen].lowercase()
-                if (targetChar.isNotEmpty() && targetChar[0] in 'a'..'z') {
+                if (isScorableChar(targetChar)) {
                     val bonus = countToPrefixBonus(count) * multiplier
                     if (bonus > 0.0) {
                         finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
@@ -249,6 +248,16 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
                 }
             }
         }
+    }
+
+    /**
+     * Digits MUST NOT receive score bonuses on the keyboard layout (digits stay strictly on swipe-down).
+     * Supported symbols in masterLayout (e.g. '-', '.', ''') CAN receive score bonuses to compete for the TAP slot.
+     */
+    private fun isScorableChar(targetChar: String): Boolean {
+        if (targetChar.isEmpty()) return false
+        if (targetChar[0].isDigit()) return false
+        return repo.masterLayout.containsKey(targetChar)
     }
 
     private fun countToStartFreqBonus(count: Int): Double = when {

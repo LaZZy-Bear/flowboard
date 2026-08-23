@@ -49,6 +49,14 @@ class LiveLearningManager(private val context: Context) {
     private val liveLearnedOOV = LinkedHashSet<String>()
 
     /**
+     * Check if master personalization is enabled in user settings.
+     */
+    fun isPersonalizationEnabled(): Boolean {
+        val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+        return prefs.getBoolean("personalization_enabled", true)
+    }
+
+    /**
      * Loads saved live profile from internal storage JSON file and merges it into FlowboardRepository.
      */
     fun loadProfile() {
@@ -101,6 +109,9 @@ class LiveLearningManager(private val context: Context) {
             Log.d(TAG, "Loaded live profile: ${liveWordFreq.size} freq, ${liveBigram.size} bigram, ${liveTrigram.size} trigram, ${liveLearnedOOV.size} OOV")
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to load live profile: ${e.message}")
+            FlowboardRepository.personalProfile = PersonalProfile.EMPTY
+            FlowboardRepository.isPersonalizationEnabled = false
+            FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
         }
     }
 
@@ -109,9 +120,14 @@ class LiveLearningManager(private val context: Context) {
      * Exact algorithm from P22 personalize.js `recordWordTyped()`.
      */
     fun recordWordTyped(fullText: String) {
+        if (!isPersonalizationEnabled()) return
         if (fullText.isEmpty()) return
         val allowAlphanumeric = isAlphanumericEnabled()
-        val regex = if (allowAlphanumeric) Regex("[a-z0-9]+(?:'[a-z0-9]+)?") else Regex("[a-z]+(?:'[a-z]+)?")
+        val regex = if (allowAlphanumeric) {
+            Regex("[a-z0-9]+(?:['.-][a-z0-9]+)*")
+        } else {
+            Regex("[a-z]+(?:['.-][a-z]+)*")
+        }
         val words = regex.findAll(fullText.lowercase()).map { it.value }.toList()
         if (words.isEmpty()) return
 
@@ -158,16 +174,15 @@ class LiveLearningManager(private val context: Context) {
         isDirty.set(true)
         updateRepositoryProfile()
         pruneIfExceeded()
-
-        Log.d(TAG, "Recorded word in RAM: '$lastWord' (freq=${liveWordFreq[lastWord]}, bigrams=${liveBigram.size}, trigrams=${liveTrigram.size}, total OOV=${liveLearnedOOV.size})")
     }
 
     /**
      * Dynamic OOV Injection: injects a new word directly into `repo.trieDictOOV` node tree.
      */
     private fun injectOOVWordToTrie(word: String) {
+        if (!isPersonalizationEnabled()) return
         val root = FlowboardRepository.trieDictOOV ?: TrieNode().also { FlowboardRepository.trieDictOOV = it }
-        var current: TrieNode = root
+        var current = root
         for (ch in word) {
             current = current.getOrPut(ch.toString())
         }
@@ -175,27 +190,33 @@ class LiveLearningManager(private val context: Context) {
     }
 
     private fun isWordInTrie(root: TrieNode?, word: String): Boolean {
-        if (root == null || word.isEmpty()) return false
-        var current: TrieNode = root
+        var current: TrieNode = root ?: return false
         for (ch in word) {
             current = current.get(ch.toString()) ?: return false
         }
         return current.isEndOfWord
     }
 
+    private fun parseCapacity(str: String?, default: Int): Int {
+        if (str.isNullOrBlank()) return default
+        val clean = str.replace(",", "")
+        val match = Regex("""([0-9]+)""").find(clean) ?: return default
+        return match.value.toIntOrNull() ?: default
+    }
+
     private fun getMaxWordFreqCapacity(): Int {
         val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
-        return prefs.getString("personalization_max_word_freq", "$DEFAULT_MAX_WORD_FREQ_ENTRIES")?.toIntOrNull() ?: DEFAULT_MAX_WORD_FREQ_ENTRIES
+        return parseCapacity(prefs.getString("personalization_max_word_freq", "$DEFAULT_MAX_WORD_FREQ_ENTRIES"), DEFAULT_MAX_WORD_FREQ_ENTRIES)
     }
 
     private fun getMaxPairsCapacity(): Int {
         val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
-        return prefs.getString("personalization_max_pairs", "$DEFAULT_MAX_PAIRS_ENTRIES")?.toIntOrNull() ?: DEFAULT_MAX_PAIRS_ENTRIES
+        return parseCapacity(prefs.getString("personalization_max_pairs", "$DEFAULT_MAX_PAIRS_ENTRIES"), DEFAULT_MAX_PAIRS_ENTRIES)
     }
 
     private fun getMaxOOVCapacity(): Int {
         val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
-        return prefs.getString("personalization_max_oov", "$DEFAULT_MAX_OOV_ENTRIES")?.toIntOrNull() ?: DEFAULT_MAX_OOV_ENTRIES
+        return parseCapacity(prefs.getString("personalization_max_oov", "$DEFAULT_MAX_OOV_ENTRIES"), DEFAULT_MAX_OOV_ENTRIES)
     }
 
     private fun isAlphanumericEnabled(): Boolean {
@@ -274,18 +295,23 @@ class LiveLearningManager(private val context: Context) {
             learnedOOV = mergedOOV
         )
 
-        FlowboardRepository.isPersonalizationEnabled = !FlowboardRepository.personalProfile.isEmpty
+        val userPrefEnabled = isPersonalizationEnabled()
+        FlowboardRepository.isPersonalizationEnabled = !FlowboardRepository.personalProfile.isEmpty && userPrefEnabled
 
-        // Rebuild only the lightweight trieDictOOV (only user-typed words, typically 0..500 words) in 0.001ms
-        val newLearnedTrie = TrieNode()
-        for (oovWord in mergedOOV) {
-            var current: TrieNode = newLearnedTrie
-            for (ch in oovWord) {
-                current = current.getOrPut(ch.toString())
+        if (userPrefEnabled) {
+            // Rebuild only the lightweight trieDictOOV (only user-typed words, typically 0..500 words) in 0.001ms
+            val newLearnedTrie = TrieNode()
+            for (oovWord in mergedOOV) {
+                var current: TrieNode = newLearnedTrie
+                for (ch in oovWord) {
+                    current = current.getOrPut(ch.toString())
+                }
+                current.isEndOfWord = true
             }
-            current.isEndOfWord = true
+            FlowboardRepository.trieDictOOV = newLearnedTrie
+        } else {
+            FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
         }
-        FlowboardRepository.trieDictOOV = newLearnedTrie
     }
 
     /**
@@ -331,7 +357,7 @@ class LiveLearningManager(private val context: Context) {
 
         FlowboardRepository.personalProfile = PersonalProfile.EMPTY
         FlowboardRepository.isPersonalizationEnabled = false
-        FlowboardRepository.trieDictOOV = TrieNode()
+        FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
         Log.d(TAG, "Cleared live profile successfully in 0.001ms.")
     }
 

@@ -45,7 +45,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         )
 
         private val SPACE_REGEX = Regex("\\s+")
-        private val CLEAN_WORD_REGEX = Regex("[^a-z0-9']")
+        private val CLEAN_WORD_REGEX = Regex("[^a-z0-9'.-]")
     }
 
     /**
@@ -75,7 +75,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         }
 
         val cleanContext = contextWords.map { cleanWord(it) }.filter { it.isNotEmpty() }
-        val prefix = cleanWord(activePrefix)
+        val prefix = cleanPrefix(activePrefix)
 
         val results: List<String> = if (prefix.isEmpty()) {
             // ──────────────────────────────────────────
@@ -413,8 +413,14 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         return results
     }
 
+    private fun cleanPrefix(prefix: String): String {
+        return prefix.lowercase().replace(CLEAN_WORD_REGEX, "").trimStart('.', '-', '\'')
+    }
+
     private fun cleanWord(word: String): String {
-        return word.lowercase().replace(CLEAN_WORD_REGEX, "")
+        return word.lowercase()
+            .replace(CLEAN_WORD_REGEX, "")
+            .trim('.', '-', '\'')
     }
 
     private fun applyCasing(word: String, isAllCaps: Boolean, isFirstUpper: Boolean): String {

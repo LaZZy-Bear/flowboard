@@ -49,19 +49,41 @@ class PersonalizationFragment : Fragment() {
         view?.let { loadStats(it) }
     }
 
+    private fun updateOptionsEnabledState(view: View, isEnabled: Boolean) {
+        val container = view.findViewById<ViewGroup>(R.id.containerPersonalizationOptions) ?: return
+        container.alpha = if (isEnabled) 1.0f else 0.38f
+        setViewGroupEnabled(container, isEnabled)
+    }
+
+    private fun setViewGroupEnabled(viewGroup: ViewGroup, isEnabled: Boolean) {
+        for (i in 0 until viewGroup.childCount) {
+            val child = viewGroup.getChildAt(i)
+            child.isEnabled = isEnabled
+            child.isClickable = isEnabled
+            child.isFocusable = isEnabled
+            if (child is ViewGroup) {
+                setViewGroupEnabled(child, isEnabled)
+            }
+        }
+    }
+
     private fun setupHeroAndSwitches(view: View, mainActivity: MainActivity) {
         val switchPersonalization = view.findViewById<MaterialSwitch>(R.id.switchPersonalization)
         val switchPairs = view.findViewById<MaterialSwitch>(R.id.switchPairs)
         val switchFreq = view.findViewById<MaterialSwitch>(R.id.switchFreq)
         val switchAlphanumeric = view.findViewById<MaterialSwitch>(R.id.switchAlphanumeric)
 
-        switchPersonalization?.isChecked = prefs.getBoolean("personalization_enabled", true)
+        val isMasterEnabled = prefs.getBoolean("personalization_enabled", true)
+        switchPersonalization?.isChecked = isMasterEnabled
         switchPairs?.isChecked = prefs.getBoolean("personalization_pairs_enabled", true)
         switchFreq?.isChecked = prefs.getBoolean("personalization_freq_enabled", true)
         switchAlphanumeric?.isChecked = prefs.getBoolean("personalization_alphanumeric_enabled", true)
 
+        updateOptionsEnabledState(view, isMasterEnabled)
+
         switchPersonalization?.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit { putBoolean("personalization_enabled", isChecked) }
+            updateOptionsEnabledState(view, isChecked)
             mainActivity.notifyImeSettingsChanged("personalization_enabled", isChecked)
         }
 
@@ -88,6 +110,7 @@ class PersonalizationFragment : Fragment() {
         val currentBoost = prefs.getString("personalization_boost_multiplier", "1.0x (Default)") ?: "1.0x (Default)"
         tvBoost?.text = currentBoost
         view.findViewById<View>(R.id.rowBoostIntensity)?.setOnClickListener {
+            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
             showSingleChoiceDialog("Boost Intensity", boostOptions, tvBoost?.text?.toString()) { selected ->
                 tvBoost?.text = selected
                 prefs.edit { putString("personalization_boost_multiplier", selected) }
@@ -101,6 +124,7 @@ class PersonalizationFragment : Fragment() {
         val currentPriority = prefs.getString("personalization_oov_multiplier", "1.3x (Default)") ?: "1.3x (Default)"
         tvPriority?.text = currentPriority
         view.findViewById<View>(R.id.rowLearnedPriority)?.setOnClickListener {
+            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
             showSingleChoiceDialog("Learned Word Priority", priorityOptions, tvPriority?.text?.toString()) { selected ->
                 tvPriority?.text = selected
                 prefs.edit { putString("personalization_oov_multiplier", selected) }
@@ -114,6 +138,7 @@ class PersonalizationFragment : Fragment() {
         val currentBonus = prefs.getString("personalization_first_type_bonus", "+30 (Default)") ?: "+30 (Default)"
         tvBonus?.text = currentBonus
         view.findViewById<View>(R.id.rowFirstTypeBonus)?.setOnClickListener {
+            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
             showSingleChoiceDialog("First-Type Bonus", bonusOptions, tvBonus?.text?.toString()) { selected ->
                 tvBonus?.text = selected
                 prefs.edit { putString("personalization_first_type_bonus", selected) }
@@ -127,6 +152,7 @@ class PersonalizationFragment : Fragment() {
         val currentGap = prefs.getString("personalization_uncertainty_gap", "15.0 (Default)") ?: "15.0 (Default)"
         tvGap?.text = currentGap
         view.findViewById<View>(R.id.rowUncertaintyGap)?.setOnClickListener {
+            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
             showSingleChoiceDialog("Uncertainty Gap", gapOptions, tvGap?.text?.toString()) { selected ->
                 tvGap?.text = selected
                 prefs.edit { putString("personalization_uncertainty_gap", selected) }
@@ -142,6 +168,7 @@ class PersonalizationFragment : Fragment() {
         val currentMaxFreq = prefs.getString("personalization_max_word_freq", "1,000 (Default)") ?: "1,000 (Default)"
         tvMaxFreq?.text = currentMaxFreq
         view.findViewById<View>(R.id.rowMaxFrequentWords)?.setOnClickListener {
+            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
             showSingleChoiceDialog("Max Frequent Words", freqOptions, tvMaxFreq?.text?.toString()) { selected ->
                 tvMaxFreq?.text = selected
                 prefs.edit { putString("personalization_max_word_freq", selected) }
@@ -155,6 +182,7 @@ class PersonalizationFragment : Fragment() {
         val currentMaxPairs = prefs.getString("personalization_max_pairs", "1,000 (Default)") ?: "1,000 (Default)"
         tvMaxPairs?.text = currentMaxPairs
         view.findViewById<View>(R.id.rowMaxWordPairs)?.setOnClickListener {
+            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
             showSingleChoiceDialog("Max Word Pairs", pairsOptions, tvMaxPairs?.text?.toString()) { selected ->
                 tvMaxPairs?.text = selected
                 prefs.edit { putString("personalization_max_pairs", selected) }
@@ -168,6 +196,7 @@ class PersonalizationFragment : Fragment() {
         val currentMaxCustom = prefs.getString("personalization_max_oov", "500 (Default)") ?: "500 (Default)"
         tvMaxCustom?.text = currentMaxCustom
         view.findViewById<View>(R.id.rowMaxCustomWords)?.setOnClickListener {
+            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
             showSingleChoiceDialog("Max Custom Words", customOptions, tvMaxCustom?.text?.toString()) { selected ->
                 tvMaxCustom?.text = selected
                 prefs.edit { putString("personalization_max_oov", selected) }
@@ -179,6 +208,7 @@ class PersonalizationFragment : Fragment() {
     private fun setupDataAndPrivacy(view: View, mainActivity: MainActivity) {
         val btnClear = view.findViewById<MaterialButton>(R.id.btnClearPersonalization)
         btnClear?.setOnClickListener {
+            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Clear Learned Data")
                 .setMessage("Are you sure you want to delete all learned words, frequency counts, and custom phrase patterns?")
@@ -196,7 +226,9 @@ class PersonalizationFragment : Fragment() {
         current: String?,
         onSelected: (String) -> Unit
     ) {
-        val checkedItem = options.indexOf(current).takeIf { it >= 0 } ?: 1
+        val checkedItem = options.indexOf(current).takeIf { it >= 0 }
+            ?: options.indexOfFirst { it.contains("Default") }.takeIf { it >= 0 }
+            ?: 0
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(title)
             .setSingleChoiceItems(options, checkedItem) { dialog, which ->

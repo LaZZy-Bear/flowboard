@@ -418,6 +418,113 @@ class PersonalizationLiveTest {
         assertTrue("Key 3 TAP must be assigned after typing 'ai'", layout["key_3"]?.tap?.isNotEmpty() == true)
     }
 
+    @Test
+    fun testAllPersonalizationSettingsOptions() {
+        val filesDir = tempFolder.newFolder("settings_test")
+        val prefs = mutableMapOf<String, Any>()
+        val mockContext = MockContext(filesDir, prefs)
+
+        // ── Test 1: Master switch disabled ──
+        prefs["personalization_enabled"] = false
+        val liveMgr1 = LiveLearningManager(mockContext)
+        liveMgr1.loadProfile()
+        liveMgr1.recordWordTyped("meet me at galaxy")
+
+        assertFalse("Personalization must be disabled when user turned it off", repo.isPersonalizationEnabled)
+        assertEquals("Stats must be 0 when master switch is off", 0, liveMgr1.getStats()["wordFreqCount"])
+
+        // ── Test 2: Master switch enabled ──
+        prefs["personalization_enabled"] = true
+        val liveMgr2 = LiveLearningManager(mockContext)
+        liveMgr2.loadProfile()
+        liveMgr2.recordWordTyped("meet me at galaxy")
+
+        assertTrue("Personalization must be enabled when switch is turned on", repo.isPersonalizationEnabled)
+        assertTrue("Stats must show learned items", (liveMgr2.getStats()["wordFreqCount"] ?: 0) > 0)
+
+        // ── Test 3: Alphanumeric switch disabled ──
+        prefs["personalization_alphanumeric_enabled"] = false
+        liveMgr2.recordWordTyped("gr8")
+        assertFalse("Must not learn alphanumeric word when alphanumeric switch is disabled",
+            repo.personalProfile.learnedOOV.contains("gr8"))
+
+        // Alphanumeric switch enabled
+        prefs["personalization_alphanumeric_enabled"] = true
+        liveMgr2.recordWordTyped("gr8")
+        assertTrue("Must learn alphanumeric word when alphanumeric switch is enabled",
+            repo.personalProfile.learnedOOV.contains("gr8"))
+
+        // ── Test 4: Word Pairs toggle in PersonalizationEngine ──
+        repo.personalizationPairsEnabled = true
+        repo.personalizationFreqEnabled = false
+        val baseScoreWithPairs = scoringEngine.calculateScores("meet me at ")["g"] ?: 0.0
+
+        repo.personalizationPairsEnabled = false
+        val scoreWithoutPairs = scoringEngine.calculateScores("meet me at ")["g"] ?: 0.0
+        assertTrue("Score with pairs enabled ($baseScoreWithPairs) must be greater than with pairs disabled ($scoreWithoutPairs)",
+            baseScoreWithPairs > scoreWithoutPairs)
+
+        // ── Test 5: Boost Multiplier scaling ──
+        repo.personalizationPairsEnabled = true
+        repo.personalizationBoostMultiplier = 1.0
+        val score1x = scoringEngine.calculateScores("meet me at ")["g"] ?: 0.0
+
+        repo.personalizationBoostMultiplier = 2.0
+        val score2x = scoringEngine.calculateScores("meet me at ")["g"] ?: 0.0
+        assertTrue("Score with 2.0x boost ($score2x) must be higher than 1.0x boost ($score1x)",
+            score2x > score1x)
+
+        // ── Test 6: Clear Profile ──
+        liveMgr2.clearProfile()
+        assertFalse("Personalization should be disabled after clearProfile", repo.isPersonalizationEnabled)
+        assertEquals("Word frequency count must be 0 after clearProfile", 0, liveMgr2.getStats()["wordFreqCount"])
+        assertEquals("OOV count must be 0 after clearProfile", 0, liveMgr2.getStats()["oovCount"])
+    }
+
+    @Test
+    fun testSymbolWordsAndDigitLayoutRules() {
+        val filesDir = tempFolder.newFolder("symbol_test")
+        val prefs = mutableMapOf<String, Any>()
+        prefs["personalization_enabled"] = true
+        prefs["personalization_alphanumeric_enabled"] = true
+        val mockContext = MockContext(filesDir, prefs)
+
+        val liveMgr = LiveLearningManager(mockContext)
+        liveMgr.loadProfile()
+
+        // 1. Learn compound symbol word "wi-fi"
+        liveMgr.recordWordTyped("connect")
+        liveMgr.recordWordTyped("connect to")
+        liveMgr.recordWordTyped("connect to wi-fi")
+        liveMgr.recordWordTyped("connect to wi-fi")
+
+        assertTrue("wi-fi should be learned as OOV or frequent word",
+            repo.personalProfile.learnedOOV.contains("wi-fi") || repo.personalProfile.wordFreq.containsKey("wi-fi"))
+
+        // 2. Type "wi" -> Personalization should score '-' (hyphen) and allow '-' to win Key 7 TAP slot
+        val scores = scoringEngine.calculateScores("wi")
+        assertTrue("Score for '-' must be greater than 0.0", (scores["-"] ?: 0.0) > 0.0)
+
+        val layout = layoutManager.assignLayout(scores)
+        assertTrue("Key 7 should contain '-' or tap is '-'", layout["key_7"]?.tap == "-" || layout["key_7"]?.visibleChars()?.contains("-") == true)
+
+        // 3. Test Word Prediction for "wi-" -> WordPredictionEngine should suggest "wi-fi"
+        val wordPredictionEngine = com.flowboard.ime.engine.WordPredictionEngine(repo)
+        val predictions = wordPredictionEngine.getPredictions("wi-")
+        assertTrue("Predictions for 'wi-' should contain 'wi-fi'", predictions.contains("wi-fi"))
+
+        // 4. Test Digits Layout Rule: Digits (0-9) MUST NEVER be given score bonuses or steal TAP
+        liveMgr.recordWordTyped("see you b4 dinner")
+        liveMgr.recordWordTyped("see you b4 dinner")
+
+        val scoresAfterB = scoringEngine.calculateScores("b")
+        assertNull("Score map must NOT contain digit '4'", scoresAfterB["4"])
+
+        val layoutAfterB = layoutManager.assignLayout(scoresAfterB)
+        assertNotEquals("TAP on Key 4 must NOT be digit '4'", "4", layoutAfterB["key_4"]?.tap)
+        assertEquals("Swipe-down on Key 4 MUST always remain '4'", "4", layoutAfterB["key_4"]?.down)
+    }
+
     private class MockContext(
         private val baseDir: java.io.File,
         private val prefsData: MutableMap<String, Any> = mutableMapOf()

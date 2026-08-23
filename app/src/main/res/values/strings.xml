@@ -125,8 +125,8 @@
     <string name="word_pairs_desc">Predict frequent 2&#8211;3 word combinations</string>
     <string name="frequent_words">Frequent Words</string>
     <string name="frequent_words_desc">Prioritize top personal words</string>
-    <string name="alphanumeric_words">Alphanumeric Words</string>
-    <string name="alphanumeric_words_desc">Learn slang with digits (e.g. B4, GR8)</string>
+    <string name="alphanumeric_words">Alphanumeric &amp; Symbols</string>
+    <string name="alphanumeric_words_desc">Learn words with digits &amp; symbols (e.g. B4, Wi-Fi, v2.0)</string>
     <string name="advanced_tuning">Advanced Tuning</string>
     <string name="boost_intensity">Boost Intensity</string>
     <string name="boost_intensity_desc">Overall bonus scale</string>

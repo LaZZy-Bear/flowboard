@@ -68,7 +68,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         val RESTRICTED_DOUBLE_CHARS = setOf("i", "v", "j", "q", "x", "u")
 
         private val SPACE_REGEX = Regex("\\s+")
-        private val WORD_CLEAN_REGEX = Regex("[^a-z']")
+        private val WORD_CLEAN_REGEX = Regex("[^a-z'.-]")
     }
 
     private var cachedTriePrefix: String = ""
@@ -112,7 +112,8 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         // Determine last word before space (for connector detection)
         val lastWordBeforeSpace = activeWordsArray.lastOrNull()
             ?.lowercase()
-            ?.replace(WORD_CLEAN_REGEX, "") ?: ""
+            ?.replace(WORD_CLEAN_REGEX, "")
+            ?.trim('.', '-', '\'') ?: ""
 
         // Determine state
         val state = when {
