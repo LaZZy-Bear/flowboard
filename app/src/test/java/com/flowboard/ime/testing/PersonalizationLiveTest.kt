@@ -442,17 +442,25 @@ class PersonalizationLiveTest {
         assertTrue("Personalization must be enabled when switch is turned on", repo.isPersonalizationEnabled)
         assertTrue("Stats must show learned items", (liveMgr2.getStats()["wordFreqCount"] ?: 0) > 0)
 
-        // ── Test 3: Alphanumeric switch disabled ──
+        // ── Test 3: Alphanumeric & Symbols switch disabled ──
         prefs["personalization_alphanumeric_enabled"] = false
+        repo.personalizationAlphanumericEnabled = false
         liveMgr2.recordWordTyped("gr8")
+        liveMgr2.recordWordTyped("wi-fi")
         assertFalse("Must not learn alphanumeric word when alphanumeric switch is disabled",
             repo.personalProfile.learnedOOV.contains("gr8"))
+        assertFalse("Must not learn symbol-containing word when alphanumeric switch is disabled",
+            repo.personalProfile.learnedOOV.contains("wi-fi"))
 
-        // Alphanumeric switch enabled
+        // Alphanumeric & Symbols switch enabled
         prefs["personalization_alphanumeric_enabled"] = true
+        repo.personalizationAlphanumericEnabled = true
         liveMgr2.recordWordTyped("gr8")
+        liveMgr2.recordWordTyped("wi-fi")
         assertTrue("Must learn alphanumeric word when alphanumeric switch is enabled",
             repo.personalProfile.learnedOOV.contains("gr8"))
+        assertTrue("Must learn symbol-containing word when alphanumeric switch is enabled",
+            repo.personalProfile.learnedOOV.contains("wi-fi"))
 
         // ── Test 4: Word Pairs toggle in PersonalizationEngine ──
         repo.personalizationPairsEnabled = true

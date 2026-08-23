@@ -101,7 +101,11 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         if (activeWordsArray.isEmpty()) return
 
         val cleanWords = activeWordsArray.map {
-            it.lowercase().replace(Regex("[^a-z0-9'.-]"), "").trim('.', '-', '\'')
+            if (repo.personalizationAlphanumericEnabled) {
+                it.lowercase().replace(Regex("[^a-z0-9'.-]"), "").trim('.', '-', '\'')
+            } else {
+                it.lowercase().replace(Regex("[^a-z']"), "").trim('\'')
+            }
         }.filter { it.isNotEmpty() }
         if (cleanWords.isEmpty()) return
 
@@ -252,11 +256,15 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
 
     /**
      * Digits MUST NOT receive score bonuses on the keyboard layout (digits stay strictly on swipe-down).
-     * Supported symbols in masterLayout (e.g. '-', '.', ''') CAN receive score bonuses to compete for the TAP slot.
+     * Supported symbols in masterLayout (e.g. '-', '.', ''') CAN receive score bonuses ONLY IF personalizationAlphanumericEnabled is true.
+     * When personalizationAlphanumericEnabled is false, ONLY English letters (a-z) and apostrophe (') can receive score bonuses.
      */
     private fun isScorableChar(targetChar: String): Boolean {
         if (targetChar.isEmpty()) return false
         if (targetChar[0].isDigit()) return false
+        if (!repo.personalizationAlphanumericEnabled && targetChar != "'" && targetChar !in "abcdefghijklmnopqrstuvwxyz") {
+            return false
+        }
         return repo.masterLayout.containsKey(targetChar)
     }
 

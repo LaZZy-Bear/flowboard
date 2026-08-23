@@ -125,7 +125,7 @@ class LiveLearningManager(private val context: Context) {
         val regex = if (allowAlphanumeric) {
             Regex("[a-z0-9]+(?:['.-][a-z0-9]+)*")
         } else {
-            Regex("[a-z]+(?:['.-][a-z]+)*")
+            Regex("[a-z]+(?:'[a-z]+)?")
         }
         val words = regex.findAll(fullText.lowercase()).map { it.value }.toList()
         if (words.isEmpty()) return
