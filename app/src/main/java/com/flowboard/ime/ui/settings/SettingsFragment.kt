@@ -97,7 +97,7 @@ class SettingsFragment : Fragment() {
 
         mainActivity.onKeyboardStatusChanged = {
             if (isAdded && !isDetached) {
-                view?.let { setupActivationCard(it, mainActivity) }
+                setupActivationCard(view, mainActivity)
             }
         }
     }
