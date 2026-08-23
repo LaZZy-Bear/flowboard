@@ -874,6 +874,8 @@ class FlowboardIMEService : InputMethodService() {
         super.onStartInputView(info, restarting)
         Log.d(TAG, "onStartInputView (restarting=$restarting)")
 
+        closeSubPanelsToKeyboard()
+
         if (::scoringEngine.isInitialized) {
             scoringEngine.resetTrieCache()
         }
@@ -916,7 +918,7 @@ class FlowboardIMEService : InputMethodService() {
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         Log.d(TAG, "onFinishInputView")
-        stopVoiceRecognition()
+        closeSubPanelsToKeyboard()
         val currentText = getFullTextBeforeCursor()
         if (currentText.isNotEmpty()) {
             liveLearningManager.recordWordTyped(currentText)
@@ -927,7 +929,7 @@ class FlowboardIMEService : InputMethodService() {
     override fun onWindowHidden() {
         super.onWindowHidden()
         Log.d(TAG, "onWindowHidden")
-        stopVoiceRecognition()
+        closeSubPanelsToKeyboard()
         val currentText = getFullTextBeforeCursor()
         if (currentText.isNotEmpty()) {
             liveLearningManager.recordWordTyped(currentText)
@@ -1209,6 +1211,7 @@ class FlowboardIMEService : InputMethodService() {
         emojiPanel?.visibility = View.GONE
         heightAdjustLayout?.visibility = View.GONE
         isMorePanelOpen = false
+        morePanelPage = 0
     }
 
     private fun showSubPanel(panel: View?) {
@@ -1423,12 +1426,13 @@ class FlowboardIMEService : InputMethodService() {
                 }
             }
             ToolbarAction.FLOATING -> {
+                closeSubPanelsToKeyboard()
                 isFloatingMode = !isFloatingMode
                 getSharedPreferences("flowboard_settings", MODE_PRIVATE).edit {
                     putBoolean("is_floating_mode", isFloatingMode)
                 }
                 updateFloatingWindowMode()
-                renderToolbar()
+                closeSubPanelsToKeyboard()
             }
             ToolbarAction.CLIPBOARD -> {
                 if (clipboardPanel?.visibility == View.VISIBLE) {
@@ -1861,6 +1865,7 @@ class FlowboardIMEService : InputMethodService() {
 
     @Suppress("DEPRECATION")
     private fun updateFloatingWindowMode() {
+        closeSubPanelsToKeyboard()
         val win = window?.window ?: return
         val lp = win.attributes
         val metrics = resources.displayMetrics
