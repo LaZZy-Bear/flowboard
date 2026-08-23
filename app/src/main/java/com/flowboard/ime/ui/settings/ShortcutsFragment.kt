@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import com.flowboard.ime.MainActivity
@@ -127,10 +128,17 @@ class ShortcutsFragment : Fragment() {
     private fun selectKey(view: View, keyNum: Int) {
         selectedKey = keyNum
         val dp2 = (2 * resources.displayMetrics.density).toInt()
+        val dp1 = (1 * resources.displayMetrics.density).toInt()
 
         for (i in 1..9) {
             val card = getKeyCard(view, i)
-            card?.strokeWidth = if (i == keyNum) dp2 else 0
+            if (i == keyNum) {
+                card?.strokeWidth = dp2
+                card?.strokeColor = ContextCompat.getColor(requireContext(), R.color.accent)
+            } else {
+                card?.strokeWidth = dp1
+                card?.strokeColor = ContextCompat.getColor(requireContext(), R.color.card_stroke)
+            }
         }
 
         val tvTitle = view.findViewById<TextView>(R.id.tvConfigTitle)

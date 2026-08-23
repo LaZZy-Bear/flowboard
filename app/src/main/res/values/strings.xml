@@ -64,6 +64,12 @@
     <string name="vibration_on_keypress_desc">Haptic feedback on tap and swipe</string>
     <string name="show_suggestions">Show suggestions</string>
     <string name="show_suggestions_desc">Display prediction bar above keyboard</string>
+    <string name="section_preferences">PREFERENCES</string>
+    <string name="section_features">FEATURES &amp; SHORTCUTS</string>
+    <string name="section_docked_sidebar">DOCKED SIDEBAR</string>
+    <string name="section_floating_sidebar">FLOATING SIDEBAR</string>
+    <string name="section_backspace">BACKSPACE BUTTON</string>
+    <string name="section_shortcut_editor">EDIT SHORTCUT</string>
     <string name="personalization_and_learning">Personalization &amp; Learning</string>
     <string name="personalization_and_learning_desc">Word pairs, boost intensity &amp; vocabulary storage</string>
     <string name="sidebar_and_delete_button">Side Bar &amp; Delete Button</string>

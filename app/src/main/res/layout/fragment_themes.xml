@@ -38,9 +38,9 @@
                 android:clickable="true"
                 android:focusable="true"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="1dp"
-                app:strokeColor="?attr/colorPrimary"
-                app:strokeWidth="0dp">
+                app:cardElevation="0dp"
+                app:strokeColor="@color/card_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -94,9 +94,9 @@
                 android:clickable="true"
                 android:focusable="true"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="1dp"
-                app:strokeColor="?attr/colorPrimary"
-                app:strokeWidth="0dp">
+                app:cardElevation="0dp"
+                app:strokeColor="@color/card_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -150,9 +150,9 @@
                 android:clickable="true"
                 android:focusable="true"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="1dp"
-                app:strokeColor="?attr/colorPrimary"
-                app:strokeWidth="0dp">
+                app:cardElevation="0dp"
+                app:strokeColor="@color/card_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -170,7 +170,7 @@
                             android:layout_height="match_parent"
                             android:contentDescription="@null"
                             android:src="@drawable/ic_moon"
-                            app:tint="#7C4DFF" />
+                            app:tint="#5C6BC0" />
 
                         <ImageView
                             android:id="@+id/checkThemeDark"
@@ -224,9 +224,9 @@
                 android:clickable="true"
                 android:focusable="true"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="1dp"
-                app:strokeColor="?attr/colorPrimary"
-                app:strokeWidth="0dp">
+                app:cardElevation="0dp"
+                app:strokeColor="@color/card_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -280,9 +280,9 @@
                 android:clickable="true"
                 android:focusable="true"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="1dp"
-                app:strokeColor="?attr/colorPrimary"
-                app:strokeWidth="0dp">
+                app:cardElevation="0dp"
+                app:strokeColor="@color/card_stroke"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -337,9 +337,9 @@
             android:clickable="true"
             android:focusable="true"
             app:cardCornerRadius="16dp"
-            app:cardElevation="1dp"
-            app:strokeColor="?attr/colorPrimary"
-            app:strokeWidth="0dp">
+            app:cardElevation="0dp"
+            app:strokeColor="@color/card_stroke"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"

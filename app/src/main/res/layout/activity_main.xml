@@ -20,7 +20,7 @@
             android:layout_height="?attr/actionBarSize"
             app:title="Keyboard Settings"
             app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
-            app:titleTextColor="?attr/colorPrimary" />
+            app:titleTextColor="?android:attr/textColorPrimary" />
 
     </com.google.android.material.appbar.AppBarLayout>
 

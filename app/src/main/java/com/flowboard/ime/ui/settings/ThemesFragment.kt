@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import com.flowboard.ime.MainActivity
@@ -69,6 +70,9 @@ class ThemesFragment : Fragment() {
 
     private fun updateSelectionUI(view: View, activeTheme: String) {
         val dp2 = (2 * resources.displayMetrics.density).toInt()
+        val dp1 = (1 * resources.displayMetrics.density).toInt()
+        val colorAccent = ContextCompat.getColor(requireContext(), R.color.accent)
+        val colorStroke = ContextCompat.getColor(requireContext(), R.color.card_stroke)
 
         val cards = mapOf(
             "System default" to (view.findViewById<MaterialCardView>(R.id.cardThemeAuto) to view.findViewById<ImageView>(R.id.checkThemeAuto)),
@@ -85,9 +89,11 @@ class ThemesFragment : Fragment() {
             val isSelected = (id == activeTheme)
             if (isSelected) {
                 card?.strokeWidth = dp2
+                card?.strokeColor = colorAccent
                 check?.visibility = View.VISIBLE
             } else if (activeTheme !in listOf("Light", "Clean Minimal") || (id != "Light" && id != "Clean Minimal")) {
-                card?.strokeWidth = 0
+                card?.strokeWidth = dp1
+                card?.strokeColor = colorStroke
                 check?.visibility = View.GONE
             }
         }

@@ -661,7 +661,7 @@ class FlowboardIMEService : InputMethodService() {
             @Suppress("SetTextI18n")
             fun updateSelectButtonState() {
                 if (isTextSelecting) {
-                    btnSelect?.setBackgroundColor("#6C5CE7".toColorInt())
+                    btnSelect?.setBackgroundColor("#2563EB".toColorInt())
                     btnSelect?.setTextColor(Color.WHITE)
                     btnSelect?.text = "Selecting"
                 } else {

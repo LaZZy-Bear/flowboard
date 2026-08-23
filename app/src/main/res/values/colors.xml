@@ -19,12 +19,16 @@
 
     <!-- UI Element Colors -->
     <color name="tool_bg">#D1D1D6</color>
-    <color name="accent">#6B43F5</color>
-    <color name="accent_active">#5229DB</color>
+    <color name="accent">#2563EB</color>
+    <color name="accent_active">#1D4ED8</color>
     <color name="send_text">#FFFFFF</color>
 
+    <!-- App Surface & Badges -->
+    <color name="badge_bg">#F1F5F9</color>
+    <color name="card_stroke">#E2E8F0</color>
+
     <!-- Legacy references (kept for backward compatibility) -->
-    <color name="kb_accent">#6B43F5</color>
+    <color name="kb_accent">#2563EB</color>
     <color name="kb_text">#1D1D1F</color>
     <color name="kb_text_dim">#86868B</color>
 </resources>
