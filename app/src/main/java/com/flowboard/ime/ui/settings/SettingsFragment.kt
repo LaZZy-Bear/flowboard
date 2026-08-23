@@ -3,6 +3,8 @@ package com.flowboard.ime.ui.settings
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,6 +21,8 @@ import com.google.android.material.materialswitch.MaterialSwitch
 class SettingsFragment : Fragment() {
 
     private lateinit var prefs: SharedPreferences
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var statusCheckerRunnable: Runnable? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -90,12 +94,68 @@ class SettingsFragment : Fragment() {
         view.findViewById<View>(R.id.btnNavShortcuts)?.setOnClickListener {
             mainActivity.navigateToFragment(ShortcutsFragment())
         }
+
+        mainActivity.onKeyboardStatusChanged = {
+            if (isAdded && !isDetached) {
+                view?.let { setupActivationCard(it, mainActivity) }
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
         val mainActivity = activity as? MainActivity ?: return
         view?.let { setupActivationCard(it, mainActivity) }
+        startStatusChecker()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopStatusChecker()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        stopStatusChecker()
+        (activity as? MainActivity)?.let {
+            if (it.onKeyboardStatusChanged != null) {
+                it.onKeyboardStatusChanged = null
+            }
+        }
+    }
+
+    private fun startStatusChecker() {
+        stopStatusChecker()
+        val runnable = object : Runnable {
+            override fun run() {
+                if (isAdded && !isDetached) {
+                    val act = activity as? MainActivity
+                    val currentView = view
+                    if (act != null && currentView != null) {
+                        val isEnabled = act.isKeyboardEnabled()
+                        val isSelected = act.isKeyboardSelected()
+                        val cardWarning = currentView.findViewById<MaterialCardView>(R.id.cardActivationWarning)
+                        if (isEnabled && isSelected) {
+                            if (cardWarning?.visibility != View.GONE) {
+                                cardWarning?.visibility = View.GONE
+                            }
+                            stopStatusChecker()
+                            return
+                        } else {
+                            setupActivationCard(currentView, act)
+                        }
+                    }
+                }
+                mainHandler.postDelayed(this, 300L)
+            }
+        }
+        statusCheckerRunnable = runnable
+        mainHandler.post(runnable)
+    }
+
+    private fun stopStatusChecker() {
+        statusCheckerRunnable?.let { mainHandler.removeCallbacks(it) }
+        statusCheckerRunnable = null
     }
 
     private fun setupActivationCard(view: View, mainActivity: MainActivity) {
@@ -112,15 +172,24 @@ class SettingsFragment : Fragment() {
             tvTitle?.setText(R.string.keyboard_not_activated_title)
             tvDesc?.setText(R.string.keyboard_not_activated_desc)
             btnAction?.setText(R.string.turn_on_flowboard)
-            btnAction?.setOnClickListener { mainActivity.enableKeyboard() }
+            btnAction?.setOnClickListener {
+                mainActivity.enableKeyboard()
+                startStatusChecker()
+            }
+            startStatusChecker()
         } else if (!isSelected) {
             cardWarning.visibility = View.VISIBLE
             tvTitle?.setText(R.string.keyboard_not_active_title)
             tvDesc?.setText(R.string.keyboard_not_active_desc)
             btnAction?.setText(R.string.select_flowboard)
-            btnAction?.setOnClickListener { mainActivity.selectKeyboard() }
+            btnAction?.setOnClickListener {
+                mainActivity.selectKeyboard()
+                startStatusChecker()
+            }
+            startStatusChecker()
         } else {
             cardWarning.visibility = View.GONE
+            stopStatusChecker()
         }
     }
 }

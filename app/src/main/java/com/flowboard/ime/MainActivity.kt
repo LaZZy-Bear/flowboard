@@ -3,7 +3,10 @@ package com.flowboard.ime
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.ContentObserver
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
@@ -22,6 +25,18 @@ class MainActivity : AppCompatActivity() {
     private lateinit var toolbar: MaterialToolbar
     private lateinit var bottomNavigationView: BottomNavigationView
 
+    var onKeyboardStatusChanged: (() -> Unit)? = null
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var pollingRunnable: Runnable? = null
+
+    private val imeSettingsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) {
+            super.onChange(selfChange)
+            onKeyboardStatusChanged?.invoke()
+        }
+    }
+
     private val requestAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -32,6 +47,67 @@ class MainActivity : AppCompatActivity() {
         }
         if (intent?.getBooleanExtra("REQUEST_AUDIO_PERMISSION", false) == true) {
             finish()
+        }
+    }
+
+    fun startKeyboardStatusPolling(durationMs: Long = 6000L, intervalMs: Long = 200L) {
+        stopKeyboardStatusPolling()
+        val startTime = System.currentTimeMillis()
+        val runnable = object : Runnable {
+            override fun run() {
+                onKeyboardStatusChanged?.invoke()
+                if (System.currentTimeMillis() - startTime < durationMs) {
+                    mainHandler.postDelayed(this, intervalMs)
+                }
+            }
+        }
+        pollingRunnable = runnable
+        mainHandler.post(runnable)
+    }
+
+    fun stopKeyboardStatusPolling() {
+        pollingRunnable?.let { mainHandler.removeCallbacks(it) }
+        pollingRunnable = null
+    }
+
+    override fun onStart() {
+        super.onStart()
+        try {
+            contentResolver.registerContentObserver(
+                Settings.Secure.getUriFor(Settings.Secure.DEFAULT_INPUT_METHOD),
+                false,
+                imeSettingsObserver
+            )
+            contentResolver.registerContentObserver(
+                Settings.Secure.getUriFor(Settings.Secure.ENABLED_INPUT_METHODS),
+                false,
+                imeSettingsObserver
+            )
+        } catch (_: Exception) {}
+        startKeyboardStatusPolling(3000L, 200L)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        startKeyboardStatusPolling(4000L, 200L)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopKeyboardStatusPolling()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        try {
+            contentResolver.unregisterContentObserver(imeSettingsObserver)
+        } catch (_: Exception) {}
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            startKeyboardStatusPolling(4000L, 200L)
         }
     }
 
@@ -156,11 +232,13 @@ class MainActivity : AppCompatActivity() {
     fun enableKeyboard() {
         val intent = Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)
         startActivity(intent)
+        startKeyboardStatusPolling(durationMs = 15000L, intervalMs = 300L)
     }
 
     fun selectKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.showInputMethodPicker()
+        startKeyboardStatusPolling(durationMs = 10000L, intervalMs = 200L)
     }
 
     fun notifyImeSettingsChanged(key: String? = null, value: Any? = null) {
