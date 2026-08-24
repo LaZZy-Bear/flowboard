@@ -127,6 +127,8 @@
     <string name="frequent_words_desc">Prioritize top personal words</string>
     <string name="alphanumeric_words">Alphanumeric &amp; Symbols</string>
     <string name="alphanumeric_words_desc">Learn words with digits &amp; symbols (e.g. B4, Wi-Fi, v2.0)</string>
+    <string name="learn_passwords">Learn Password Fields</string>
+    <string name="learn_passwords_desc">Allow learning words typed in password fields for faster typing</string>
     <string name="advanced_tuning">Advanced Tuning</string>
     <string name="boost_intensity">Boost Intensity</string>
     <string name="boost_intensity_desc">Overall bonus scale</string>
@@ -135,8 +137,8 @@
     <string name="learned_word_priority_desc">Multiplier for new words</string>
     <string name="learned_word_priority_default">1.3x (Default)</string>
     <string name="first_type_bonus">First-Type Bonus</string>
-    <string name="first_type_bonus_desc">Immediate score push (1&#8211;2 times)</string>
-    <string name="first_type_bonus_default">+30 (Default)</string>
+    <string name="first_type_bonus_desc">Logarithmic base score (1&#8211;2 times)</string>
+    <string name="first_type_bonus_default">+250 (Default)</string>
     <string name="uncertainty_gap">Uncertainty Gap</string>
     <string name="uncertainty_gap_desc">Confidence threshold</string>
     <string name="uncertainty_gap_default">15.0 (Default)</string>

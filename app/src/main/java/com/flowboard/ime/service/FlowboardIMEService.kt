@@ -20,6 +20,7 @@ import com.flowboard.ime.data.ClipboardItem
 import com.flowboard.ime.data.EmojiCategory
 import com.flowboard.ime.data.EmojiRepository
 import com.flowboard.ime.ui.EmojiAdapter
+import com.flowboard.ime.util.ThemeColors
 import android.content.pm.PackageManager
 import com.flowboard.ime.data.ClipboardManagerHelper
 import android.os.Build
@@ -660,13 +661,16 @@ class FlowboardIMEService : InputMethodService() {
 
             @Suppress("SetTextI18n")
             fun updateSelectButtonState() {
+                val p = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+                val activeTheme = p.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
+                val colors = ThemeManager.getThemeColors(this@FlowboardIMEService, activeTheme, isEffectiveDarkMode())
                 if (isTextSelecting) {
-                    btnSelect?.setBackgroundColor("#2563EB".toColorInt())
-                    btnSelect?.setTextColor(Color.WHITE)
+                    btnSelect?.backgroundTintList = ColorStateList.valueOf(colors.accent)
+                    btnSelect?.setTextColor(colors.sendText)
                     btnSelect?.text = "Selecting"
                 } else {
-                    btnSelect?.setBackgroundResource(R.drawable.fn_key_bg)
-                    btnSelect?.setTextColor(ContextCompat.getColor(this, R.color.text_tap))
+                    btnSelect?.backgroundTintList = ColorStateList.valueOf(colors.keyBackground)
+                    btnSelect?.setTextColor(colors.textTap)
                     btnSelect?.text = "Select"
                 }
             }
@@ -766,6 +770,19 @@ class FlowboardIMEService : InputMethodService() {
             val pTeal = panel.findViewById<FrameLayout>(R.id.paletteTeal)
             val pCoral = panel.findViewById<FrameLayout>(R.id.paletteCoral)
             val btnOpenFullThemes = panel.findViewById<TextView>(R.id.btnOpenFullThemes)
+
+            pOcean?.background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor("#1565C0".toColorInt())
+            }
+            pTeal?.background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor("#00C853".toColorInt())
+            }
+            pCoral?.background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor("#FBBC05".toColorInt())
+            }
 
             fun applyThemeDirect(themeName: String, darkOverride: Boolean? = null) {
                 soundHapticManager.playTap()
@@ -870,6 +887,17 @@ class FlowboardIMEService : InputMethodService() {
         return rootView
     }
 
+    override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(attribute, restarting)
+        if (!restarting) {
+            val previousText = synchronized(typedText) { typedText.toString() }
+            if (previousText.isNotEmpty() && isLearningAllowedForCurrentField()) {
+                liveLearningManager.recordWordTyped(previousText)
+                liveLearningManager.saveProfileIfDirty()
+            }
+        }
+    }
+
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         Log.d(TAG, "onStartInputView (restarting=$restarting)")
@@ -892,6 +920,11 @@ class FlowboardIMEService : InputMethodService() {
         repo.stickyChar = null
 
         synchronized(typedText) {
+            val previousText = typedText.toString()
+            if (previousText.isNotEmpty() && isLearningAllowedForCurrentField()) {
+                liveLearningManager.recordWordTyped(previousText)
+                liveLearningManager.saveProfileIfDirty()
+            }
             typedText.clear()
             typedTextHistory.clear()
             val existing = try {
@@ -915,15 +948,48 @@ class FlowboardIMEService : InputMethodService() {
         updateShiftButtonTint()
     }
 
+    private fun isCurrentInputPasswordField(): Boolean {
+        val info = currentInputEditorInfo ?: return false
+        val inputType = info.inputType
+        val variation = inputType and EditorInfo.TYPE_MASK_VARIATION
+        return variation == EditorInfo.TYPE_TEXT_VARIATION_PASSWORD ||
+                variation == EditorInfo.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                variation == EditorInfo.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
+                (inputType and EditorInfo.TYPE_MASK_CLASS == EditorInfo.TYPE_CLASS_NUMBER && variation == 0x00000010)
+    }
+
+    private fun isLearningAllowedForCurrentField(): Boolean {
+        if (isCurrentInputPasswordField() && !liveLearningManager.isLearnPasswordsEnabled()) {
+            return false
+        }
+        return true
+    }
+
+    private fun isWordDelimiter(ch: String): Boolean {
+        if (ch.isEmpty()) return false
+        val c = ch[0]
+        return !c.isLetterOrDigit() && c != '\'' && c != '@' && c != '.' && c != '-'
+    }
+
+    override fun onFinishInput() {
+        super.onFinishInput()
+        Log.d(TAG, "onFinishInput")
+        val currentText = getFullTextBeforeCursor()
+        if (currentText.isNotEmpty() && isLearningAllowedForCurrentField()) {
+            liveLearningManager.recordWordTyped(currentText)
+            liveLearningManager.saveProfileIfDirty()
+        }
+    }
+
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
-        Log.d(TAG, "onFinishInputView")
+        Log.d(TAG, "onFinishInputView (finishingInput=$finishingInput)")
         closeSubPanelsToKeyboard()
         val currentText = getFullTextBeforeCursor()
-        if (currentText.isNotEmpty()) {
+        if (currentText.isNotEmpty() && isLearningAllowedForCurrentField()) {
             liveLearningManager.recordWordTyped(currentText)
+            liveLearningManager.saveProfileIfDirty()
         }
-        liveLearningManager.saveProfileIfDirty()
     }
 
     override fun onWindowHidden() {
@@ -931,10 +997,10 @@ class FlowboardIMEService : InputMethodService() {
         Log.d(TAG, "onWindowHidden")
         closeSubPanelsToKeyboard()
         val currentText = getFullTextBeforeCursor()
-        if (currentText.isNotEmpty()) {
+        if (currentText.isNotEmpty() && isLearningAllowedForCurrentField()) {
             liveLearningManager.recordWordTyped(currentText)
+            liveLearningManager.saveProfileIfDirty()
         }
-        liveLearningManager.saveProfileIfDirty()
     }
 
     override fun onDestroy() {
@@ -1125,23 +1191,18 @@ class FlowboardIMEService : InputMethodService() {
         val colors = ThemeManager.getThemeColors(this, activeTheme, isEffectiveDarkMode())
 
         val scrollContainer = root.findViewById<HorizontalScrollView>(R.id.emojiCategoryScroll)
-        val containerDrawable = android.graphics.drawable.GradientDrawable().apply {
-            cornerRadius = 10 * density
-            setColor(colors.toolBackground)
-        }
-        scrollContainer?.background = containerDrawable
+        scrollContainer?.background = null
 
         val divider = root.findViewById<View>(R.id.emojiCategoryDivider)
-        divider?.setBackgroundColor(if (colors.isDark) 0x33FFFFFF else 0x22000000)
+        divider?.setBackgroundColor(if (colors.isDark) 0x1AFFFFFF else 0x1A000000)
 
         for ((viewId, cat) in catMap) {
             val tab = root.findViewById<TextView>(viewId) ?: continue
             if (cat == selectedCat) {
                 tab.alpha = 1.0f
                 val activeBg = android.graphics.drawable.GradientDrawable().apply {
-                    cornerRadius = 8 * density
+                    cornerRadius = 17 * density
                     setColor(colors.keyBackground)
-                    setStroke((1.5f * density).toInt(), colors.accent)
                 }
                 tab.background = activeBg
                 if (scrollContainer != null) {
@@ -1151,7 +1212,7 @@ class FlowboardIMEService : InputMethodService() {
                     }
                 }
             } else {
-                tab.alpha = 0.55f
+                tab.alpha = 0.45f
                 tab.background = null
             }
         }
@@ -1228,11 +1289,16 @@ class FlowboardIMEService : InputMethodService() {
         hideAllSubPanels()
         kv?.visibility = View.GONE
 
+        val p = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+        val activeTheme = p.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
+        val colors = ThemeManager.getThemeColors(this, activeTheme, isEffectiveDarkMode())
+        keyboardRoot?.let { applyPanelsTheme(it, colors) }
+
         if (panel == textEditPanel) {
             isTextSelecting = false
             val btnSelect = panel.findViewById<TextView>(R.id.btnTextSelect)
-            btnSelect?.setBackgroundResource(R.drawable.fn_key_bg)
-            btnSelect?.setTextColor(ContextCompat.getColor(this, R.color.text_tap))
+            btnSelect?.backgroundTintList = ColorStateList.valueOf(colors.keyBackground)
+            btnSelect?.setTextColor(colors.textTap)
             btnSelect?.setText(R.string.select)
         } else if (panel == emojiPanel) {
             val emojis = EmojiRepository.getEmojisForCategory(this, currentEmojiCategory)
@@ -1317,7 +1383,7 @@ class FlowboardIMEService : InputMethodService() {
                 setRecognitionListener(object : RecognitionListener {
                     override fun onReadyForSpeech(params: Bundle?) {
                         voiceStatusText?.text = "Listening... Speak now"
-                        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf("#E74C3C".toColorInt())
+                        updateVoiceMicTheme()
                     }
 
                     override fun onBeginningOfSpeech() {
@@ -1330,7 +1396,6 @@ class FlowboardIMEService : InputMethodService() {
 
                     override fun onEndOfSpeech() {
                         voiceStatusText?.text = "Processing speech..."
-                        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this@FlowboardIMEService, R.color.text_tap))
                     }
 
                     override fun onError(error: Int) {
@@ -1343,9 +1408,8 @@ class FlowboardIMEService : InputMethodService() {
                             else -> "Voice recognition stopped. Tap mic to retry."
                         }
                         voiceStatusText?.text = msg
-                        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this@FlowboardIMEService, R.color.text_tap))
-                        btnVoiceMic?.setBackgroundResource(R.drawable.fn_key_bg)
                         isListeningVoice = false
+                        updateVoiceMicTheme()
                     }
 
                     override fun onResults(results: Bundle?) {
@@ -1357,9 +1421,8 @@ class FlowboardIMEService : InputMethodService() {
                             typedTextRedoHistory.clear()
                         }
                         voiceStatusText?.text = "Tap mic to speak again"
-                        ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this@FlowboardIMEService, R.color.text_tap))
-                        btnVoiceMic?.setBackgroundResource(R.drawable.fn_key_bg)
                         isListeningVoice = false
+                        updateVoiceMicTheme()
                     }
 
                     override fun onPartialResults(partialResults: Bundle?) {
@@ -1381,9 +1444,24 @@ class FlowboardIMEService : InputMethodService() {
             }
             speechRecognizer?.startListening(intent)
             isListeningVoice = true
+            updateVoiceMicTheme()
         } catch (e: Exception) {
             voiceStatusText?.text = "Error starting voice recognition: ${e.message}"
             isListeningVoice = false
+            updateVoiceMicTheme()
+        }
+    }
+
+    private fun updateVoiceMicTheme() {
+        val p = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+        val activeTheme = p.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
+        val colors = ThemeManager.getThemeColors(this, activeTheme, isEffectiveDarkMode())
+        if (isListeningVoice) {
+            btnVoiceMic?.backgroundTintList = ColorStateList.valueOf(colors.accent)
+            ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(colors.sendText)
+        } else {
+            btnVoiceMic?.backgroundTintList = ColorStateList.valueOf(colors.keyBackground)
+            ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(colors.textTap)
         }
     }
 
@@ -1395,8 +1473,7 @@ class FlowboardIMEService : InputMethodService() {
             } catch (_: Exception) {}
             isListeningVoice = false
             voiceStatusText?.text = "Tap mic to start"
-            ivVoiceMicIcon?.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.text_tap))
-            btnVoiceMic?.setBackgroundResource(R.drawable.fn_key_bg)
+            updateVoiceMicTheme()
         }
     }
 
@@ -1709,9 +1786,13 @@ class FlowboardIMEService : InputMethodService() {
         container.removeAllViews()
 
         val items = clipboardHelper.getItems()
+        val ctx = getThemedContext()
+        val p = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
+        val activeTheme = p.getString("active_theme", "Clean Minimal") ?: "Clean Minimal"
+        val colors = ThemeManager.getThemeColors(ctx, activeTheme, isEffectiveDarkMode())
 
         if (items.isEmpty()) {
-            val emptyTv = TextView(getThemedContext()).apply {
+            val emptyTv = TextView(ctx).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -1721,7 +1802,7 @@ class FlowboardIMEService : InputMethodService() {
                 text = "Clipboard is empty"
                 textSize = 14f
                 gravity = Gravity.CENTER
-                setTextColor(ContextCompat.getColor(context, R.color.text_icon))
+                setTextColor(colors.textSwipe)
             }
             container.addView(emptyTv)
             return
@@ -1733,7 +1814,7 @@ class FlowboardIMEService : InputMethodService() {
         val density = resources.displayMetrics.density
 
         if (pinnedItems.isNotEmpty()) {
-            val pinnedHeader = TextView(getThemedContext()).apply {
+            val pinnedHeader = TextView(ctx).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -1743,17 +1824,17 @@ class FlowboardIMEService : InputMethodService() {
                 text = "Pinned"
                 textSize = 12f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(ContextCompat.getColor(context, R.color.text_tap))
+                setTextColor(colors.textTap)
             }
             container.addView(pinnedHeader)
 
             for (clip in pinnedItems) {
-                container.addView(createClipboardItemCard(clip))
+                container.addView(createClipboardItemCard(clip, colors))
             }
         }
 
         if (recentItems.isNotEmpty()) {
-            val recentHeader = TextView(getThemedContext()).apply {
+            val recentHeader = TextView(ctx).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -1763,17 +1844,17 @@ class FlowboardIMEService : InputMethodService() {
                 text = "Recent"
                 textSize = 12f
                 typeface = Typeface.DEFAULT_BOLD
-                setTextColor(ContextCompat.getColor(context, R.color.text_tap))
+                setTextColor(colors.textTap)
             }
             container.addView(recentHeader)
 
             for (clip in recentItems) {
-                container.addView(createClipboardItemCard(clip))
+                container.addView(createClipboardItemCard(clip, colors))
             }
         }
     }
 
-    private fun createClipboardItemCard(clip: ClipboardItem): View {
+    private fun createClipboardItemCard(clip: ClipboardItem, colors: ThemeColors = ThemeManager.getThemeColors(getThemedContext(), getSharedPreferences("flowboard_settings", MODE_PRIVATE).getString("active_theme", "Clean Minimal") ?: "Clean Minimal", isEffectiveDarkMode())): View {
         val ctx = getThemedContext()
         val density = resources.displayMetrics.density
 
@@ -1787,6 +1868,7 @@ class FlowboardIMEService : InputMethodService() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundResource(R.drawable.prediction_key_bg)
+            backgroundTintList = ColorStateList.valueOf(colors.keyBackground)
             setPadding((12 * density).toInt(), (8 * density).toInt(), (6 * density).toInt(), (8 * density).toInt())
         }
 
@@ -1800,14 +1882,14 @@ class FlowboardIMEService : InputMethodService() {
             textSize = 14f
             maxLines = 3
             ellipsize = TextUtils.TruncateAt.END
-            setTextColor(ContextCompat.getColor(context, R.color.text_tap))
+            setTextColor(colors.textTap)
         }
 
         val pinBtn = ImageView(ctx).apply {
             layoutParams = LinearLayout.LayoutParams((32 * density).toInt(), (32 * density).toInt())
             setImageResource(if (clip.isPinned) R.drawable.ic_pin else R.drawable.ic_pin_outline)
             setPadding((6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt())
-            setColorFilter(if (clip.isPinned) "#FFB300".toColorInt() else ContextCompat.getColor(context, R.color.text_icon))
+            setColorFilter(if (clip.isPinned) colors.accent else colors.textSwipe)
             contentDescription = if (clip.isPinned) "Unpin" else "Pin"
             setOnClickListener {
                 clipboardHelper.togglePin(clip.id)
@@ -1821,7 +1903,7 @@ class FlowboardIMEService : InputMethodService() {
             }
             setImageResource(R.drawable.ic_backspace)
             setPadding((6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt(), (6 * density).toInt())
-            setColorFilter(ContextCompat.getColor(context, R.color.text_icon))
+            setColorFilter(colors.textSwipe)
             contentDescription = "Delete"
             setOnClickListener {
                 clipboardHelper.deleteItem(clip.id)
@@ -2452,6 +2534,10 @@ class FlowboardIMEService : InputMethodService() {
         
         // Only synchronize if cursor moved externally or text differs
         if (textBeforeCursor != currentLocal) {
+            if (currentLocal.isNotEmpty() && isLearningAllowedForCurrentField()) {
+                liveLearningManager.recordWordTyped(currentLocal)
+                liveLearningManager.saveProfileIfDirty()
+            }
             synchronized(typedText) {
                 typedText.clear()
                 typedText.append(textBeforeCursor)
@@ -2533,7 +2619,8 @@ class FlowboardIMEService : InputMethodService() {
 
         val fullText = getFullTextBeforeCursor()
 
-        if (finalChar == " ") {
+        val isDelimiter = finalChar == " " || isWordDelimiter(finalChar)
+        if (isDelimiter && isLearningAllowedForCurrentField()) {
             repo.lastActionKeyId = null
             repo.lastActionSlot = null
             repo.lastActionChar = null
@@ -2682,7 +2769,7 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         val currentText = getFullTextBeforeCursor()
-        if (currentText.isNotEmpty()) {
+        if (currentText.isNotEmpty() && isLearningAllowedForCurrentField()) {
             liveLearningManager.recordWordTyped(currentText)
             liveLearningManager.saveProfileIfDirty()
         }
@@ -2741,8 +2828,10 @@ class FlowboardIMEService : InputMethodService() {
             }
             ic.commitText("$word ", 1)
             val fullText = getFullTextBeforeCursor()
-            liveLearningManager.recordWordTyped(fullText)
-            liveLearningManager.saveProfileIfDirty()
+            if (isLearningAllowedForCurrentField()) {
+                liveLearningManager.recordWordTyped(fullText)
+                liveLearningManager.saveProfileIfDirty()
+            }
             typedText.clear()
         }
         if (::scoringEngine.isInitialized) {
@@ -2958,7 +3047,7 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun updatePredictions() {
-        if (!isShowSuggestions) {
+        if (!isShowSuggestions || (isCurrentInputPasswordField() && !liveLearningManager.isLearnPasswordsEnabled())) {
             pred1?.text = ""
             pred2?.text = ""
             pred3?.text = ""
@@ -3193,27 +3282,173 @@ class FlowboardIMEService : InputMethodService() {
         btnSend?.backgroundTintList = accentTintList
         rootView.findViewById<ImageView>(R.id.btnSendIcon)?.imageTintList = ColorStateList.valueOf(colors.sendText)
 
-        // Undo & Redo Panel Theme
-        undoRedoPanel?.let { panel ->
+        applyPanelsTheme(rootView, colors)
+
+        updateEmojiCategoryHighlight(currentEmojiCategory)
+        keyboardView?.refreshTheme()
+    }
+
+    private fun applyPanelsTheme(rootView: View, colors: ThemeColors) {
+        val kbBgTintList = ColorStateList.valueOf(colors.keyboardBackground)
+        val keyBgTintList = ColorStateList.valueOf(colors.keyBackground)
+        val toolBgTintList = ColorStateList.valueOf(colors.toolBackground)
+        val accentTintList = ColorStateList.valueOf(colors.accent)
+        val textTapColor = colors.textTap
+        val textSwipeColor = colors.textSwipe
+        val textTapTintList = ColorStateList.valueOf(textTapColor)
+        val textSwipeTintList = ColorStateList.valueOf(textSwipeColor)
+
+        // 1. Quick Paste Bar
+        val qpBar = quickPasteBar ?: rootView.findViewById(R.id.quickPasteBar)
+        qpBar?.backgroundTintList = keyBgTintList
+        rootView.findViewById<ImageView>(R.id.quickPasteIcon)?.imageTintList = textTapTintList
+        quickPasteText?.setTextColor(textTapColor)
+        rootView.findViewById<ImageView>(R.id.quickPasteDismiss)?.imageTintList = textSwipeTintList
+
+        // 2. Undo & Redo Panel
+        val urPanel = undoRedoPanel ?: rootView.findViewById(R.id.undoRedoPanel)
+        urPanel?.let { panel ->
+            panel.backgroundTintList = kbBgTintList
+            val header = (panel as? ViewGroup)?.getChildAt(0) as? TextView
+            header?.setTextColor(textTapColor)
+            header?.let { TextViewCompat.setCompoundDrawableTintList(it, textTapTintList) }
+
             panel.findViewById<TextView>(R.id.cardUndo)?.apply {
                 backgroundTintList = keyBgTintList
                 setTextColor(textTapColor)
-                TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(textTapColor))
+                TextViewCompat.setCompoundDrawableTintList(this, textTapTintList)
             }
             panel.findViewById<TextView>(R.id.cardRedo)?.apply {
                 backgroundTintList = keyBgTintList
                 setTextColor(textTapColor)
-                TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(textTapColor))
+                TextViewCompat.setCompoundDrawableTintList(this, textTapTintList)
             }
             panel.findViewById<TextView>(R.id.cardClearAll)?.apply {
                 backgroundTintList = keyBgTintList
                 setTextColor(textTapColor)
-                TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(textTapColor))
+                TextViewCompat.setCompoundDrawableTintList(this, textTapTintList)
             }
         }
 
-        updateEmojiCategoryHighlight(currentEmojiCategory)
-        keyboardView?.refreshTheme()
+        // 3. Text Editing Panel
+        val tePanel = textEditPanel ?: rootView.findViewById(R.id.textEditPanel)
+        tePanel?.let { panel ->
+            panel.backgroundTintList = kbBgTintList
+            val header = (panel as? ViewGroup)?.getChildAt(0) as? TextView
+            header?.setTextColor(textTapColor)
+            header?.let { TextViewCompat.setCompoundDrawableTintList(it, textTapTintList) }
+
+            val actionBtnIds = listOf(
+                R.id.btnTextSelectAll, R.id.btnTextCut,
+                R.id.btnTextCopy, R.id.btnTextPaste, R.id.btnTextDelete
+            )
+            for (btnId in actionBtnIds) {
+                panel.findViewById<TextView>(btnId)?.apply {
+                    backgroundTintList = keyBgTintList
+                    setTextColor(textTapColor)
+                }
+            }
+
+            panel.findViewById<TextView>(R.id.btnTextSelect)?.apply {
+                backgroundTintList = if (isTextSelecting) accentTintList else keyBgTintList
+                setTextColor(if (isTextSelecting) colors.sendText else textTapColor)
+            }
+
+            val dpadImgIds = listOf(
+                R.id.btnTextArrowUp, R.id.btnTextArrowDown,
+                R.id.btnTextArrowLeft, R.id.btnTextArrowRight,
+                R.id.btnTextJumpStart, R.id.btnTextJumpEnd
+            )
+            for (imgId in dpadImgIds) {
+                panel.findViewById<ImageView>(imgId)?.apply {
+                    backgroundTintList = keyBgTintList
+                    imageTintList = textTapTintList
+                }
+            }
+
+            panel.findViewById<TextView>(R.id.btnTextCenter)?.apply {
+                backgroundTintList = toolBgTintList
+                setTextColor(textTapColor)
+            }
+        }
+
+        // 4. Voice Input Panel
+        val viPanel = voiceInputPanel ?: rootView.findViewById(R.id.voiceInputPanel)
+        viPanel?.let { panel ->
+            panel.backgroundTintList = kbBgTintList
+            val header = (panel as? ViewGroup)?.getChildAt(0) as? TextView
+            header?.setTextColor(textTapColor)
+            header?.let { TextViewCompat.setCompoundDrawableTintList(it, textTapTintList) }
+
+            voiceLiveText?.setTextColor(textTapColor)
+            voiceStatusText?.setTextColor(textSwipeColor)
+            btnVoiceMic?.backgroundTintList = if (isListeningVoice) accentTintList else keyBgTintList
+            ivVoiceMicIcon?.imageTintList = if (isListeningVoice) ColorStateList.valueOf(colors.sendText) else textTapTintList
+        }
+
+        // 5. Emoji Panel
+        val emPanel = emojiPanel ?: rootView.findViewById(R.id.emojiPanel)
+        emPanel?.let { panel ->
+            panel.backgroundTintList = kbBgTintList
+            panel.findViewById<HorizontalScrollView>(R.id.emojiCategoryScroll)?.background = null
+            panel.findViewById<View>(R.id.emojiCategoryDivider)?.setBackgroundColor(
+                if (colors.isDark) 0x1AFFFFFF else 0x1A000000
+            )
+        }
+
+        // 6. Quick Theme Panel
+        val qtPanel = quickThemePanel ?: rootView.findViewById(R.id.quickThemePanel)
+        qtPanel?.let { panel ->
+            panel.backgroundTintList = kbBgTintList
+            val header = (panel as? ViewGroup)?.getChildAt(0) as? TextView
+            header?.setTextColor(textTapColor)
+            header?.let { TextViewCompat.setCompoundDrawableTintList(it, textTapTintList) }
+
+            val modeLabel = (panel.findViewById<TextView>(R.id.btnThemeLight)?.parent?.parent as? ViewGroup)?.getChildAt(0) as? TextView
+            modeLabel?.setTextColor(textTapColor)
+
+            panel.findViewById<TextView>(R.id.btnOpenFullThemes)?.apply {
+                backgroundTintList = keyBgTintList
+                setTextColor(textTapColor)
+            }
+
+            val modeRow = panel.findViewById<TextView>(R.id.btnThemeLight)?.parent as? ViewGroup
+            modeRow?.backgroundTintList = toolBgTintList
+
+            val currentOverride = isDarkModeOverride
+            val isLightActive = currentOverride == false
+            val isDarkActive = currentOverride == true
+            val isSystemActive = currentOverride == null
+
+            panel.findViewById<TextView>(R.id.btnThemeLight)?.apply {
+                backgroundTintList = if (isLightActive) keyBgTintList else ColorStateList.valueOf(Color.TRANSPARENT)
+                setTextColor(if (isLightActive) textTapColor else textSwipeColor)
+            }
+            panel.findViewById<TextView>(R.id.btnThemeDark)?.apply {
+                backgroundTintList = if (isDarkActive) keyBgTintList else ColorStateList.valueOf(Color.TRANSPARENT)
+                setTextColor(if (isDarkActive) textTapColor else textSwipeColor)
+            }
+            panel.findViewById<TextView>(R.id.btnThemeSystem)?.apply {
+                backgroundTintList = if (isSystemActive) keyBgTintList else ColorStateList.valueOf(Color.TRANSPARENT)
+                setTextColor(if (isSystemActive) textTapColor else textSwipeColor)
+            }
+        }
+
+        // 7. Clipboard Panel
+        val cbPanel = clipboardPanel ?: rootView.findViewById(R.id.clipboardPanel)
+        cbPanel?.let { panel ->
+            panel.backgroundTintList = kbBgTintList
+            val cbHeader = panel.findViewById<ViewGroup>(R.id.clipboardHeader)
+            cbHeader?.findViewById<TextView>(R.id.btnClearUnpinned)?.apply {
+                backgroundTintList = keyBgTintList
+                setTextColor(textTapColor)
+            }
+            ((cbHeader as? ViewGroup)?.getChildAt(0) as? TextView)?.setTextColor(textTapColor)
+        }
+
+        // 8. More Panel
+        val mPanel = rootView.findViewById<View>(R.id.morePanel)
+        mPanel?.backgroundTintList = kbBgTintList
     }
 
     @SuppressLint("DiscouragedApi", "InternalInsetResource")

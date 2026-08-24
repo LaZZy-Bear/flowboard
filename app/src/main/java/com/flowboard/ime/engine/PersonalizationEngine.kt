@@ -117,12 +117,14 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
             val w2 = cleanWords[cleanWords.size - 1]
             val triKey = "${w1}_${w2}"
             val triEntry = profile.trigram[triKey]
-            if (triEntry != null) {
+            if (triEntry != null && triEntry.isNotEmpty()) {
+                val totalCount = triEntry.values.sum().toDouble()
                 for ((nextWord, count) in triEntry) {
                     if (nextWord.length > prefixLen && (prefixLen == 0 || nextWord.lowercase().startsWith(prefix))) {
                         val targetChar = nextWord[prefixLen].lowercase()
                         if (isScorableChar(targetChar)) {
-                            val bonus = countToTrigramBonus(count) * multiplier
+                            val relProb = if (totalCount > 0) count.toDouble() / totalCount else 1.0
+                            val bonus = countToTrigramBonus(count, relProb) * multiplier
                             if (bonus > 0.0) {
                                 finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
                                 found = true
@@ -137,12 +139,14 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         if (!found && cleanWords.isNotEmpty()) {
             val w1 = cleanWords.last()
             val biEntry = profile.bigram[w1]
-            if (biEntry != null) {
+            if (biEntry != null && biEntry.isNotEmpty()) {
+                val totalCount = biEntry.values.sum().toDouble()
                 for ((nextWord, count) in biEntry) {
                     if (nextWord.length > prefixLen && (prefixLen == 0 || nextWord.lowercase().startsWith(prefix))) {
                         val targetChar = nextWord[prefixLen].lowercase()
                         if (isScorableChar(targetChar)) {
-                            val bonus = countToBigramBonus(count) * multiplier
+                            val relProb = if (totalCount > 0) count.toDouble() / totalCount else 1.0
+                            val bonus = countToBigramBonus(count, relProb) * multiplier
                             if (bonus > 0.0) {
                                 finalScores[targetChar] = (finalScores[targetChar] ?: 0.0) + bonus
                             }
@@ -153,20 +157,24 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         }
     }
 
-    private fun countToTrigramBonus(count: Int): Double = when {
-        count >= 16 -> TRI_MAX
-        count >= 6  -> TRI_HIGH
-        count >= 3  -> TRI_MID
-        count >= 1  -> TRI_LOW
-        else        -> 0.0
+    /**
+     * Logarithmic Trigram Bonus with relative transition probability.
+     * Bonus grows smoothly with log2(1 + count) and is proportionally boosted by its relative dominance.
+     */
+    private fun countToTrigramBonus(count: Int, relProb: Double = 1.0): Double {
+        if (count <= 0) return 0.0
+        val baseBonus = 400.0 * (kotlin.math.ln(1.0 + count.toDouble()) / kotlin.math.ln(2.0))
+        return baseBonus * (0.5 + 0.5 * relProb)
     }
 
-    private fun countToBigramBonus(count: Int): Double = when {
-        count >= 16 -> BI_MAX
-        count >= 6  -> BI_HIGH
-        count >= 3  -> BI_MID
-        count >= 1  -> BI_LOW
-        else        -> 0.0
+    /**
+     * Logarithmic Bigram Bonus with relative transition probability.
+     * count=1 -> 250, count=3 -> 500, count=7 -> 750, count=15 -> 1000, count=63 -> 1500, count=255 -> 2000
+     */
+    private fun countToBigramBonus(count: Int, relProb: Double = 1.0): Double {
+        if (count <= 0) return 0.0
+        val baseBonus = 250.0 * (kotlin.math.ln(1.0 + count.toDouble()) / kotlin.math.ln(2.0))
+        return baseBonus * (0.5 + 0.5 * relProb)
     }
 
     // ═══════════════════════════════════════
@@ -219,7 +227,7 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
     ) {
         if (prefixLen == 0) return
 
-        // 1. Check learned OOV words (direct personal vocabulary)
+        // 1. Check learned OOV words (direct personal vocabulary & emails)
         val oovMultiplier = repo.personalizationOOVMultiplier
         for (word in profile.learnedOOV) {
             if (word.length > prefixLen && word.lowercase().startsWith(prefix)) {
@@ -268,19 +276,18 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
         return repo.masterLayout.containsKey(targetChar)
     }
 
-    private fun countToStartFreqBonus(count: Int): Double = when {
-        count >= 15 -> 25.0
-        count >= 6  -> 18.0
-        count >= 3  -> 12.0
-        count >= 1  -> 8.0
-        else        -> 0.0
+    private fun countToStartFreqBonus(count: Int): Double {
+        if (count <= 0) return 0.0
+        return 8.0 * (kotlin.math.ln(1.0 + count.toDouble()) / kotlin.math.ln(2.0))
     }
 
-    private fun countToPrefixBonus(count: Int): Double = when {
-        count >= 15 -> FREQ_MAX
-        count >= 6  -> FREQ_HIGH
-        count >= 3  -> FREQ_MID
-        count >= 1  -> repo.personalizationFirstTypeBonus
-        else        -> 0.0
+    /**
+     * Logarithmic Scaling for Word Prefix Bonus:
+     * count=1 -> 250, count=3 -> 500, count=7 -> 750, count=15 -> 1000, count=63 -> 1500, count=255 -> 2000
+     */
+    private fun countToPrefixBonus(count: Int): Double {
+        if (count <= 0) return 0.0
+        val base = repo.personalizationFirstTypeBonus
+        return base * (kotlin.math.ln(1.0 + count.toDouble()) / kotlin.math.ln(2.0))
     }
 }

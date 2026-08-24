@@ -5,8 +5,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/prediction_key_bg"
-    android:padding="4dp"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp"
     android:visibility="gone"
     tools:ignore="HardcodedText">
 
@@ -14,12 +16,14 @@
     <HorizontalScrollView
         android:id="@+id/emojiCategoryScroll"
         android:layout_width="match_parent"
-        android:layout_height="36dp"
+        android:layout_height="38dp"
         android:scrollbars="none"
         android:overScrollMode="never"
         android:fadingEdge="none"
-        android:background="@drawable/fn_key_bg"
-        android:padding="2dp">
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp">
 
         <LinearLayout
             android:id="@+id/emojiCategoryContainer"
@@ -32,82 +36,82 @@
             <TextView
                 android:id="@+id/btnEmojiCatRecent"
                 android:layout_width="40dp"
-                android:layout_height="match_parent"
+                android:layout_height="34dp"
                 android:gravity="center"
                 android:text="🕒"
-                android:textSize="17sp"
-                android:layout_marginEnd="2dp" />
+                android:textSize="18sp"
+                android:layout_marginEnd="4dp" />
 
             <TextView
                 android:id="@+id/btnEmojiCatSmileys"
                 android:layout_width="40dp"
-                android:layout_height="match_parent"
+                android:layout_height="34dp"
                 android:gravity="center"
                 android:text="😊"
-                android:textSize="17sp"
-                android:layout_marginEnd="2dp" />
+                android:textSize="18sp"
+                android:layout_marginEnd="4dp" />
 
             <TextView
                 android:id="@+id/btnEmojiCatPeople"
                 android:layout_width="40dp"
-                android:layout_height="match_parent"
+                android:layout_height="34dp"
                 android:gravity="center"
                 android:text="👋"
-                android:textSize="17sp"
-                android:layout_marginEnd="2dp" />
+                android:textSize="18sp"
+                android:layout_marginEnd="4dp" />
 
             <TextView
                 android:id="@+id/btnEmojiCatAnimals"
                 android:layout_width="40dp"
-                android:layout_height="match_parent"
+                android:layout_height="34dp"
                 android:gravity="center"
                 android:text="🐶"
-                android:textSize="17sp"
-                android:layout_marginEnd="2dp" />
+                android:textSize="18sp"
+                android:layout_marginEnd="4dp" />
 
             <TextView
                 android:id="@+id/btnEmojiCatFood"
                 android:layout_width="40dp"
-                android:layout_height="match_parent"
+                android:layout_height="34dp"
                 android:gravity="center"
                 android:text="🍔"
-                android:textSize="17sp"
-                android:layout_marginEnd="2dp" />
+                android:textSize="18sp"
+                android:layout_marginEnd="4dp" />
 
             <TextView
                 android:id="@+id/btnEmojiCatTravel"
                 android:layout_width="40dp"
-                android:layout_height="match_parent"
+                android:layout_height="34dp"
                 android:gravity="center"
                 android:text="✈️"
-                android:textSize="17sp"
-                android:layout_marginEnd="2dp" />
+                android:textSize="18sp"
+                android:layout_marginEnd="4dp" />
 
             <TextView
                 android:id="@+id/btnEmojiCatActivities"
                 android:layout_width="40dp"
-                android:layout_height="match_parent"
+                android:layout_height="34dp"
                 android:gravity="center"
                 android:text="⚽"
-                android:textSize="17sp"
-                android:layout_marginEnd="2dp" />
+                android:textSize="18sp"
+                android:layout_marginEnd="4dp" />
 
             <TextView
                 android:id="@+id/btnEmojiCatObjects"
                 android:layout_width="40dp"
-                android:layout_height="match_parent"
+                android:layout_height="34dp"
                 android:gravity="center"
                 android:text="💡"
-                android:textSize="17sp"
-                android:layout_marginEnd="2dp" />
+                android:textSize="18sp"
+                android:layout_marginEnd="4dp" />
 
             <TextView
                 android:id="@+id/btnEmojiCatFlags"
                 android:layout_width="40dp"
-                android:layout_height="match_parent"
+                android:layout_height="34dp"
                 android:gravity="center"
                 android:text="🚩"
-                android:textSize="17sp" />
+                android:textSize="18sp" />
         </LinearLayout>
     </HorizontalScrollView>
 
@@ -117,8 +121,7 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="2dp"
-        android:layout_marginBottom="2dp"
-        android:background="#20888888" />
+        android:layout_marginBottom="2dp" />
 
     <!-- Emoji Grid Area -->
     <androidx.recyclerview.widget.RecyclerView
@@ -127,6 +130,10 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
         android:overScrollMode="ifContentScrolls"
         android:scrollbars="none" />
 </LinearLayout>

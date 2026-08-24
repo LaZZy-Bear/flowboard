@@ -45,7 +45,13 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         )
 
         private val SPACE_REGEX = Regex("\\s+")
-        private val CLEAN_WORD_REGEX = Regex("[^a-z0-9'.-]")
+        private val CLEAN_WORD_REGEX = Regex("""[^a-z0-9'._@+-]""")
+        private val EMAIL_TAIL_REGEX = Regex("""[a-z0-9._%+-]+@[a-z0-9.-]*$""")
+        private val WORD_TOKEN_REGEX = Regex("[a-z0-9]+(?:['.-][a-z0-9]+)*")
+    }
+
+    private fun isDelimiterChar(c: Char): Boolean {
+        return c.isWhitespace() || (!c.isLetterOrDigit() && c != '\'' && c != '@' && c != '.' && c != '-')
     }
 
     /**
@@ -57,21 +63,43 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             return emptyList()
         }
 
-        val isSpace = trimmed.endsWith(' ')
-        val rawTokens = trimmed.trim().split(SPACE_REGEX).filter { it.isNotEmpty() }
-        if (rawTokens.isEmpty()) {
-            return emptyList()
-        }
+        val engineText = trimmed.lowercase()
+        val len = engineText.length
+        val lastChar = engineText.last()
+
+        val emailMatch = EMAIL_TAIL_REGEX.find(engineText)
+        val isEmailTail = emailMatch != null && emailMatch.range.last == len - 1
+
+        val isTrailingWordConnector = (lastChar == '-' || lastChar == '\'' || lastChar == '.') &&
+                len >= 2 && engineText[len - 2].isLetterOrDigit()
+
+        val isWordBoundaryDelimiter = !isTrailingWordConnector && isDelimiterChar(lastChar)
 
         val activePrefix: String
         val contextWords: List<String>
 
-        if (isSpace) {
+        if (isEmailTail) {
+            val emailPrefix = emailMatch.value
+            val textBeforeEmail = engineText.substring(0, emailMatch.range.first)
+            val wordsBefore = WORD_TOKEN_REGEX.findAll(textBeforeEmail).map { it.value }.toList()
+            activePrefix = emailPrefix
+            contextWords = wordsBefore
+        } else if (isWordBoundaryDelimiter) {
+            val allWords = WORD_TOKEN_REGEX.findAll(engineText).map { it.value }.toList()
             activePrefix = ""
-            contextWords = rawTokens
+            contextWords = allWords
         } else {
-            activePrefix = rawTokens.last()
-            contextWords = rawTokens.dropLast(1)
+            val allMatches = WORD_TOKEN_REGEX.findAll(engineText).toList()
+            if (allMatches.isNotEmpty() && (allMatches.last().range.last == len - 1 || (isTrailingWordConnector && allMatches.last().range.last == len - 2))) {
+                val lastToken = if (isTrailingWordConnector) engineText.substring(allMatches.last().range.first, len) else allMatches.last().value
+                val wordsBefore = allMatches.dropLast(1).map { it.value }
+                activePrefix = lastToken
+                contextWords = wordsBefore
+            } else {
+                val allWords = allMatches.map { it.value }
+                activePrefix = ""
+                contextWords = allWords
+            }
         }
 
         val cleanContext = contextWords.map { cleanWord(it) }.filter { it.isNotEmpty() }
@@ -86,14 +114,39 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             // ──────────────────────────────────────────
             // Mode B: Prefix Autocomplete (while typing)
             // ──────────────────────────────────────────
-            autocompletePrefix(cleanContext, prefix, maxCount)
+            val baseList = autocompletePrefix(cleanContext, prefix, maxCount).toMutableList()
+            if (repo.isPersonalizationEnabled) {
+                val matchingEmails = repo.personalProfile.learnedOOV.filter { email ->
+                    email.contains('@') && email.lowercase().startsWith(prefix) && email.length > prefix.length
+                }.sortedByDescending { repo.personalProfile.wordFreq[it.lowercase()] ?: 1 }
+
+                if (prefix.contains('@') || prefix.length >= 3 || baseList.isEmpty()) {
+                    for (email in matchingEmails.reversed()) {
+                        baseList.remove(email)
+                        baseList.add(0, email)
+                    }
+                } else {
+                    for (email in matchingEmails) {
+                        if (!baseList.contains(email) && baseList.size < maxCount) {
+                            baseList.add(email)
+                        }
+                    }
+                }
+            }
+            baseList
         }
 
         if (results.isEmpty()) return emptyList()
 
+        val rawActivePrefix = if (activePrefix.isNotEmpty() && activePrefix.length <= trimmed.length) {
+            trimmed.substring(trimmed.length - activePrefix.length)
+        } else {
+            activePrefix
+        }
+
         // Apply casing
-        val isAllCaps = activePrefix.length > 1 && activePrefix.all { it.isUpperCase() }
-        val isFirstUpper = activePrefix.isNotEmpty() && activePrefix[0].isUpperCase()
+        val isAllCaps = rawActivePrefix.length > 1 && rawActivePrefix.all { it.isUpperCase() }
+        val isFirstUpper = rawActivePrefix.isNotEmpty() && rawActivePrefix[0].isUpperCase()
 
         return results.take(maxCount).map { word ->
             applyCasing(word, isAllCaps, isFirstUpper)
@@ -109,6 +162,25 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         if (contextWords.isEmpty()) return emptyList()
 
         val allCandidates = LinkedHashSet<String>()
+        val w1 = contextWords.last()
+
+        // 0. Personal Bigram/Trigram matches (highest personal relevance, sorted by frequency/dominance)
+        if (repo.isPersonalizationEnabled && repo.personalizationPairsEnabled) {
+            val profile = repo.personalProfile
+            if (contextWords.size >= 2) {
+                val pw1 = contextWords[contextWords.size - 2]
+                val pw2 = contextWords[contextWords.size - 1]
+                val triKey = "${pw1}_${pw2}"
+                profile.trigram[triKey]?.entries
+                    ?.sortedByDescending { it.value }
+                    ?.map { it.key }
+                    ?.let { allCandidates.addAll(it) }
+            }
+            profile.bigram[w1]?.entries
+                ?.sortedByDescending { it.value }
+                ?.map { it.key }
+                ?.let { allCandidates.addAll(it) }
+        }
 
         // 1. General Clustered Trigram (2-word context)
         if (contextWords.size >= 2) {
@@ -127,7 +199,6 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         }
 
         // 2. General Clustered Bigram (1-word context)
-        val w1 = contextWords.last()
         val w1Id = repo.wordReverseMap[w1]
         if (w1Id != null) {
             val nodeData = repo.clusteredBigram.bigram[w1Id.toString()]
@@ -141,20 +212,6 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         if (contextWords.size >= 2) {
             val stcWords = getSTCWords(contextWords)
             allCandidates.addAll(stcWords)
-        }
-
-        // 4. Fallback to Personalize ONLY if main system found nothing and personalize is enabled
-        if (allCandidates.isEmpty() && repo.isPersonalizationEnabled) {
-            val profile = repo.personalProfile
-            if (contextWords.size >= 2) {
-                val pw1 = contextWords[contextWords.size - 2]
-                val pw2 = contextWords[contextWords.size - 1]
-                val triKey = "${pw1}_${pw2}"
-                profile.trigram[triKey]?.keys?.let { allCandidates.addAll(it) }
-            }
-            if (allCandidates.isEmpty()) {
-                profile.bigram[w1]?.keys?.let { allCandidates.addAll(it) }
-            }
         }
 
         if (allCandidates.isEmpty()) return emptyList()
@@ -201,28 +258,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         val root = repo.trieDict ?: return emptyList()
         val allResults = mutableListOf<Pair<String, Int>>()
 
-        // 1. Traverse Main Trie to find all completions
-        var node: TrieNode? = root
-        for (ch in prefix) {
-            node = node?.get(ch.toString())
-            if (node == null) break
-        }
-
-        if (node != null) {
-            fun dfs(n: TrieNode, word: String, depth: Int) {
-                if (allResults.size >= 400 || depth > 12) return
-                if (n.isEndOfWord) {
-                    val wordIndex = repo.wordReverseMap[word] ?: n.frequency
-                    allResults.add(word to wordIndex)
-                }
-                for ((key, child) in n.children) {
-                    dfs(child, word + key, depth + 1)
-                }
-            }
-            dfs(node, prefix, 0)
-        }
-
-        // 2. Learned OOV Trie matching prefix (if personalize is enabled)
+        // 1. Learned OOV Trie matching prefix (if personalize is enabled) - highest priority
         var hasPersonalOOV = false
         if (repo.isPersonalizationEnabled && repo.trieDictOOV != null) {
             var oovNode: TrieNode? = repo.trieDictOOV
@@ -244,6 +280,27 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
                 }
                 dfsOOV(oovNode, prefix, 0)
             }
+        }
+
+        // 2. Traverse Main Trie to find all completions
+        var node: TrieNode? = root
+        for (ch in prefix) {
+            node = node?.get(ch.toString())
+            if (node == null) break
+        }
+
+        if (node != null) {
+            fun dfs(n: TrieNode, word: String, depth: Int) {
+                if (allResults.size >= 400 || depth > 12) return
+                if (n.isEndOfWord) {
+                    val wordIndex = repo.wordReverseMap[word] ?: n.frequency
+                    allResults.add(word to wordIndex)
+                }
+                for ((key, child) in n.children) {
+                    dfs(child, word + key, depth + 1)
+                }
+            }
+            dfs(node, prefix, 0)
         }
 
         val candidates = allResults.distinctBy { it.first }
@@ -285,6 +342,35 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             }
         }
 
+        // 3.5 Personal Bigram & Trigram Context Matches
+        if (repo.isPersonalizationEnabled && repo.personalizationPairsEnabled) {
+            val pProfile = repo.personalProfile
+            if (contextWords.isNotEmpty()) {
+                val prev = contextWords.last().lowercase()
+                val personalNext = pProfile.bigram[prev]
+                if (personalNext != null) {
+                    for ((w, _) in personalNext) {
+                        if (w.startsWith(prefix)) {
+                            bigramMatches.add(w)
+                        }
+                    }
+                }
+            }
+            if (contextWords.size >= 2) {
+                val w1 = contextWords[contextWords.size - 2].lowercase()
+                val w2 = contextWords[contextWords.size - 1].lowercase()
+                val triKey = "${w1}_${w2}"
+                val personalNext = pProfile.trigram[triKey]
+                if (personalNext != null) {
+                    for ((w, _) in personalNext) {
+                        if (w.startsWith(prefix)) {
+                            trigramMatches.add(w)
+                        }
+                    }
+                }
+            }
+        }
+
         // 4. Score each candidate
         val scoredCandidates = mutableListOf<Pair<String, Double>>()
         val lastContextWord = contextWords.lastOrNull()?.lowercase()
@@ -293,8 +379,13 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             // Skip single letter echo words like "c", "t", "b" (except "a" and "i")
             if (word.length == 1 && word != "a" && word != "i") continue
 
-            var score = getWordBaseScore(word, rawIndex)
-            val isObscureAbbr = word.length <= 3 && rawIndex > 1500 && !word.contains('\'') && !hasPersonalOOV
+            val isLearnedWord = repo.isPersonalizationEnabled && (
+                repo.personalProfile.learnedOOV.contains(word) ||
+                repo.personalProfile.wordFreq.containsKey(word)
+            )
+
+            var score = if (isLearnedWord) 10000.0 else getWordBaseScore(word, rawIndex)
+            val isObscureAbbr = word.length <= 3 && rawIndex > 1500 && !word.contains('\'') && !isLearnedWord
 
             // Exact match bonus: when user typed the exact valid word (and not an obscure abbreviation), give highest priority
             if (word == prefix && !isObscureAbbr) {

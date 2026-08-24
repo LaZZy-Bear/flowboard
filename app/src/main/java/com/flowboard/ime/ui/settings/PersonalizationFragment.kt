@@ -72,12 +72,14 @@ class PersonalizationFragment : Fragment() {
         val switchPairs = view.findViewById<MaterialSwitch>(R.id.switchPairs)
         val switchFreq = view.findViewById<MaterialSwitch>(R.id.switchFreq)
         val switchAlphanumeric = view.findViewById<MaterialSwitch>(R.id.switchAlphanumeric)
+        val switchLearnPasswords = view.findViewById<MaterialSwitch>(R.id.switchLearnPasswords)
 
         val isMasterEnabled = prefs.getBoolean("personalization_enabled", true)
         switchPersonalization?.isChecked = isMasterEnabled
         switchPairs?.isChecked = prefs.getBoolean("personalization_pairs_enabled", true)
         switchFreq?.isChecked = prefs.getBoolean("personalization_freq_enabled", true)
         switchAlphanumeric?.isChecked = prefs.getBoolean("personalization_alphanumeric_enabled", true)
+        switchLearnPasswords?.isChecked = prefs.getBoolean("personalization_learn_passwords", false)
 
         updateOptionsEnabledState(view, isMasterEnabled)
 
@@ -100,6 +102,11 @@ class PersonalizationFragment : Fragment() {
         switchAlphanumeric?.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit { putBoolean("personalization_alphanumeric_enabled", isChecked) }
             mainActivity.notifyImeSettingsChanged("personalization_alphanumeric_enabled", isChecked)
+        }
+
+        switchLearnPasswords?.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit { putBoolean("personalization_learn_passwords", isChecked) }
+            mainActivity.notifyImeSettingsChanged("personalization_learn_passwords", isChecked)
         }
     }
 
@@ -134,8 +141,8 @@ class PersonalizationFragment : Fragment() {
 
         // First-Type Bonus
         val tvBonus = view.findViewById<TextView>(R.id.tvFirstTypeBonus)
-        val bonusOptions = arrayOf("+10", "+20", "+30 (Default)", "+40", "+50")
-        val currentBonus = prefs.getString("personalization_first_type_bonus", "+30 (Default)") ?: "+30 (Default)"
+        val bonusOptions = arrayOf("+100", "+150", "+200", "+250 (Default)", "+300", "+400")
+        val currentBonus = prefs.getString("personalization_first_type_bonus", "+250 (Default)") ?: "+250 (Default)"
         tvBonus?.text = currentBonus
         view.findViewById<View>(R.id.rowFirstTypeBonus)?.setOnClickListener {
             if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener

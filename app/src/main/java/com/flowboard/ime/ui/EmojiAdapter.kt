@@ -6,7 +6,6 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.flowboard.ime.R
 
 class EmojiAdapter(
     private var emojis: List<String>,
@@ -18,11 +17,15 @@ class EmojiAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EmojiViewHolder {
         val density = parent.context.resources.displayMetrics.density
-        val heightPx = (44 * density).toInt()
+        val heightPx = (46 * density).toInt()
         val textView = TextView(parent.context).apply {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, heightPx)
             gravity = Gravity.CENTER
-            setBackgroundResource(R.drawable.fn_key_bg)
+            setBackgroundResource(android.R.color.transparent)
+            val outValue = TypedValue()
+            if (context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)) {
+                setBackgroundResource(outValue.resourceId)
+            }
             isClickable = true
             isFocusable = true
         }

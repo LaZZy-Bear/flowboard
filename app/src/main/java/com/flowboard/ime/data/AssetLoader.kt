@@ -165,9 +165,10 @@ class AssetLoader(private val context: Context) {
         repo.personalizationPairsEnabled = prefs.getBoolean("personalization_pairs_enabled", true)
         repo.personalizationFreqEnabled = prefs.getBoolean("personalization_freq_enabled", true)
         repo.personalizationAlphanumericEnabled = prefs.getBoolean("personalization_alphanumeric_enabled", true)
+        repo.personalizationLearnPasswordsEnabled = prefs.getBoolean("personalization_learn_passwords", false)
         repo.personalizationBoostMultiplier = parseNumericDouble(prefs.getString("personalization_boost_multiplier", "1.0"), 1.0)
         repo.personalizationOOVMultiplier = parseNumericDouble(prefs.getString("personalization_oov_multiplier", "1.3"), 1.3)
-        repo.personalizationFirstTypeBonus = parseNumericDouble(prefs.getString("personalization_first_type_bonus", "30.0"), 30.0)
+        repo.personalizationFirstTypeBonus = parseNumericDouble(prefs.getString("personalization_first_type_bonus", "250.0"), 250.0)
         repo.personalizationUncertaintyGap = parseNumericDouble(prefs.getString("personalization_uncertainty_gap", "15.0"), 15.0)
 
         if (!repo.personalProfile.isEmpty && userPrefEnabled) {

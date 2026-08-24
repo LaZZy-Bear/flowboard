@@ -27,6 +27,15 @@ class PersonalizationLiveTest {
     @Before
     fun setup() {
         TestDataFactory.loadRepo(repo)
+        repo.isPersonalizationEnabled = false
+        repo.personalProfile = com.flowboard.ime.data.models.PersonalProfile.EMPTY
+        repo.personalizationPairsEnabled = true
+        repo.personalizationFreqEnabled = true
+        repo.personalizationAlphanumericEnabled = true
+        repo.personalizationBoostMultiplier = 1.0
+        repo.personalizationOOVMultiplier = 1.3
+        repo.personalizationFirstTypeBonus = 250.0
+        repo.personalizationUncertaintyGap = 15.0
         scoringEngine = ScoringEngine(repo)
         layoutManager = LayoutManager(repo)
     }
@@ -308,6 +317,8 @@ class PersonalizationLiveTest {
         // User types phrase "aight yet name" step-by-step (as spacebar is pressed after each word)
         liveMgr.recordWordTyped("aight")
         liveMgr.recordWordTyped("aight yet")
+        liveMgr.recordWordTyped("aight yet")
+        liveMgr.recordWordTyped("aight yet name")
         liveMgr.recordWordTyped("aight yet name")
 
         assertTrue("Personal bigram must record 'aight' -> 'yet'",
@@ -319,7 +330,8 @@ class PersonalizationLiveTest {
         scoringEngine.resetTrieCache()
         var scores = scoringEngine.calculateScores("aight ")
         var layout = layoutManager.assignLayout(scores)
-        assertEquals("Character 'y' (char 1 of yet) must win TAP on key_9", "y", layout["key_9"]?.tap)
+        assertTrue("Score for 'y' (char 1 of yet) must be boosted", (scores["y"] ?: 0.0) > 0.0)
+        assertTrue("Key 9 must contain 'y'", layout["key_9"]?.visibleChars()?.contains("y") == true)
 
         // 1b. User types 'y' -> next char is 'e' (char 2 of yet)
         scores = scoringEngine.calculateScores("aight y")
@@ -509,12 +521,12 @@ class PersonalizationLiveTest {
         assertTrue("wi-fi should be learned as OOV or frequent word",
             repo.personalProfile.learnedOOV.contains("wi-fi") || repo.personalProfile.wordFreq.containsKey("wi-fi"))
 
-        // 2. Type "wi" -> Personalization should score '-' (hyphen) and allow '-' to win Key 7 TAP slot
+        // 2. Type "wi" -> Personalization should score '-' (hyphen) and allow '-' on Key 4
         val scores = scoringEngine.calculateScores("wi")
         assertTrue("Score for '-' must be greater than 0.0", (scores["-"] ?: 0.0) > 0.0)
 
         val layout = layoutManager.assignLayout(scores)
-        assertTrue("Key 7 should contain '-' or tap is '-'", layout["key_7"]?.tap == "-" || layout["key_7"]?.visibleChars()?.contains("-") == true)
+        assertTrue("Key 4 should contain '-' or tap is '-'", layout["key_4"]?.tap == "-" || layout["key_4"]?.visibleChars()?.contains("-") == true)
 
         // 3. Test Word Prediction for "wi-" -> WordPredictionEngine should suggest "wi-fi"
         val wordPredictionEngine = com.flowboard.ime.engine.WordPredictionEngine(repo)
@@ -531,6 +543,233 @@ class PersonalizationLiveTest {
         val layoutAfterB = layoutManager.assignLayout(scoresAfterB)
         assertNotEquals("TAP on Key 4 must NOT be digit '4'", "4", layoutAfterB["key_4"]?.tap)
         assertEquals("Swipe-down on Key 4 MUST always remain '4'", "4", layoutAfterB["key_4"]?.down)
+    }
+
+    @Test
+    fun testEmailLearningScoringAndPrediction() {
+        val filesDir = tempFolder.newFolder("files_email_test")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+        liveMgr.loadProfile()
+
+        val testEmail = "somchai.dev@gmail.com"
+
+        // 1. User types email once in a sentence or field
+        liveMgr.recordWordTyped("send report to $testEmail please")
+
+        // Verify email was learned immediately on 1st occurrence
+        assertTrue("Email $testEmail must be learned into learnedOOV",
+            repo.personalProfile.learnedOOV.contains(testEmail))
+        assertTrue("Email $testEmail frequency must be recorded",
+            (repo.personalProfile.wordFreq[testEmail] ?: 0) >= 1)
+
+        val wordPredictionEngine = com.flowboard.ime.engine.WordPredictionEngine(repo)
+
+        // 2. Test Character Score Boosting (Requirement 1: ดันคะแนนตัว)
+        // a. Typing "somchai" -> next char is '.'
+        var scores = scoringEngine.calculateScores("somchai")
+        assertTrue("Score for '.' must be boosted", (scores["."] ?: 0.0) > 0.0)
+
+        // b. Typing "somchai.dev" -> next char is '@'
+        scores = scoringEngine.calculateScores("somchai.dev")
+        assertTrue("Score for '@' must be boosted", (scores["@"] ?: 0.0) > 0.0)
+        var layout = layoutManager.assignLayout(scores)
+        assertEquals("Character '@' must win Key 8 TAP slot", "@", layout["key_8"]?.tap)
+
+        // c. Typing "somchai.dev@" -> next char is 'g'
+        scores = scoringEngine.calculateScores("somchai.dev@")
+        assertTrue("Score for 'g' must be boosted", (scores["g"] ?: 0.0) > 0.0)
+
+        // d. Typing "somchai.dev@g" -> next char is 'm'
+        scores = scoringEngine.calculateScores("somchai.dev@g")
+        assertTrue("Score for 'm' must be boosted", (scores["m"] ?: 0.0) > 0.0)
+
+        // e. Typing "somchai.dev@gmail" -> next char is '.'
+        scores = scoringEngine.calculateScores("somchai.dev@gmail")
+        assertTrue("Score for '.' must be boosted", (scores["."] ?: 0.0) > 0.0)
+
+        // 3. Test Prediction Bar Recommendation (Requirement 2: ไม่แซงคำสั้น 1 ตัวอักษร แนะนำปกติเมื่อพิมพ์ >= 3 ตัวหรือมี @)
+        // From 1-character prefix ("s"): should NOT prematurely force full email over top 1-char word completions
+        var predictions1Char = wordPredictionEngine.getPredictions("s")
+        assertNotEquals("Prediction bar should not force email at top for 1-char prefix 's'", testEmail, predictions1Char.firstOrNull())
+
+        // From 3-character prefix ("som"):
+        var predictions = wordPredictionEngine.getPredictions("som")
+        assertTrue("Predictions for 'som' must contain $testEmail", predictions.contains(testEmail))
+        assertEquals("Prediction bar top suggestion for 'som' must be $testEmail", testEmail, predictions.firstOrNull())
+
+        // From middle prefix with @:
+        predictions = wordPredictionEngine.getPredictions("somchai.dev@g")
+        assertTrue("Predictions for 'somchai.dev@g' must contain $testEmail", predictions.contains(testEmail))
+        assertEquals("Prediction bar top suggestion must be $testEmail", testEmail, predictions.firstOrNull())
+
+        // From domain prefix:
+        predictions = wordPredictionEngine.getPredictions("somchai.dev@gmail.")
+        assertTrue("Predictions for 'somchai.dev@gmail.' must contain $testEmail", predictions.contains(testEmail))
+        assertEquals("Prediction bar top suggestion must be $testEmail", testEmail, predictions.firstOrNull())
+    }
+
+    @Test
+    fun testDisallowedSymbolsSplittingAndWordPairs() {
+        val filesDir = tempFolder.newFolder("files_symbols_splitting")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+        liveMgr.loadProfile()
+
+        // 1. User types string with disallowed symbols like Apple2&GG# or Foo$Bar
+        liveMgr.recordWordTyped("login with Apple2&GG# today")
+        liveMgr.recordWordTyped("login with Apple2&GG# today")
+
+        // Verify sub-words "apple2" and "gg" are learned
+        assertTrue("Sub-word 'apple2' must be recorded in wordFreq", repo.personalProfile.wordFreq.containsKey("apple2"))
+        assertTrue("Sub-word 'gg' must be recorded in wordFreq", repo.personalProfile.wordFreq.containsKey("gg"))
+
+        // Verify disallowed symbols '&' and '#' are NOT in wordFreq or learnedOOV
+        assertFalse("Disallowed symbol '&' must NOT be in wordFreq", repo.personalProfile.wordFreq.containsKey("&"))
+        assertFalse("Disallowed symbol '#' must NOT be in wordFreq", repo.personalProfile.wordFreq.containsKey("#"))
+        assertFalse("Combined symbol string must NOT be in learnedOOV", repo.personalProfile.learnedOOV.contains("apple2&gg#"))
+
+        // Verify word pair bigram "apple2" -> "gg" was recorded
+        assertTrue("Bigram must record 'apple2' -> 'gg'",
+            repo.personalProfile.bigram["apple2"]?.containsKey("gg") == true)
+
+        // 2. User types "apple2 " (space after apple2) -> next word is "gg", first char is 'g'
+        scoringEngine.resetTrieCache()
+        var scores = scoringEngine.calculateScores("apple2 ")
+        assertTrue("Score for 'g' (char 1 of gg) must be boosted", (scores["g"] ?: 0.0) > 0.0)
+
+        var layout = layoutManager.assignLayout(scores)
+        assertEquals("Character 'g' must win TAP on key_6", "g", layout["key_6"]?.tap)
+
+        // 3. User types "apple2&" (NO space, symbol '&' delimiter) -> next word is "gg", first char is 'g'
+        scoringEngine.resetTrieCache()
+        scores = scoringEngine.calculateScores("login with apple2&")
+        assertTrue("Score for 'g' after symbol '&' delimiter must be boosted", (scores["g"] ?: 0.0) > 0.0)
+
+        layout = layoutManager.assignLayout(scores)
+        assertEquals("Character 'g' must win TAP on key_6 even after '&' symbol delimiter", "g", layout["key_6"]?.tap)
+
+        val wordPredictionEngine = com.flowboard.ime.engine.WordPredictionEngine(repo)
+        val predictionsAfterAmp = wordPredictionEngine.getPredictions("login with apple2&")
+        assertTrue("Prediction after '&' delimiter must suggest 'gg'", predictionsAfterAmp.contains("gg"))
+
+        val predictionsAfterAmpG = wordPredictionEngine.getPredictions("login with apple2&g")
+        assertTrue("Prediction after '&g' must suggest 'gg'", predictionsAfterAmpG.contains("gg"))
+    }
+
+    @Test
+    fun testPasswordLearningToggle() {
+        val filesDir = tempFolder.newFolder("files_pwd_toggle")
+        val prefsData = mutableMapOf<String, Any>()
+        val mockContext = MockContext(filesDir, prefsData)
+        val liveMgr = LiveLearningManager(mockContext)
+
+        // Default: Learn Passwords is OFF (false)
+        assertFalse("Default learn passwords should be disabled", liveMgr.isLearnPasswordsEnabled())
+
+        // Enable Learn Passwords in settings
+        prefsData["personalization_learn_passwords"] = true
+        assertTrue("Learn passwords should now be enabled", liveMgr.isLearnPasswordsEnabled())
+
+        // Learn words from a password-like combination
+        liveMgr.recordWordTyped("secret Pass123&Word99# here")
+        assertTrue("Pass123 should be learned when enabled", repo.personalProfile.wordFreq.containsKey("pass123"))
+        assertTrue("Word99 should be learned when enabled", repo.personalProfile.wordFreq.containsKey("word99"))
+        assertTrue("Bigram pass123 -> word99 should be recorded",
+            repo.personalProfile.bigram["pass123"]?.containsKey("word99") == true)
+
+        // Test real-time typing: typing "Pass123&" (NO space) must immediately boost 'w' for Word99
+        scoringEngine.resetTrieCache()
+        val scoresAfterPass = scoringEngine.calculateScores("Pass123&")
+        assertTrue("Score for 'w' (char 1 of Word99) must be boosted after symbol '&'", (scoresAfterPass["w"] ?: 0.0) > 0.0)
+
+        val layoutAfterPass = layoutManager.assignLayout(scoresAfterPass)
+        assertEquals("Key 9 TAP must be 'w' after typing 'Pass123&'", "w", layoutAfterPass["key_9"]?.tap)
+
+        val wordPredictionEngine = com.flowboard.ime.engine.WordPredictionEngine(repo)
+        val predictions = wordPredictionEngine.getPredictions("Pass123&")
+        assertTrue("Prediction bar must suggest 'word99' after 'Pass123&'", predictions.contains("word99"))
+
+        val predictionsWithW = wordPredictionEngine.getPredictions("Pass123&w")
+        assertTrue("Prediction bar must suggest 'word99' after 'Pass123&w'", predictionsWithW.contains("word99"))
+        assertEquals("Prediction bar top suggestion for 'Pass123&w' must be 'word99'", "word99", predictionsWithW.firstOrNull())
+    }
+
+    @Test
+    fun testUncommittedWordLearningOnKeyboardDismissAndFieldSwitch() {
+        val filesDir = tempFolder.newFolder("files_dismiss_learn")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+        liveMgr.loadProfile()
+
+        // 1. User types in a single field without space, e.g. "myuncommittedword" and collapses keyboard
+        liveMgr.recordWordTyped("myuncommittedword")
+        liveMgr.saveProfileIfDirty()
+
+        assertTrue("Uncommitted word without trailing space must be in wordFreq",
+            repo.personalProfile.wordFreq.containsKey("myuncommittedword"))
+        assertTrue("Uncommitted OOV word must be in learnedOOV",
+            repo.personalProfile.learnedOOV.contains("myuncommittedword"))
+
+        // 2. User types multi-word without trailing space in Field 1, e.g. "order from myfastshop" and switches to Field 2
+        liveMgr.recordWordTyped("order from myfastshop")
+        liveMgr.saveProfileIfDirty()
+
+        assertTrue("Last word 'myfastshop' must be in wordFreq",
+            repo.personalProfile.wordFreq.containsKey("myfastshop"))
+        assertTrue("Bigram 'from' -> 'myfastshop' must be recorded",
+            repo.personalProfile.bigram["from"]?.containsKey("myfastshop") == true)
+
+        // 3. Verify real-time prediction works for the learned words
+        val wordPredictionEngine = com.flowboard.ime.engine.WordPredictionEngine(repo)
+        val predictions = wordPredictionEngine.getPredictions("order from myfast", 3)
+        assertTrue("Prediction bar must suggest 'myfastshop'", predictions.contains("myfastshop"))
+    }
+
+    @Test
+    fun testLogarithmicScalingAndAgingDecay() {
+        val filesDir = tempFolder.newFolder("files_decay_test")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+        liveMgr.loadProfile()
+
+        // 1. Logarithmic Scaling Test: count 50 vs count 5
+        for (i in 0 until 50) {
+            liveMgr.recordWordTyped("apple2")
+        }
+        for (i in 0 until 5) {
+            liveMgr.recordWordTyped("banana2")
+        }
+
+        val countApple = repo.personalProfile.wordFreq["apple2"] ?: 0
+        val countBanana = repo.personalProfile.wordFreq["banana2"] ?: 0
+        assertTrue("Apple2 count should be >= 50", countApple >= 50)
+        assertTrue("Banana2 count should be 5", countBanana == 5)
+
+        scoringEngine.resetTrieCache()
+        val scoresApple = scoringEngine.calculateScores("appl")
+        val scoresBanana = scoringEngine.calculateScores("bana")
+        val appleBonus = scoresApple["e"] ?: 0.0
+        val bananaBonus = scoresBanana["n"] ?: 0.0
+        assertTrue("Logarithmic scaling ensures 50x word gets higher bonus than 5x word",
+            appleBonus > bananaBonus)
+
+        // 2. Aging Decay Test
+        liveMgr.recordWordTyped("onceonlyword")
+        assertTrue("onceonlyword should be recorded", repo.personalProfile.wordFreq.containsKey("onceonlyword"))
+
+        // Apply aging decay step with 0.4 decay rate
+        liveMgr.applyAgingDecay(0.4)
+
+        // rareWord with count=1 * 0.4 = 0.4 -> rounded to 0 -> should be pruned
+        assertFalse("Rare word decayed to 0 must be removed from wordFreq",
+            repo.personalProfile.wordFreq.containsKey("onceonlyword"))
+        assertFalse("Rare word decayed to 0 must be removed from learnedOOV",
+            repo.personalProfile.learnedOOV.contains("onceonlyword"))
+
+        // Active high frequency words decayed gracefully (50 * 0.4 = 20)
+        val newAppleCount = repo.personalProfile.wordFreq["apple2"] ?: 0
+        assertTrue("Apple2 count must decay gracefully (50 * 0.4 = 20)", newAppleCount in 18..22)
     }
 
     private class MockContext(

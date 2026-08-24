@@ -69,6 +69,12 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
         private val SPACE_REGEX = Regex("\\s+")
         private val WORD_CLEAN_REGEX = Regex("[^a-z'.-]")
+        private val EMAIL_TAIL_REGEX = Regex("""[a-z0-9._%+-]+@[a-z0-9.-]*$""")
+        private val WORD_TOKEN_REGEX = Regex("[a-z0-9]+(?:['.-][a-z0-9]+)*")
+    }
+
+    private fun isDelimiterChar(c: Char): Boolean {
+        return c.isWhitespace() || (!c.isLetterOrDigit() && c != '\'' && c != '@' && c != '.' && c != '-')
     }
 
     private var cachedTriePrefix: String = ""
@@ -95,21 +101,44 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         val len = engineText.length
         val last1 = if (len >= 1) engineText.substring(len - 1) else ""
         val last2 = if (len >= 2) engineText.substring(len - 2) else ""
-        val isSpace = last1 == " "
+        val lastChar = if (len >= 1) last1[0] else ' '
 
-        // Parse active prefix and word history
-        val parts = engineText.trim().split(SPACE_REGEX).filter { it.isNotEmpty() }
+        val emailMatch = if (len > 0) EMAIL_TAIL_REGEX.find(engineText) else null
+        val isEmailTail = emailMatch != null && emailMatch.range.last == len - 1
+
+        val isTrailingWordConnector = (lastChar == '-' || lastChar == '\'' || lastChar == '.') &&
+                len >= 2 && engineText[len - 2].isLetterOrDigit()
+
+        val isWordBoundaryDelimiter = len == 0 || (!isTrailingWordConnector && isDelimiterChar(lastChar))
+
         val activePrefix: String
         val activeWordsArray: List<String>
-        if (isSpace || engineText.isEmpty()) {
+
+        if (isEmailTail) {
+            val emailPrefix = emailMatch.value
+            val textBeforeEmail = engineText.substring(0, emailMatch.range.first)
+            val wordsBefore = WORD_TOKEN_REGEX.findAll(textBeforeEmail).map { it.value }.toList()
+            activePrefix = emailPrefix
+            activeWordsArray = wordsBefore
+        } else if (isWordBoundaryDelimiter) {
+            val allWords = WORD_TOKEN_REGEX.findAll(engineText).map { it.value }.toList()
             activePrefix = ""
-            activeWordsArray = parts
+            activeWordsArray = allWords
         } else {
-            activePrefix = parts.lastOrNull() ?: ""
-            activeWordsArray = if (parts.isNotEmpty()) parts.dropLast(1) else emptyList()
+            val allMatches = WORD_TOKEN_REGEX.findAll(engineText).toList()
+            if (allMatches.isNotEmpty() && (allMatches.last().range.last == len - 1 || (isTrailingWordConnector && allMatches.last().range.last == len - 2))) {
+                val lastToken = if (isTrailingWordConnector) engineText.substring(allMatches.last().range.first, len) else allMatches.last().value
+                val wordsBefore = allMatches.dropLast(1).map { it.value }
+                activePrefix = lastToken
+                activeWordsArray = wordsBefore
+            } else {
+                val allWords = allMatches.map { it.value }
+                activePrefix = ""
+                activeWordsArray = allWords
+            }
         }
 
-        // Determine last word before space (for connector detection)
+        // Determine last word before delimiter (for connector detection)
         val lastWordBeforeSpace = activeWordsArray.lastOrNull()
             ?.lowercase()
             ?.replace(WORD_CLEAN_REGEX, "")
@@ -118,8 +147,8 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         // Determine state
         val state = when {
             len == 0 -> 1
-            isSpace && CONNECTORS_SET.contains(lastWordBeforeSpace) -> 8
-            isSpace -> 7
+            isWordBoundaryDelimiter && CONNECTORS_SET.contains(lastWordBeforeSpace) -> 8
+            isWordBoundaryDelimiter -> 7
             activePrefix.length == 1 -> 2
             activePrefix.length == 2 -> 3
             else -> 4
@@ -314,7 +343,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         // 1. Evaluate Main Dictionary Branches
         if (mainNode != null) {
             for ((nextKey, childNode) in mainNode.children) {
-                if (nextKey != "_w" && nextKey != "_f") {
+                if (nextKey != "_w" && nextKey != "_f" && (nextKey.isEmpty() || !nextKey[0].isDigit())) {
                     val branchScore = evaluateBranch(childNode, totalWords, isOOV = false)
                     if (branchScore > 0.0) {
                         raw[nextKey] = branchScore
@@ -326,7 +355,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         // 2. Evaluate Base OOV Dictionary Branches
         if (baseOovNode != null) {
             for ((nextKey, childNode) in baseOovNode.children) {
-                if (nextKey != "_w" && nextKey != "_f") {
+                if (nextKey != "_w" && nextKey != "_f" && (nextKey.isEmpty() || !nextKey[0].isDigit())) {
                     val branchScore = evaluateBranch(childNode, totalWords, isOOV = true)
                     if (branchScore > 0.0) {
                         val existing = raw[nextKey] ?: 0.0
@@ -341,7 +370,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         // 3. Evaluate Dynamic / User Learned OOV Branches
         if (oovNode != null) {
             for ((nextKey, childNode) in oovNode.children) {
-                if (nextKey != "_w" && nextKey != "_f") {
+                if (nextKey != "_w" && nextKey != "_f" && (nextKey.isEmpty() || !nextKey[0].isDigit())) {
                     val branchScore = evaluateBranch(childNode, totalWords, isOOV = true)
                     if (branchScore > 0.0) {
                         val existing = raw[nextKey] ?: 0.0
