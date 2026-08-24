@@ -59,12 +59,35 @@ class PersonalizationFragment : Fragment() {
         for (i in 0 until viewGroup.childCount) {
             val child = viewGroup.getChildAt(i)
             child.isEnabled = isEnabled
-            child.isClickable = isEnabled
-            child.isFocusable = isEnabled
             if (child is ViewGroup) {
                 setViewGroupEnabled(child, isEnabled)
             }
         }
+    }
+
+    private fun bindDropdownRow(
+        row: View?,
+        tv: TextView?,
+        title: String,
+        options: Array<String>,
+        prefKey: String,
+        defaultVal: String,
+        mainActivity: MainActivity
+    ) {
+        val currentVal = prefs.getString(prefKey, defaultVal) ?: defaultVal
+        tv?.text = currentVal
+
+        val onClick = View.OnClickListener {
+            if (!prefs.getBoolean("personalization_enabled", true)) return@OnClickListener
+            showSingleChoiceDialog(title, options, tv?.text?.toString()) { selected ->
+                tv?.text = selected
+                prefs.edit { putString(prefKey, selected) }
+                mainActivity.notifyImeSettingsChanged(prefKey, selected)
+            }
+        }
+
+        row?.setOnClickListener(onClick)
+        tv?.setOnClickListener(onClick)
     }
 
     private fun setupHeroAndSwitches(view: View, mainActivity: MainActivity) {
@@ -112,104 +135,83 @@ class PersonalizationFragment : Fragment() {
 
     private fun setupTuningDialogs(view: View, mainActivity: MainActivity) {
         // Boost Intensity
-        val tvBoost = view.findViewById<TextView>(R.id.tvBoostIntensity)
-        val boostOptions = arrayOf("0.8x", "1.0x (Default)", "1.2x", "1.5x", "2.0x")
-        val currentBoost = prefs.getString("personalization_boost_multiplier", "1.0x (Default)") ?: "1.0x (Default)"
-        tvBoost?.text = currentBoost
-        view.findViewById<View>(R.id.rowBoostIntensity)?.setOnClickListener {
-            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
-            showSingleChoiceDialog("Boost Intensity", boostOptions, tvBoost?.text?.toString()) { selected ->
-                tvBoost?.text = selected
-                prefs.edit { putString("personalization_boost_multiplier", selected) }
-                mainActivity.notifyImeSettingsChanged("personalization_boost_multiplier", selected)
-            }
-        }
+        bindDropdownRow(
+            row = view.findViewById(R.id.rowBoostIntensity),
+            tv = view.findViewById(R.id.tvBoostIntensity),
+            title = "Boost Intensity",
+            options = arrayOf("0.8x", "1.0x (Default)", "1.2x", "1.5x", "2.0x"),
+            prefKey = "personalization_boost_multiplier",
+            defaultVal = "1.0x (Default)",
+            mainActivity = mainActivity
+        )
 
         // Learned Word Priority
-        val tvPriority = view.findViewById<TextView>(R.id.tvLearnedPriority)
-        val priorityOptions = arrayOf("1.0x", "1.3x (Default)", "1.5x", "1.8x", "2.0x")
-        val currentPriority = prefs.getString("personalization_oov_multiplier", "1.3x (Default)") ?: "1.3x (Default)"
-        tvPriority?.text = currentPriority
-        view.findViewById<View>(R.id.rowLearnedPriority)?.setOnClickListener {
-            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
-            showSingleChoiceDialog("Learned Word Priority", priorityOptions, tvPriority?.text?.toString()) { selected ->
-                tvPriority?.text = selected
-                prefs.edit { putString("personalization_oov_multiplier", selected) }
-                mainActivity.notifyImeSettingsChanged("personalization_oov_multiplier", selected)
-            }
-        }
+        bindDropdownRow(
+            row = view.findViewById(R.id.rowLearnedPriority),
+            tv = view.findViewById(R.id.tvLearnedPriority),
+            title = "Learned Word Priority",
+            options = arrayOf("1.0x", "1.3x (Default)", "1.5x", "1.8x", "2.0x"),
+            prefKey = "personalization_oov_multiplier",
+            defaultVal = "1.3x (Default)",
+            mainActivity = mainActivity
+        )
 
         // First-Type Bonus
-        val tvBonus = view.findViewById<TextView>(R.id.tvFirstTypeBonus)
-        val bonusOptions = arrayOf("+100", "+150", "+200", "+250 (Default)", "+300", "+400")
-        val currentBonus = prefs.getString("personalization_first_type_bonus", "+250 (Default)") ?: "+250 (Default)"
-        tvBonus?.text = currentBonus
-        view.findViewById<View>(R.id.rowFirstTypeBonus)?.setOnClickListener {
-            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
-            showSingleChoiceDialog("First-Type Bonus", bonusOptions, tvBonus?.text?.toString()) { selected ->
-                tvBonus?.text = selected
-                prefs.edit { putString("personalization_first_type_bonus", selected) }
-                mainActivity.notifyImeSettingsChanged("personalization_first_type_bonus", selected)
-            }
-        }
+        bindDropdownRow(
+            row = view.findViewById(R.id.rowFirstTypeBonus),
+            tv = view.findViewById(R.id.tvFirstTypeBonus),
+            title = "First-Type Bonus",
+            options = arrayOf("+100", "+150", "+200", "+250 (Default)", "+300", "+400"),
+            prefKey = "personalization_first_type_bonus",
+            defaultVal = "+250 (Default)",
+            mainActivity = mainActivity
+        )
 
         // Uncertainty Gap
-        val tvGap = view.findViewById<TextView>(R.id.tvUncertaintyGap)
-        val gapOptions = arrayOf("5.0", "10.0", "15.0 (Default)", "20.0", "25.0")
-        val currentGap = prefs.getString("personalization_uncertainty_gap", "15.0 (Default)") ?: "15.0 (Default)"
-        tvGap?.text = currentGap
-        view.findViewById<View>(R.id.rowUncertaintyGap)?.setOnClickListener {
-            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
-            showSingleChoiceDialog("Uncertainty Gap", gapOptions, tvGap?.text?.toString()) { selected ->
-                tvGap?.text = selected
-                prefs.edit { putString("personalization_uncertainty_gap", selected) }
-                mainActivity.notifyImeSettingsChanged("personalization_uncertainty_gap", selected)
-            }
-        }
+        bindDropdownRow(
+            row = view.findViewById(R.id.rowUncertaintyGap),
+            tv = view.findViewById(R.id.tvUncertaintyGap),
+            title = "Uncertainty Gap",
+            options = arrayOf("5.0", "10.0", "15.0 (Default)", "20.0", "25.0"),
+            prefKey = "personalization_uncertainty_gap",
+            defaultVal = "15.0 (Default)",
+            mainActivity = mainActivity
+        )
     }
 
     private fun setupCapacityDialogs(view: View, mainActivity: MainActivity) {
         // Max Frequent Words
-        val tvMaxFreq = view.findViewById<TextView>(R.id.tvMaxFrequentWords)
-        val freqOptions = arrayOf("500", "1,000 (Default)", "2,000", "5,000")
-        val currentMaxFreq = prefs.getString("personalization_max_word_freq", "1,000 (Default)") ?: "1,000 (Default)"
-        tvMaxFreq?.text = currentMaxFreq
-        view.findViewById<View>(R.id.rowMaxFrequentWords)?.setOnClickListener {
-            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
-            showSingleChoiceDialog("Max Frequent Words", freqOptions, tvMaxFreq?.text?.toString()) { selected ->
-                tvMaxFreq?.text = selected
-                prefs.edit { putString("personalization_max_word_freq", selected) }
-                mainActivity.notifyImeSettingsChanged("personalization_max_word_freq", selected)
-            }
-        }
+        bindDropdownRow(
+            row = view.findViewById(R.id.rowMaxFrequentWords),
+            tv = view.findViewById(R.id.tvMaxFrequentWords),
+            title = "Max Frequent Words",
+            options = arrayOf("500", "1,000 (Default)", "2,000", "5,000"),
+            prefKey = "personalization_max_word_freq",
+            defaultVal = "1,000 (Default)",
+            mainActivity = mainActivity
+        )
 
         // Max Word Pairs
-        val tvMaxPairs = view.findViewById<TextView>(R.id.tvMaxWordPairs)
-        val pairsOptions = arrayOf("500", "1,000 (Default)", "2,000", "5,000")
-        val currentMaxPairs = prefs.getString("personalization_max_pairs", "1,000 (Default)") ?: "1,000 (Default)"
-        tvMaxPairs?.text = currentMaxPairs
-        view.findViewById<View>(R.id.rowMaxWordPairs)?.setOnClickListener {
-            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
-            showSingleChoiceDialog("Max Word Pairs", pairsOptions, tvMaxPairs?.text?.toString()) { selected ->
-                tvMaxPairs?.text = selected
-                prefs.edit { putString("personalization_max_pairs", selected) }
-                mainActivity.notifyImeSettingsChanged("personalization_max_pairs", selected)
-            }
-        }
+        bindDropdownRow(
+            row = view.findViewById(R.id.rowMaxWordPairs),
+            tv = view.findViewById(R.id.tvMaxWordPairs),
+            title = "Max Word Pairs",
+            options = arrayOf("500", "1,000 (Default)", "2,000", "5,000"),
+            prefKey = "personalization_max_pairs",
+            defaultVal = "1,000 (Default)",
+            mainActivity = mainActivity
+        )
 
         // Max Custom Words
-        val tvMaxCustom = view.findViewById<TextView>(R.id.tvMaxCustomWords)
-        val customOptions = arrayOf("200", "500 (Default)", "1,000", "2,000")
-        val currentMaxCustom = prefs.getString("personalization_max_oov", "500 (Default)") ?: "500 (Default)"
-        tvMaxCustom?.text = currentMaxCustom
-        view.findViewById<View>(R.id.rowMaxCustomWords)?.setOnClickListener {
-            if (!prefs.getBoolean("personalization_enabled", true)) return@setOnClickListener
-            showSingleChoiceDialog("Max Custom Words", customOptions, tvMaxCustom?.text?.toString()) { selected ->
-                tvMaxCustom?.text = selected
-                prefs.edit { putString("personalization_max_oov", selected) }
-                mainActivity.notifyImeSettingsChanged("personalization_max_oov", selected)
-            }
-        }
+        bindDropdownRow(
+            row = view.findViewById(R.id.rowMaxCustomWords),
+            tv = view.findViewById(R.id.tvMaxCustomWords),
+            title = "Max Custom Words",
+            options = arrayOf("200", "500 (Default)", "1,000", "2,000"),
+            prefKey = "personalization_max_oov",
+            defaultVal = "500 (Default)",
+            mainActivity = mainActivity
+        )
     }
 
     private fun setupDataAndPrivacy(view: View, mainActivity: MainActivity) {
