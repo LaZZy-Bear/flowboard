@@ -44,7 +44,6 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             "a", "an", "one", "this", "that", "each", "every", "another"
         )
 
-        private val SPACE_REGEX = Regex("\\s+")
         private val CLEAN_WORD_REGEX = Regex("""[^a-z0-9'._@+-]""")
         private val EMAIL_TAIL_REGEX = Regex("""[a-z0-9._%+-]+@[a-z0-9.-]*$""")
         private val WORD_TOKEN_REGEX = Regex("[a-z0-9]+(?:['.-][a-z0-9]+)*")
@@ -259,7 +258,6 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         val allResults = mutableListOf<Pair<String, Int>>()
 
         // 1. Learned OOV Trie matching prefix (if personalize is enabled) - highest priority
-        var hasPersonalOOV = false
         if (repo.isPersonalizationEnabled && repo.trieDictOOV != null) {
             var oovNode: TrieNode? = repo.trieDictOOV
             for (ch in prefix) {
@@ -270,7 +268,6 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
                 fun dfsOOV(n: TrieNode, word: String, depth: Int) {
                     if (depth > 12) return
                     if (n.isEndOfWord) {
-                        hasPersonalOOV = true
                         // User-learned OOV words get highest priority
                         allResults.add(word to 0)
                     }

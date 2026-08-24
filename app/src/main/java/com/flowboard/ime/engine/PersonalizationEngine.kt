@@ -31,25 +31,6 @@ import com.flowboard.ime.data.models.PersonalProfile
  */
 class PersonalizationEngine(private val repo: FlowboardRepository) {
 
-    companion object {
-        // Trigram pair bonus levels (2-word history match — high confidence)
-        private const val TRI_MAX = 85.0
-        private const val TRI_HIGH = 70.0
-        private const val TRI_MID = 55.0
-        private const val TRI_LOW = 40.0
-
-        // Bigram pair bonus levels (1-word history match)
-        private const val BI_MAX = 75.0
-        private const val BI_HIGH = 60.0
-        private const val BI_MID = 45.0
-        private const val BI_LOW = 30.0
-
-        // Frequency bonus levels (word frequency / OOV)
-        private const val FREQ_MAX = 75.0
-        private const val FREQ_HIGH = 60.0
-        private const val FREQ_MID = 45.0
-    }
-
     /**
      * Apply personalization bonuses to [finalScores].
      *

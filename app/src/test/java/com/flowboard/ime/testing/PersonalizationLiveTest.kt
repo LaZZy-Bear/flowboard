@@ -573,7 +573,7 @@ class PersonalizationLiveTest {
         // b. Typing "somchai.dev" -> next char is '@'
         scores = scoringEngine.calculateScores("somchai.dev")
         assertTrue("Score for '@' must be boosted", (scores["@"] ?: 0.0) > 0.0)
-        var layout = layoutManager.assignLayout(scores)
+        val layout = layoutManager.assignLayout(scores)
         assertEquals("Character '@' must win Key 8 TAP slot", "@", layout["key_8"]?.tap)
 
         // c. Typing "somchai.dev@" -> next char is 'g'
@@ -590,7 +590,7 @@ class PersonalizationLiveTest {
 
         // 3. Test Prediction Bar Recommendation (Requirement 2: ไม่แซงคำสั้น 1 ตัวอักษร แนะนำปกติเมื่อพิมพ์ >= 3 ตัวหรือมี @)
         // From 1-character prefix ("s"): should NOT prematurely force full email over top 1-char word completions
-        var predictions1Char = wordPredictionEngine.getPredictions("s")
+        val predictions1Char = wordPredictionEngine.getPredictions("s")
         assertNotEquals("Prediction bar should not force email at top for 1-char prefix 's'", testEmail, predictions1Char.firstOrNull())
 
         // From 3-character prefix ("som"):
@@ -734,10 +734,10 @@ class PersonalizationLiveTest {
         liveMgr.loadProfile()
 
         // 1. Logarithmic Scaling Test: count 50 vs count 5
-        for (i in 0 until 50) {
+        repeat(50) {
             liveMgr.recordWordTyped("apple2")
         }
-        for (i in 0 until 5) {
+        repeat(5) {
             liveMgr.recordWordTyped("banana2")
         }
 

@@ -3299,14 +3299,14 @@ class FlowboardIMEService : InputMethodService() {
         val textSwipeTintList = ColorStateList.valueOf(textSwipeColor)
 
         // 1. Quick Paste Bar
-        val qpBar = quickPasteBar ?: rootView.findViewById(R.id.quickPasteBar)
+        val qpBar: View? = quickPasteBar ?: rootView.findViewById(R.id.quickPasteBar)
         qpBar?.backgroundTintList = keyBgTintList
         rootView.findViewById<ImageView>(R.id.quickPasteIcon)?.imageTintList = textTapTintList
         quickPasteText?.setTextColor(textTapColor)
         rootView.findViewById<ImageView>(R.id.quickPasteDismiss)?.imageTintList = textSwipeTintList
 
         // 2. Undo & Redo Panel
-        val urPanel = undoRedoPanel ?: rootView.findViewById(R.id.undoRedoPanel)
+        val urPanel: View? = undoRedoPanel ?: rootView.findViewById(R.id.undoRedoPanel)
         urPanel?.let { panel ->
             panel.backgroundTintList = kbBgTintList
             val header = (panel as? ViewGroup)?.getChildAt(0) as? TextView
@@ -3331,7 +3331,7 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         // 3. Text Editing Panel
-        val tePanel = textEditPanel ?: rootView.findViewById(R.id.textEditPanel)
+        val tePanel: View? = textEditPanel ?: rootView.findViewById(R.id.textEditPanel)
         tePanel?.let { panel ->
             panel.backgroundTintList = kbBgTintList
             val header = (panel as? ViewGroup)?.getChildAt(0) as? TextView
@@ -3373,7 +3373,7 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         // 4. Voice Input Panel
-        val viPanel = voiceInputPanel ?: rootView.findViewById(R.id.voiceInputPanel)
+        val viPanel: View? = voiceInputPanel ?: rootView.findViewById(R.id.voiceInputPanel)
         viPanel?.let { panel ->
             panel.backgroundTintList = kbBgTintList
             val header = (panel as? ViewGroup)?.getChildAt(0) as? TextView
@@ -3387,7 +3387,7 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         // 5. Emoji Panel
-        val emPanel = emojiPanel ?: rootView.findViewById(R.id.emojiPanel)
+        val emPanel: View? = emojiPanel ?: rootView.findViewById(R.id.emojiPanel)
         emPanel?.let { panel ->
             panel.backgroundTintList = kbBgTintList
             panel.findViewById<HorizontalScrollView>(R.id.emojiCategoryScroll)?.background = null
@@ -3397,7 +3397,7 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         // 6. Quick Theme Panel
-        val qtPanel = quickThemePanel ?: rootView.findViewById(R.id.quickThemePanel)
+        val qtPanel: View? = quickThemePanel ?: rootView.findViewById(R.id.quickThemePanel)
         qtPanel?.let { panel ->
             panel.backgroundTintList = kbBgTintList
             val header = (panel as? ViewGroup)?.getChildAt(0) as? TextView
@@ -3435,7 +3435,7 @@ class FlowboardIMEService : InputMethodService() {
         }
 
         // 7. Clipboard Panel
-        val cbPanel = clipboardPanel ?: rootView.findViewById(R.id.clipboardPanel)
+        val cbPanel: View? = clipboardPanel ?: rootView.findViewById(R.id.clipboardPanel)
         cbPanel?.let { panel ->
             panel.backgroundTintList = kbBgTintList
             val cbHeader = panel.findViewById<ViewGroup>(R.id.clipboardHeader)
@@ -3443,11 +3443,11 @@ class FlowboardIMEService : InputMethodService() {
                 backgroundTintList = keyBgTintList
                 setTextColor(textTapColor)
             }
-            ((cbHeader as? ViewGroup)?.getChildAt(0) as? TextView)?.setTextColor(textTapColor)
+            (cbHeader?.getChildAt(0) as? TextView)?.setTextColor(textTapColor)
         }
 
         // 8. More Panel
-        val mPanel = rootView.findViewById<View>(R.id.morePanel)
+        val mPanel: View? = rootView.findViewById(R.id.morePanel)
         mPanel?.backgroundTintList = kbBgTintList
     }
 

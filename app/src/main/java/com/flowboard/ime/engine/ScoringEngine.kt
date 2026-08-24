@@ -67,7 +67,6 @@ class ScoringEngine(private val repo: FlowboardRepository) {
          */
         val RESTRICTED_DOUBLE_CHARS = setOf("i", "v", "j", "q", "x", "u")
 
-        private val SPACE_REGEX = Regex("\\s+")
         private val WORD_CLEAN_REGEX = Regex("[^a-z'.-]")
         private val EMAIL_TAIL_REGEX = Regex("""[a-z0-9._%+-]+@[a-z0-9.-]*$""")
         private val WORD_TOKEN_REGEX = Regex("[a-z0-9]+(?:['.-][a-z0-9]+)*")
