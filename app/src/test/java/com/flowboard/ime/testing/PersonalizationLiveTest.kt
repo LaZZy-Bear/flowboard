@@ -34,7 +34,7 @@ class PersonalizationLiveTest {
         repo.personalizationAlphanumericEnabled = true
         repo.personalizationBoostMultiplier = 1.0
         repo.personalizationOOVMultiplier = 1.3
-        repo.personalizationFirstTypeBonus = 250.0
+        repo.personalizationFirstTypeBonus = 30.0
         repo.personalizationUncertaintyGap = 15.0
         scoringEngine = ScoringEngine(repo)
         layoutManager = LayoutManager(repo)

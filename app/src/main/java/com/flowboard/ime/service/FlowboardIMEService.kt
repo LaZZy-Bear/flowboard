@@ -44,6 +44,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
 import android.view.inputmethod.InputMethodSubtype
 import android.widget.Button
@@ -769,6 +770,7 @@ class FlowboardIMEService : InputMethodService() {
             val pOcean = panel.findViewById<FrameLayout>(R.id.paletteOcean)
             val pTeal = panel.findViewById<FrameLayout>(R.id.paletteTeal)
             val pCoral = panel.findViewById<FrameLayout>(R.id.paletteCoral)
+            val pSakura = panel.findViewById<FrameLayout>(R.id.paletteSakura)
             val btnOpenFullThemes = panel.findViewById<TextView>(R.id.btnOpenFullThemes)
 
             pOcean?.background = android.graphics.drawable.GradientDrawable().apply {
@@ -782,6 +784,10 @@ class FlowboardIMEService : InputMethodService() {
             pCoral?.background = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.OVAL
                 setColor("#FBBC05".toColorInt())
+            }
+            pSakura?.background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor("#EC4899".toColorInt())
             }
 
             fun applyThemeDirect(themeName: String, darkOverride: Boolean? = null) {
@@ -808,6 +814,7 @@ class FlowboardIMEService : InputMethodService() {
             pOcean?.setOnClickListener { applyThemeDirect("Blue", false) }
             pTeal?.setOnClickListener { applyThemeDirect("Geo Grid", false) }
             pCoral?.setOnClickListener { applyThemeDirect("Warm Bokeh", false) }
+            pSakura?.setOnClickListener { applyThemeDirect("Sakura Pink", false) }
 
             btnOpenFullThemes?.setOnClickListener {
                 soundHapticManager.playTap()
@@ -2730,13 +2737,54 @@ class FlowboardIMEService : InputMethodService() {
         updatePredictions()
     }
     
+    private fun isEnterActionApplicable(info: EditorInfo?): Boolean {
+        if (info == null) return false
+        val inputType = info.inputType
+        val imeOptions = info.imeOptions
+        val imeAction = imeOptions and EditorInfo.IME_MASK_ACTION
+        val isMultiline = (inputType and EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE) != 0
+        val noEnterAction = (imeOptions and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
+
+        // If NO_ENTER_ACTION flag is set, always perform Newline (not action)
+        if (noEnterAction) return false
+
+        // In multiline fields (Gemini, ChatGPT, Notes, Google Keep, doc editors):
+        // Only explicit SEARCH, GO, or SEND (without NO_ENTER_ACTION) are treated as Action.
+        // DONE, NONE, UNSPECIFIED in multiline text fields MUST be treated as Return/Newline!
+        if (isMultiline) {
+            return imeAction == EditorInfo.IME_ACTION_SEARCH ||
+                   imeAction == EditorInfo.IME_ACTION_GO ||
+                   imeAction == EditorInfo.IME_ACTION_SEND
+        }
+
+        // In single-line fields:
+        // Any explicit action (SEARCH, GO, SEND, NEXT, DONE) is treated as Action.
+        return imeAction != EditorInfo.IME_ACTION_NONE &&
+               imeAction != EditorInfo.IME_ACTION_UNSPECIFIED
+    }
+
     private fun updateSendButtonIcon(info: EditorInfo?) {
         val btnSendIconView = keyboardRoot?.findViewById<ImageView>(R.id.btnSendIcon) ?: return
-        val imeAction = info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION) ?: EditorInfo.IME_ACTION_NONE
-        if (imeAction == EditorInfo.IME_ACTION_SEARCH) {
-            btnSendIconView.setImageResource(R.drawable.ic_search)
-        } else {
-            btnSendIconView.setImageResource(R.drawable.ic_send)
+        if (info == null) {
+            btnSendIconView.setImageResource(R.drawable.ic_return)
+            return
+        }
+
+        val isAction = isEnterActionApplicable(info)
+        if (!isAction) {
+            // Multiline / Standard Newline -> Show Return (↵) icon
+            btnSendIconView.setImageResource(R.drawable.ic_return)
+            return
+        }
+
+        val imeAction = info.imeOptions and EditorInfo.IME_MASK_ACTION
+        when (imeAction) {
+            EditorInfo.IME_ACTION_SEARCH -> btnSendIconView.setImageResource(R.drawable.ic_search)
+            EditorInfo.IME_ACTION_SEND -> btnSendIconView.setImageResource(R.drawable.ic_send)
+            EditorInfo.IME_ACTION_GO -> btnSendIconView.setImageResource(R.drawable.ic_arrow_right)
+            EditorInfo.IME_ACTION_NEXT -> btnSendIconView.setImageResource(R.drawable.ic_arrow_right)
+            EditorInfo.IME_ACTION_DONE -> btnSendIconView.setImageResource(R.drawable.ic_check)
+            else -> btnSendIconView.setImageResource(R.drawable.ic_return)
         }
     }
 
@@ -2745,27 +2793,17 @@ class FlowboardIMEService : InputMethodService() {
         val ic = currentInputConnection ?: return
         val editorInfo = currentInputEditorInfo
 
-        val imeAction = editorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)
-            ?: EditorInfo.IME_ACTION_NONE
+        val isAction = isEnterActionApplicable(editorInfo)
+        val imeAction = editorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION) ?: EditorInfo.IME_ACTION_NONE
 
-        val isMultiline = (editorInfo?.inputType ?: 0) and EditorInfo.TYPE_TEXT_FLAG_MULTI_LINE != 0
-        val noEnterAction = (editorInfo?.imeOptions ?: 0) and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0
-
-        if (imeAction != EditorInfo.IME_ACTION_NONE && imeAction != EditorInfo.IME_ACTION_UNSPECIFIED) {
+        if (isAction && imeAction != EditorInfo.IME_ACTION_NONE && imeAction != EditorInfo.IME_ACTION_UNSPECIFIED) {
             val handled = ic.performEditorAction(imeAction)
             if (!handled) {
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+                sendNewline(ic)
             }
-        } else if (isMultiline && !noEnterAction) {
-            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
         } else {
-            val handled = ic.performEditorAction(EditorInfo.IME_ACTION_DONE)
-            if (!handled) {
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
-                ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
-            }
+            // Return / Newline (e.g. Gemini, Notes, multiline fields, standard enter)
+            sendNewline(ic)
         }
 
         val currentText = getFullTextBeforeCursor()
@@ -2783,6 +2821,16 @@ class FlowboardIMEService : InputMethodService() {
         }
         refreshLayout()
         updatePredictions()
+    }
+
+    private fun sendNewline(ic: InputConnection) {
+        val down = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
+        val up = KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER)
+        val sentDown = ic.sendKeyEvent(down)
+        val sentUp = ic.sendKeyEvent(up)
+        if (!sentDown || !sentUp) {
+            ic.commitText("\n", 1)
+        }
     }
 
     private fun handleGlobeClick() {
@@ -2820,19 +2868,31 @@ class FlowboardIMEService : InputMethodService() {
         repo.lastActionChar = null
         repo.stickyChar = null
 
+        val fullTextBefore = getFullTextBeforeCursor()
+        val activePrefix = if (::wordPredictionEngine.isInitialized) {
+            wordPredictionEngine.getActivePrefix(fullTextBefore)
+        } else {
+            ""
+        }
+        val charsToDelete = activePrefix.length
+
         synchronized(typedText) {
             typedTextHistory.add(typedText.toString())
-            val currentLen = typedText.length
-            if (currentLen > 0) {
-                ic.deleteSurroundingText(currentLen, 0)
+            typedTextRedoHistory.clear()
+            if (charsToDelete > 0) {
+                ic.deleteSurroundingText(charsToDelete, 0)
+                if (typedText.length >= charsToDelete) {
+                    typedText.delete(typedText.length - charsToDelete, typedText.length)
+                }
             }
             ic.commitText("$word ", 1)
-            val fullText = getFullTextBeforeCursor()
+            typedText.append("$word ")
+
+            val fullTextAfter = getFullTextBeforeCursor()
             if (isLearningAllowedForCurrentField()) {
-                liveLearningManager.recordWordTyped(fullText)
+                liveLearningManager.recordWordTyped(fullTextAfter)
                 liveLearningManager.saveProfileIfDirty()
             }
-            typedText.clear()
         }
         if (::scoringEngine.isInitialized) {
             scoringEngine.resetTrieCache()

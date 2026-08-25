@@ -140,21 +140,23 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
 
     /**
      * Logarithmic Trigram Bonus with relative transition probability.
-     * Bonus grows smoothly with log2(1 + count) and is proportionally boosted by its relative dominance.
+     * Balanced against 0-100 main engine scale (base = 45.0).
+     * count=1 -> 45, count=3 -> 90, count=7 -> 135, count=15 -> 180
      */
     private fun countToTrigramBonus(count: Int, relProb: Double = 1.0): Double {
         if (count <= 0) return 0.0
-        val baseBonus = 400.0 * (kotlin.math.ln(1.0 + count.toDouble()) / kotlin.math.ln(2.0))
+        val baseBonus = 45.0 * (kotlin.math.ln(1.0 + count.toDouble()) / kotlin.math.ln(2.0))
         return baseBonus * (0.5 + 0.5 * relProb)
     }
 
     /**
      * Logarithmic Bigram Bonus with relative transition probability.
-     * count=1 -> 250, count=3 -> 500, count=7 -> 750, count=15 -> 1000, count=63 -> 1500, count=255 -> 2000
+     * Balanced against 0-100 main engine scale (base = 35.0).
+     * count=1 -> 35, count=3 -> 70, count=7 -> 105, count=15 -> 140
      */
     private fun countToBigramBonus(count: Int, relProb: Double = 1.0): Double {
         if (count <= 0) return 0.0
-        val baseBonus = 250.0 * (kotlin.math.ln(1.0 + count.toDouble()) / kotlin.math.ln(2.0))
+        val baseBonus = 35.0 * (kotlin.math.ln(1.0 + count.toDouble()) / kotlin.math.ln(2.0))
         return baseBonus * (0.5 + 0.5 * relProb)
     }
 
@@ -259,12 +261,12 @@ class PersonalizationEngine(private val repo: FlowboardRepository) {
 
     private fun countToStartFreqBonus(count: Int): Double {
         if (count <= 0) return 0.0
-        return 8.0 * (kotlin.math.ln(1.0 + count.toDouble()) / kotlin.math.ln(2.0))
+        return 5.0 * (kotlin.math.ln(1.0 + count.toDouble()) / kotlin.math.ln(2.0))
     }
 
     /**
      * Logarithmic Scaling for Word Prefix Bonus:
-     * count=1 -> 250, count=3 -> 500, count=7 -> 750, count=15 -> 1000, count=63 -> 1500, count=255 -> 2000
+     * count=1 -> 30, count=3 -> 60, count=7 -> 90, count=15 -> 120, count=63 -> 180, count=255 -> 240
      */
     private fun countToPrefixBonus(count: Int): Double {
         if (count <= 0) return 0.0

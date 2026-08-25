@@ -3,37 +3,37 @@
     <style name="Theme.Flowboard" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary Brand Colors (Blue) -->
         <item name="colorPrimary">@color/accent</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorOnPrimary">#000000</item>
         <item name="colorPrimaryContainer">@color/blue_100</item>
         <item name="colorOnPrimaryContainer">@color/blue_900</item>
 
         <!-- Secondary Colors (Blue Accent) -->
         <item name="colorSecondary">@color/accent</item>
-        <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSecondaryContainer">@color/blue_100</item>
-        <item name="colorOnSecondaryContainer">@color/blue_900</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="colorSecondaryContainer">#1E293B</item>
+        <item name="colorOnSecondaryContainer">#93C5FD</item>
         <item name="colorAccent">@color/accent</item>
 
-        <!-- Pure White & Clean Slate Surfaces (Eliminating all M3 Lavender/Purple tints) -->
+        <!-- Clean Dark Neutral Surfaces (No purple tints) -->
         <item name="android:colorBackground">@color/app_bg</item>
         <item name="android:windowBackground">@color/app_bg</item>
         <item name="colorSurface">@color/app_surface</item>
         <item name="colorOnSurface">@color/text_tap</item>
-        <item name="colorSurfaceContainerLowest">#FFFFFF</item>
-        <item name="colorSurfaceContainerLow">#FFFFFF</item>
-        <item name="colorSurfaceContainer">#FFFFFF</item>
+        <item name="colorSurfaceContainerLowest">#0F172A</item>
+        <item name="colorSurfaceContainerLow">#1E293B</item>
+        <item name="colorSurfaceContainer">#1E293B</item>
         <item name="colorSurfaceContainerHigh">@color/app_surface_variant</item>
         <item name="colorSurfaceContainerHighest">@color/card_stroke</item>
         <item name="colorSurfaceVariant">@color/app_surface_variant</item>
         <item name="colorOnSurfaceVariant">@color/text_swipe</item>
         <item name="colorOutline">@color/card_stroke</item>
-        <item name="colorOutlineVariant">#CBD5E1</item>
+        <item name="colorOutlineVariant">#475569</item>
 
         <!-- Status & Navigation Bars -->
         <item name="android:statusBarColor">@color/app_bg</item>
         <item name="android:navigationBarColor">@color/app_surface</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
 
         <!-- Bottom Navigation View Customization -->
         <item name="bottomNavigationStyle">@style/Widget.Flowboard.BottomNavigationView</item>
@@ -47,6 +47,6 @@
     </style>
 
     <style name="Widget.Flowboard.BottomNav.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
-        <item name="android:color">@color/blue_100</item>
+        <item name="android:color">#1E293B</item>
     </style>
 </resources>

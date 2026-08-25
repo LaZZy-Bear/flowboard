@@ -126,6 +126,19 @@ object ThemeManager {
                 zoneBotStart = "#FFFBEB".toColorInt(),
                 isDark = false
             )
+            "Sakura Pink", "Sakura" -> ThemeColors(
+                keyboardBackground = "#FDF2F4".toColorInt(),
+                keyBackground = "#FFFFFF".toColorInt(),
+                keyActive = "#FCE7EC".toColorInt(),
+                textTap = "#831843".toColorInt(),
+                textSwipe = "#DB2777".toColorInt(),
+                accent = "#EC4899".toColorInt(),
+                toolBackground = "#FCE7EC".toColorInt(),
+                zoneTopStart = "#FFF1F2".toColorInt(),
+                zoneMidStart = "#FDF2F8".toColorInt(),
+                zoneBotStart = "#FFF0F5".toColorInt(),
+                isDark = false
+            )
             "Blue" -> ThemeColors(
                 keyboardBackground = "#E3F2FD".toColorInt(),
                 keyBackground = "#FFFFFF".toColorInt(),

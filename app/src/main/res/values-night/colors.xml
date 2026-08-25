@@ -23,9 +23,18 @@
     <color name="accent_active">#3B82F6</color>
     <color name="send_text">#FFFFFF</color>
 
-    <!-- App Surface & Badges -->
-    <color name="badge_bg">#27272A</color>
-    <color name="card_stroke">#3F3F46</color>
+    <!-- App Surface, Cards, Backgrounds & Badges (Clean Dark & Blue) -->
+    <color name="app_bg">#0F172A</color>
+    <color name="app_surface">#1E293B</color>
+    <color name="app_surface_variant">#334155</color>
+    <color name="badge_bg">#334155</color>
+    <color name="card_stroke">#334155</color>
+    <color name="blue_50">#1E293B</color>
+    <color name="blue_100">#1E3A8A</color>
+    <color name="blue_200">#2563EB</color>
+    <color name="blue_600">#3B82F6</color>
+    <color name="blue_700">#60A5FA</color>
+    <color name="blue_900">#DBEAFE</color>
 
     <!-- Legacy references -->
     <color name="kb_accent">#60A5FA</color>

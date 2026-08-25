@@ -161,9 +161,9 @@ class PersonalizationFragment : Fragment() {
             row = view.findViewById(R.id.rowFirstTypeBonus),
             tv = view.findViewById(R.id.tvFirstTypeBonus),
             title = "First-Type Bonus",
-            options = arrayOf("+100", "+150", "+200", "+250 (Default)", "+300", "+400"),
+            options = arrayOf("+10", "+20", "+30 (Default)", "+40", "+50"),
             prefKey = "personalization_first_type_bonus",
-            defaultVal = "+250 (Default)",
+            defaultVal = "+30 (Default)",
             mainActivity = mainActivity
         )
 

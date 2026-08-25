@@ -12,12 +12,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fitsSystemWindows="true"
+        android:background="?attr/colorSurface"
         app:elevation="0dp">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/topToolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorSurface"
             app:title="Keyboard Settings"
             app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
             app:titleTextColor="?android:attr/textColorPrimary" />
@@ -36,7 +38,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="?android:attr/colorBackground"
+        android:background="?attr/colorSurface"
         app:elevation="8dp"
         app:menu="@menu/bottom_nav_menu" />
 

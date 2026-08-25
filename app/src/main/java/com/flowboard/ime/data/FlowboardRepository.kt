@@ -55,7 +55,7 @@ object FlowboardRepository {
     var personalizationAlphanumericEnabled: Boolean = true
     var personalizationLearnPasswordsEnabled: Boolean = false
     var personalizationOOVMultiplier: Double = 1.3
-    var personalizationFirstTypeBonus: Double = 250.0
+    var personalizationFirstTypeBonus: Double = 30.0
     var personalizationUncertaintyGap: Double = 15.0
 
     // ══════════════════════════════════════════

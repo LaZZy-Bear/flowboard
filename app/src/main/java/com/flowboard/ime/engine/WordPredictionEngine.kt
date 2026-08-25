@@ -54,6 +54,42 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
     }
 
     /**
+     * Extracts the active typing prefix from [fullText] (text before cursor).
+     * If the cursor is right after a word boundary delimiter (e.g. space, punctuation),
+     * this returns "" (Next-Word mode).
+     * If the cursor is in the middle of a word (e.g. "hel"), this returns the prefix ("hel").
+     */
+    fun getActivePrefix(fullText: String): String {
+        val trimmed = fullText.trimEnd { it == '\t' || it == '\r' }
+        if (trimmed.isEmpty()) return ""
+
+        val engineText = trimmed.lowercase()
+        val len = engineText.length
+        val lastChar = engineText.last()
+
+        val emailMatch = EMAIL_TAIL_REGEX.find(engineText)
+        val isEmailTail = emailMatch != null && emailMatch.range.last == len - 1
+
+        val isTrailingWordConnector = (lastChar == '-' || lastChar == '\'') &&
+                len >= 2 && engineText[len - 2].isLetterOrDigit()
+
+        val isWordBoundaryDelimiter = !isTrailingWordConnector && isDelimiterChar(lastChar)
+
+        return if (isEmailTail) {
+            emailMatch?.value ?: ""
+        } else if (isWordBoundaryDelimiter) {
+            ""
+        } else {
+            val allMatches = WORD_TOKEN_REGEX.findAll(engineText).toList()
+            if (allMatches.isNotEmpty() && (allMatches.last().range.last == len - 1 || (isTrailingWordConnector && allMatches.last().range.last == len - 2))) {
+                if (isTrailingWordConnector) engineText.substring(allMatches.last().range.first, len) else allMatches.last().value
+            } else {
+                ""
+            }
+        }
+    }
+
+    /**
      * Generate up to [maxCount] word suggestions based on the full text before cursor.
      */
     fun getPredictions(fullText: String, maxCount: Int = 3): List<String> {
@@ -63,41 +99,26 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         }
 
         val engineText = trimmed.lowercase()
-        val len = engineText.length
-        val lastChar = engineText.last()
-
-        val emailMatch = EMAIL_TAIL_REGEX.find(engineText)
-        val isEmailTail = emailMatch != null && emailMatch.range.last == len - 1
-
-        val isTrailingWordConnector = (lastChar == '-' || lastChar == '\'' || lastChar == '.') &&
-                len >= 2 && engineText[len - 2].isLetterOrDigit()
-
-        val isWordBoundaryDelimiter = !isTrailingWordConnector && isDelimiterChar(lastChar)
-
-        val activePrefix: String
+        val activePrefix = getActivePrefix(fullText)
         val contextWords: List<String>
 
+        val emailMatch = EMAIL_TAIL_REGEX.find(engineText)
+        val isEmailTail = emailMatch != null && emailMatch.range.last == engineText.length - 1
+
         if (isEmailTail) {
-            val emailPrefix = emailMatch.value
             val textBeforeEmail = engineText.substring(0, emailMatch.range.first)
             val wordsBefore = WORD_TOKEN_REGEX.findAll(textBeforeEmail).map { it.value }.toList()
-            activePrefix = emailPrefix
             contextWords = wordsBefore
-        } else if (isWordBoundaryDelimiter) {
+        } else if (activePrefix.isEmpty()) {
             val allWords = WORD_TOKEN_REGEX.findAll(engineText).map { it.value }.toList()
-            activePrefix = ""
             contextWords = allWords
         } else {
             val allMatches = WORD_TOKEN_REGEX.findAll(engineText).toList()
-            if (allMatches.isNotEmpty() && (allMatches.last().range.last == len - 1 || (isTrailingWordConnector && allMatches.last().range.last == len - 2))) {
-                val lastToken = if (isTrailingWordConnector) engineText.substring(allMatches.last().range.first, len) else allMatches.last().value
+            if (allMatches.isNotEmpty()) {
                 val wordsBefore = allMatches.dropLast(1).map { it.value }
-                activePrefix = lastToken
                 contextWords = wordsBefore
             } else {
-                val allWords = allMatches.map { it.value }
-                activePrefix = ""
-                contextWords = allWords
+                contextWords = emptyList()
             }
         }
 

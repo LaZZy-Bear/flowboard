@@ -83,6 +83,7 @@
     <string name="theme_ocean_blue">Ocean Blue</string>
     <string name="theme_mint_teal">Mint Teal</string>
     <string name="theme_sunset_coral">Sunset Coral</string>
+    <string name="theme_sakura_pink">Sakura Pink</string>
 
     <!-- Shortcuts Fragment -->
     <string name="shortcuts_header">9-KEY QUICK TEXT SHORTCUTS</string>
@@ -138,7 +139,7 @@
     <string name="learned_word_priority_default">1.3x (Default)</string>
     <string name="first_type_bonus">First-Type Bonus</string>
     <string name="first_type_bonus_desc">Logarithmic base score (1&#8211;2 times)</string>
-    <string name="first_type_bonus_default">+250 (Default)</string>
+    <string name="first_type_bonus_default">+30 (Default)</string>
     <string name="uncertainty_gap">Uncertainty Gap</string>
     <string name="uncertainty_gap_desc">Confidence threshold</string>
     <string name="uncertainty_gap_default">15.0 (Default)</string>

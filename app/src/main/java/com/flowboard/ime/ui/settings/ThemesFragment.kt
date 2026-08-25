@@ -44,6 +44,7 @@ class ThemesFragment : Fragment() {
         val cardBlue = view.findViewById<MaterialCardView>(R.id.cardColorBlue)
         val cardTeal = view.findViewById<MaterialCardView>(R.id.cardColorTeal)
         val cardCoral = view.findViewById<MaterialCardView>(R.id.cardColorCoral)
+        val cardSakura = view.findViewById<MaterialCardView>(R.id.cardColorSakura)
 
         cardAuto?.setOnClickListener { selectTheme(view, mainActivity, "System default") }
         cardLight?.setOnClickListener { selectTheme(view, mainActivity, "Light") }
@@ -52,6 +53,7 @@ class ThemesFragment : Fragment() {
         cardBlue?.setOnClickListener { selectTheme(view, mainActivity, "Blue") }
         cardTeal?.setOnClickListener { selectTheme(view, mainActivity, "Geo Grid") }
         cardCoral?.setOnClickListener { selectTheme(view, mainActivity, "Warm Bokeh") }
+        cardSakura?.setOnClickListener { selectTheme(view, mainActivity, "Sakura Pink") }
     }
 
     private fun selectTheme(view: View, mainActivity: MainActivity, themeName: String) {
@@ -81,7 +83,8 @@ class ThemesFragment : Fragment() {
             "Dark" to (view.findViewById<MaterialCardView>(R.id.cardThemeDark) to view.findViewById<ImageView>(R.id.checkThemeDark)),
             "Blue" to (view.findViewById<MaterialCardView>(R.id.cardColorBlue) to view.findViewById<ImageView>(R.id.checkColorBlue)),
             "Geo Grid" to (view.findViewById<MaterialCardView>(R.id.cardColorTeal) to view.findViewById<ImageView>(R.id.checkColorTeal)),
-            "Warm Bokeh" to (view.findViewById<MaterialCardView>(R.id.cardColorCoral) to view.findViewById<ImageView>(R.id.checkColorCoral))
+            "Warm Bokeh" to (view.findViewById<MaterialCardView>(R.id.cardColorCoral) to view.findViewById<ImageView>(R.id.checkColorCoral)),
+            "Sakura Pink" to (view.findViewById<MaterialCardView>(R.id.cardColorSakura) to view.findViewById<ImageView>(R.id.checkColorSakura))
         )
 
         cards.forEach { (id, pair) ->

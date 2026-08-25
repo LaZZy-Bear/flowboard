@@ -127,4 +127,21 @@ class WordPredictionEngineTest {
         val singularContext = engine.getPredictions("a thin", 3)
         assertTrue("Predictions after 'a thin' should contain 'thing'", singularContext.contains("thing"))
     }
+
+    @Test
+    fun testGetActivePrefix() {
+        // Next-word mode (after space or punctuation): prefix is empty
+        assertEquals("", engine.getActivePrefix("Good "))
+        assertEquals("", engine.getActivePrefix("How are you "))
+        assertEquals("", engine.getActivePrefix("hello."))
+        assertEquals("", engine.getActivePrefix("yes!"))
+        assertEquals("", engine.getActivePrefix(""))
+
+        // Prefix completion mode (while typing a word): returns the trailing word fragment
+        assertEquals("mor", engine.getActivePrefix("Good mor"))
+        assertEquals("y", engine.getActivePrefix("How are y"))
+        assertEquals("hel", engine.getActivePrefix("hel"))
+        assertEquals("feel", engine.getActivePrefix("I'm feel"))
+        assertEquals("john@", engine.getActivePrefix("send to john@"))
+    }
 }

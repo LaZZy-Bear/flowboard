@@ -1,7 +1,7 @@
 {
   "a": {
     "homeKey": "key_1",
-    "defaultSlot": "left"
+    "defaultSlot": "right"
   },
   "b": {
     "homeKey": "key_5",
@@ -107,7 +107,7 @@
     "homeKey": "key_6",
     "defaultSlot": "up"
   },
-  ",": {
+  "_": {
     "homeKey": "key_4",
     "defaultSlot": "left"
   },
@@ -123,7 +123,7 @@
     "homeKey": "key_2",
     "defaultSlot": "left"
   },
-  "%": {
+  ",": {
     "homeKey": "key_5",
     "defaultSlot": "up"
   },
@@ -141,6 +141,6 @@
   },
   "\"": {
     "homeKey": "key_1",
-    "defaultSlot": "right"
+    "defaultSlot": "left"
   }
 }
