@@ -38,7 +38,6 @@ object TestDataFactory {
         }
 
         val enDir = File(baseDir, "en")
-        val sharedDir = File(baseDir, "shared")
 
         // Shared
         repo.symbolPage1 = emptyMap()
@@ -75,12 +74,6 @@ object TestDataFactory {
         if (!file.exists()) return emptyList()
         val text = file.readText()
         return json.decodeFromString<List<String?>>(text).map { it ?: "" }
-    }
-
-    private fun loadStringMap(file: File): Map<String, String> {
-        if (!file.exists()) return emptyMap()
-        val text = file.readText()
-        return json.decodeFromString<Map<String, String>>(text)
     }
 
     private fun loadStringListMap(file: File): Map<String, List<String>> {
