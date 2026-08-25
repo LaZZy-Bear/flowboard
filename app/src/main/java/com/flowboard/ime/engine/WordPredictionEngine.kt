@@ -76,7 +76,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
         val isWordBoundaryDelimiter = !isTrailingWordConnector && isDelimiterChar(lastChar)
 
         return if (isEmailTail) {
-            emailMatch?.value ?: ""
+            emailMatch.value
         } else if (isWordBoundaryDelimiter) {
             ""
         } else {
