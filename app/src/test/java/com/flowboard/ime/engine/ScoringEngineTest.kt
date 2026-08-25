@@ -68,7 +68,6 @@ class ScoringEngineTest {
             "z" to MasterLayoutEntry("key_7", "up")
         )
 
-        repo.charMap = emptyMap()
         repo.bigram = emptyMap()
         repo.trigram = emptyMap()
         repo.wordList = emptyList()

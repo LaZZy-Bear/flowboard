@@ -50,9 +50,9 @@ class ThemesFragment : Fragment() {
         cardLight?.setOnClickListener { selectTheme(view, mainActivity, "Light") }
         cardDark?.setOnClickListener { selectTheme(view, mainActivity, "Dark") }
 
-        cardBlue?.setOnClickListener { selectTheme(view, mainActivity, "Blue") }
-        cardTeal?.setOnClickListener { selectTheme(view, mainActivity, "Geo Grid") }
-        cardCoral?.setOnClickListener { selectTheme(view, mainActivity, "Warm Bokeh") }
+        cardBlue?.setOnClickListener { selectTheme(view, mainActivity, "Ocean Blue") }
+        cardTeal?.setOnClickListener { selectTheme(view, mainActivity, "Mint Teal") }
+        cardCoral?.setOnClickListener { selectTheme(view, mainActivity, "Sunset Coral") }
         cardSakura?.setOnClickListener { selectTheme(view, mainActivity, "Sakura Pink") }
     }
 
@@ -76,25 +76,34 @@ class ThemesFragment : Fragment() {
         val colorAccent = ContextCompat.getColor(requireContext(), R.color.accent)
         val colorStroke = ContextCompat.getColor(requireContext(), R.color.card_stroke)
 
-        val cards = mapOf(
+        val cardMap = mapOf(
             "System default" to (view.findViewById<MaterialCardView>(R.id.cardThemeAuto) to view.findViewById<ImageView>(R.id.checkThemeAuto)),
             "Light" to (view.findViewById<MaterialCardView>(R.id.cardThemeLight) to view.findViewById<ImageView>(R.id.checkThemeLight)),
-            "Clean Minimal" to (view.findViewById<MaterialCardView>(R.id.cardThemeLight) to view.findViewById<ImageView>(R.id.checkThemeLight)),
             "Dark" to (view.findViewById<MaterialCardView>(R.id.cardThemeDark) to view.findViewById<ImageView>(R.id.checkThemeDark)),
-            "Blue" to (view.findViewById<MaterialCardView>(R.id.cardColorBlue) to view.findViewById<ImageView>(R.id.checkColorBlue)),
-            "Geo Grid" to (view.findViewById<MaterialCardView>(R.id.cardColorTeal) to view.findViewById<ImageView>(R.id.checkColorTeal)),
-            "Warm Bokeh" to (view.findViewById<MaterialCardView>(R.id.cardColorCoral) to view.findViewById<ImageView>(R.id.checkColorCoral)),
+            "Ocean Blue" to (view.findViewById<MaterialCardView>(R.id.cardColorBlue) to view.findViewById<ImageView>(R.id.checkColorBlue)),
+            "Mint Teal" to (view.findViewById<MaterialCardView>(R.id.cardColorTeal) to view.findViewById<ImageView>(R.id.checkColorTeal)),
+            "Sunset Coral" to (view.findViewById<MaterialCardView>(R.id.cardColorCoral) to view.findViewById<ImageView>(R.id.checkColorCoral)),
             "Sakura Pink" to (view.findViewById<MaterialCardView>(R.id.cardColorSakura) to view.findViewById<ImageView>(R.id.checkColorSakura))
         )
 
-        cards.forEach { (id, pair) ->
+        // Normalize aliases
+        val normalizedActive = when (activeTheme) {
+            "Clean Minimal" -> "Light"
+            "Blue" -> "Ocean Blue"
+            "Geo Grid", "Teal" -> "Mint Teal"
+            "Warm Bokeh", "Coral" -> "Sunset Coral"
+            "Sakura" -> "Sakura Pink"
+            else -> activeTheme
+        }
+
+        cardMap.forEach { (id, pair) ->
             val (card, check) = pair
-            val isSelected = (id == activeTheme)
+            val isSelected = (id == normalizedActive)
             if (isSelected) {
                 card?.strokeWidth = dp2
                 card?.strokeColor = colorAccent
                 check?.visibility = View.VISIBLE
-            } else if (activeTheme !in listOf("Light", "Clean Minimal") || (id != "Light" && id != "Clean Minimal")) {
+            } else {
                 card?.strokeWidth = dp1
                 card?.strokeColor = colorStroke
                 check?.visibility = View.GONE

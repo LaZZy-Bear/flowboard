@@ -25,7 +25,7 @@ import java.io.InputStream
  * Loads all Flowboard data assets from the Android asset filesystem.
  *
  * English-only (Prototype 22). Three-phase loading:
- * - Phase A (Critical): unigram, master_layout, char_map, symbol pages → markReady()
+ * - Phase A (Critical): unigram, master_layout, symbol pages → markReady()
  * - Phase B (Normal):   bigram, trigram, trie_dict, word_list, clustered_bigram, unigram_start, profile_chat
  * - Phase C (Deferred): trie_dict_oov, clustered_trigram, sentence_topic_clusters, my_personal_profile → markFullyLoaded()
  */
@@ -45,7 +45,6 @@ class AssetLoader(private val context: Context) {
         val startTime = System.currentTimeMillis()
 
         // Shared
-        val charMapJob = async(Dispatchers.IO) { loadStringMap() }
         val symbolPage1Job = async(Dispatchers.IO) { loadSymbolPage("$DIR_SHARED/symbol_page_1.json") }
         val symbolPage2Job = async(Dispatchers.IO) { loadSymbolPage("$DIR_SHARED/symbol_page_2.json") }
 
@@ -53,7 +52,6 @@ class AssetLoader(private val context: Context) {
         val unigramJob = async(Dispatchers.IO) { loadStringList("$DIR_EN/unigram.json") }
         val masterJob = async(Dispatchers.IO) { loadMasterLayout() }
 
-        repo.charMap = charMapJob.await()
         repo.symbolPage1 = symbolPage1Job.await()
         repo.symbolPage2 = symbolPage2Job.await()
         repo.unigram = unigramJob.await()
@@ -212,16 +210,6 @@ class AssetLoader(private val context: Context) {
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to load $path: ${e.message}")
             emptyList()
-        }
-    }
-
-    private fun loadStringMap(path: String = "$DIR_SHARED/char_map.json"): Map<String, String> {
-        return try {
-            val text = readAssetText(path)
-            json.decodeFromString<Map<String, String>>(text)
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to load $path: ${e.message}")
-            emptyMap()
         }
     }
 

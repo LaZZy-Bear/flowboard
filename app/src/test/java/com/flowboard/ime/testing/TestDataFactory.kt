@@ -41,7 +41,6 @@ object TestDataFactory {
         val sharedDir = File(baseDir, "shared")
 
         // Shared
-        repo.charMap = loadStringMap(File(sharedDir, "char_map.json"))
         repo.symbolPage1 = emptyMap()
         repo.symbolPage2 = emptyMap()
 

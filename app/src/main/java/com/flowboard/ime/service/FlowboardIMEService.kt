@@ -811,9 +811,9 @@ class FlowboardIMEService : InputMethodService() {
             btnThemeDark?.setOnClickListener { applyThemeDirect("Dark", true) }
             btnThemeSystem?.setOnClickListener { applyThemeDirect("System default", null) }
 
-            pOcean?.setOnClickListener { applyThemeDirect("Blue", false) }
-            pTeal?.setOnClickListener { applyThemeDirect("Geo Grid", false) }
-            pCoral?.setOnClickListener { applyThemeDirect("Warm Bokeh", false) }
+            pOcean?.setOnClickListener { applyThemeDirect("Ocean Blue", false) }
+            pTeal?.setOnClickListener { applyThemeDirect("Mint Teal", false) }
+            pCoral?.setOnClickListener { applyThemeDirect("Sunset Coral", false) }
             pSakura?.setOnClickListener { applyThemeDirect("Sakura Pink", false) }
 
             btnOpenFullThemes?.setOnClickListener {

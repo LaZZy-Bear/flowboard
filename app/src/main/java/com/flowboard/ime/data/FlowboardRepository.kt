@@ -40,7 +40,6 @@ object FlowboardRepository {
     // ══════════════════════════════════════════
     // Shared Data
     // ══════════════════════════════════════════
-    var charMap: Map<String, String> = emptyMap()      // ID → char (kept for Trie compatibility)
     var symbolPage1: Map<String, KeySlots> = emptyMap()
     var symbolPage2: Map<String, KeySlots> = emptyMap()
 
@@ -105,7 +104,6 @@ object FlowboardRepository {
         clusteredTrigram = ClusteredWordBigram.EMPTY
         sentenceTopicClusters = SentenceTopicClusters.EMPTY
 
-        charMap = emptyMap()
         symbolPage1 = emptyMap()
         symbolPage2 = emptyMap()
 
