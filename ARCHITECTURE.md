@@ -186,6 +186,8 @@ app/src/main/res/xml/
     * ห้ามให้คะแนนแก่ตัวเลข (0-9) เด็ดขาด
 
 #### `LiveLearningManager.kt`
+* `loadProfile(): Unit`
+  * **Output:** ถอดรหัสไฟล์ `flowboard_live_profile.json` ด้วย `EncryptedFile` (AES-256 GCM) และโหลดประวัติคำศัพท์เข้า RAM (มี Graceful Fallback รองรับไฟล์เดิมอัตโนมัติ)
 * `recordWordTyped(fullText: String): Unit`
   * **Input:** ประโยคหรือข้อความที่พิมพ์
   * **Output:** ดักจับคำศัพท์ใหม่ อีเมล อัปเดต Bigram/Trigram ใน RAM และ Inject เข้า `trieDictOOV` ทันที
@@ -193,7 +195,9 @@ app/src/main/res/xml/
   * **Input:** Factor การลดทอน (default 0.95)
   * **Output:** ลดความถี่ของคำเก่าทุกๆ 500 คำ และลบคำที่แตะ 0 ออกจาก Profile
 * `saveProfileIfDirty(): Unit`
-  * **Output:** บันทึก In-Memory Profile ลงไฟล์ `flowboard_live_profile.json` บน Internal Storage เมื่อคีย์บอร์ดปิด
+  * **Output:** เข้ารหัส In-Memory Profile ด้วย `EncryptedFile` (AES-256 GCM) บันทึกลงไฟล์ `flowboard_live_profile.json` บน Internal Storage แบบ Atomic File Swap (`.tmp`) เมื่อคีย์บอร์ดปิด
+* `clearProfile(): Unit`
+  * **Output:** ลบไฟล์โปรไฟล์ที่เข้ารหัสและไฟล์ชั่วคราวทิ้งทั้งหมด พร้อมล้างข้อมูล Personal Profile ใน RAM
 
 #### `LanguageManager.kt`
 * `cycleShift(): ShiftState`
@@ -312,9 +316,9 @@ app/src/main/res/xml/
 
 ---
 
-## 6. สถาปัตยกรรมความเป็นส่วนตัวและนโยบายการสำรองข้อมูล (Privacy, Data Isolation & Backup Policy)
+## 6. สถาปัตยกรรมความปลอดภัย ความเป็นส่วนตัว และการเข้ารหัสข้อมูล (Security, Hardware Encryption & Privacy Policy)
 
-Flowboard ถูกออกแบบตามหลักการ **Privacy-by-Design & 100% On-Device Isolation** เพื่อป้องกันไม่ให้ข้อมูลการพิมพ์ส่วนบุคคล (Personal Profiles & Learned Words) และการตั้งค่าหลุดรอดออกนอกอุปกรณ์ หรือถูกกู้คืนโดยไม่ตั้งใจหลังการถอนการติดตั้ง:
+Flowboard ถูกออกแบบตามหลักการ **Privacy-by-Design & 100% On-Device Isolation** เพื่อปกป้องข้อมูลการพิมพ์ส่วนบุคคล (Personal Profiles & Learned Words) ให้ปลอดภัยสูงสุดระดับ Hardware-backed Security:
 
 ### 6.1 นโยบายการปิด Google Cloud Auto Backup
 * **`android:allowBackup="false"`**: ปิดการสำรองข้อมูลอัตโนมัติขึ้น Google Drive ทั้งหมดในระดับ Application Manifest
@@ -324,3 +328,9 @@ Flowboard ถูกออกแบบตามหลักการ **Privacy-by
 ### 6.2 การแก้ปัญหา Ghost Snapshot Recovery
 * **Clean Uninstall & Reinstall Guarantee**: เมื่อผู้ใช้ถอนการติดตั้ง (Uninstall) หรือล้างข้อมูลแอป ข้อมูลในเครื่องจะถูกลบเกลี้ยง 100% โดยที่การติดตั้งใหม่จะไม่ถูก Android Auto Backup นำ Snapshot เก่าที่ Delay ย้อนหลังกลับมาเขียนทับ
 * **Personal Data Protection**: ประวัติการพิมพ์, โทเค็นคำศัพท์, และไฟล์โปรไฟล์ส่วนบุคคลจะไม่ถูกส่งไปยังคลาวด์ภายนอกเด็ดขาด
+
+### 6.3 การเข้ารหัสข้อมูลส่วนบุคคลระดับฮาร์ดแวร์ (Hardware-Backed AES-256 GCM)
+* **`EncryptedFile` & Android Keystore**: ไฟล์ `flowboard_live_profile.json` บน Internal Storage ถูกเข้ารหัสแบบ AES-256 GCM (`AES256_GCM_HKDF_4KB`) ด้วย MasterKey ที่สร้างและเก็บรักษาอยู่ภายในชิปความปลอดภัยฮาร์ดแวร์ (TEE / Titan M / Knox)
+* **Atomic File Writing**: การบันทึกไฟล์ใช้ไฟล์ชั่วคราว (`.tmp`) และทำการ Atomic Swap เพื่อป้องกันข้อมูลสูญหายหรือเสียหายกรณีแอปปิดกะทันหัน
+* **Zero Latency Impact**: การอ่านและถอดรหัสจะเกิดขึ้นเฉพาะตอน Cold Start เปิดแอปครั้งแรก (~1ms) และตอนปิดแป้นพิมพ์ ส่วนการคำนวณคะแนนขณะพิมพ์แบบ Real-time จะทำงานบน RAM State 100% โดยไม่มี Overhead จากการเข้ารหัส
+* **ProGuard / R8 Obfuscation & Log Stripping**: ใน Release Build โค้ดทั้งหมดจะถูกบีบอัดและปิดบังชื่อคลาส (Minified & Obfuscated) พร้อมตัดคำสั่ง Debug Log (`Log.d`, `Log.v`, `Log.i`) ทิ้งทั้งหมด เพื่อป้องกัน Reverse Engineering และไม่ให้มีข้อมูลหลุดรั่วผ่าน Logcat

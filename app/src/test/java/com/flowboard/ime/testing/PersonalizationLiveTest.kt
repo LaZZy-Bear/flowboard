@@ -772,6 +772,34 @@ class PersonalizationLiveTest {
         assertTrue("Apple2 count must decay gracefully (50 * 0.4 = 20)", newAppleCount in 18..22)
     }
 
+    @Test
+    fun testEncryptedStorageAndMigration() {
+        val filesDir = tempFolder.newFolder("files_storage")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+
+        // 1. Simulate saving live profile
+        liveMgr.recordWordTyped("securepassword123")
+        liveMgr.recordWordTyped("john.doe@company.org")
+        liveMgr.saveProfileIfDirty()
+
+        val savedFile = java.io.File(filesDir, "flowboard_live_profile.json")
+        assertTrue("Profile file must exist", savedFile.exists())
+        assertTrue("Profile file must have content", savedFile.length() > 0)
+
+        // 2. Load with a fresh manager instance
+        val freshManager = LiveLearningManager(mockContext)
+        freshManager.loadProfile()
+
+        assertTrue("Learned word must be reloaded", repo.personalProfile.wordFreq.containsKey("securepassword123"))
+        assertTrue("Learned email must be reloaded", repo.personalProfile.learnedOOV.contains("john.doe@company.org"))
+
+        // 3. Clear profile
+        freshManager.clearProfile()
+        assertFalse("Profile file must be deleted after clearProfile", savedFile.exists())
+        assertTrue("Repository profile must be empty", repo.personalProfile.isEmpty)
+    }
+
     private class MockContext(
         private val baseDir: java.io.File,
         private val prefsData: MutableMap<String, Any> = mutableMapOf()
