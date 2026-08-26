@@ -79,8 +79,8 @@
                                             <option name="values">
                                               <map>
                                                 <entry key="color" value="000000" />
-                                                <entry key="imagePath" value="$USER_HOME$/Pictures/ไม่มีชื่อ 23_20260825223228.png" />
-                                                <entry key="scalingPercent" value="67" />
+                                                <entry key="imagePath" value="$USER_HOME$/Pictures/Adobe Express - file.png" />
+                                                <entry key="scalingPercent" value="78" />
                                               </map>
                                             </option>
                                           </PersistentState>
@@ -157,7 +157,7 @@
                                   <option name="values">
                                     <map>
                                       <entry key="backgroundAssetType" value="COLOR" />
-                                      <entry key="backgroundColor" value="ffffff" />
+                                      <entry key="backgroundColor" value="4359ea" />
                                       <entry key="previewDensity" value="mdpi" />
                                     </map>
                                   </option>
