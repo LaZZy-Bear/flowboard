@@ -814,7 +814,7 @@ class FlowboardIMEService : InputMethodService() {
             pOcean?.setOnClickListener { applyThemeDirect("Ocean Blue", false) }
             pTeal?.setOnClickListener { applyThemeDirect("Mint Teal", false) }
             pCoral?.setOnClickListener { applyThemeDirect("Sunset Coral", false) }
-            pSakura?.setOnClickListener { applyThemeDirect("Sakura Pink", false) }
+            pSakura?.setOnClickListener { applyThemeDirect("Sakura Bloom", false) }
 
             btnOpenFullThemes?.setOnClickListener {
                 soundHapticManager.playTap()

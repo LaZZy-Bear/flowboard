@@ -87,7 +87,12 @@ app/src/main/java/com/flowboard/ime/
 │       └── ThemesFragment.kt          # Theme Selector UI (7 Curated Themes)
 └── util/
     ├── SoundHapticManager.kt      # SoundPool audio & Vibrator/VibrationEffect haptics
-    └── ThemeManager.kt            # Color palettes (7 Themes: Auto, Light, Dark, Ocean Blue, Mint Teal, Sunset Coral, Sakura Pink)
+    └── ThemeManager.kt            # Color palettes (7 Themes: Auto, Light, Dark, Ocean Blue, Mint Teal, Sunset Coral, Sakura Bloom)
+
+app/src/main/res/xml/
+├── method.xml                     # IME Service subtype configuration
+├── data_extraction_rules.xml      # Android 12+ Cloud Backup & Device Transfer Zero-Leak Rules
+└── backup_rules.xml               # Android 6–11 Legacy Full Backup Exclusion Rules
 ```
 
 ---
@@ -239,7 +244,7 @@ app/src/main/java/com/flowboard/ime/
 
 #### `ThemeManager.kt`
 * `getThemeColors(context: Context, themeName: String, isSystemDark: Boolean): ThemeColors`
-  * **Input:** ชื่อธีม (7 ธีม: `System default`, `Light`, `Dark`, `Ocean Blue`, `Mint Teal`, `Sunset Coral`, `Sakura Pink`) และสถานะ Dark Mode ของระบบ
+  * **Input:** ชื่อธีม (7 ธีม: `System default`, `Light`, `Dark`, `Ocean Blue`, `Mint Teal`, `Sunset Coral`, `Sakura Bloom`) และสถานะ Dark Mode ของระบบ
   * **Output:** Object `ThemeColors` ที่ประกอบด้วยสีพื้นหลัง, สีกด, สีตัวอักษร, สี Accent และสี Zone Gradient
 
 ---
@@ -304,3 +309,18 @@ app/src/main/java/com/flowboard/ime/
                    └─► WordPredictionEngine.getPredictions(fullTextBeforeCursor)
                        └─► Render ผลลัพธ์ 3 คำลงบน Candidate Bar (Suggestion Chips)
 ```
+
+---
+
+## 6. สถาปัตยกรรมความเป็นส่วนตัวและนโยบายการสำรองข้อมูล (Privacy, Data Isolation & Backup Policy)
+
+Flowboard ถูกออกแบบตามหลักการ **Privacy-by-Design & 100% On-Device Isolation** เพื่อป้องกันไม่ให้ข้อมูลการพิมพ์ส่วนบุคคล (Personal Profiles & Learned Words) และการตั้งค่าหลุดรอดออกนอกอุปกรณ์ หรือถูกกู้คืนโดยไม่ตั้งใจหลังการถอนการติดตั้ง:
+
+### 6.1 นโยบายการปิด Google Cloud Auto Backup
+* **`android:allowBackup="false"`**: ปิดการสำรองข้อมูลอัตโนมัติขึ้น Google Drive ทั้งหมดในระดับ Application Manifest
+* **`data_extraction_rules.xml` (Android 12+ / API 31+)**: กำหนด Exclusion ทุก Domain (`root`, `file`, `database`, `sharedpref`, `external`) ทั้งใน `<cloud-backup>` และ `<device-transfer>`
+* **`backup_rules.xml` (Android 6–11 / API 23–30)**: กำหนด `<full-backup-content>` เพื่อ Exclude ทุก Path และ Domain
+
+### 6.2 การแก้ปัญหา Ghost Snapshot Recovery
+* **Clean Uninstall & Reinstall Guarantee**: เมื่อผู้ใช้ถอนการติดตั้ง (Uninstall) หรือล้างข้อมูลแอป ข้อมูลในเครื่องจะถูกลบเกลี้ยง 100% โดยที่การติดตั้งใหม่จะไม่ถูก Android Auto Backup นำ Snapshot เก่าที่ Delay ย้อนหลังกลับมาเขียนทับ
+* **Personal Data Protection**: ประวัติการพิมพ์, โทเค็นคำศัพท์, และไฟล์โปรไฟล์ส่วนบุคคลจะไม่ถูกส่งไปยังคลาวด์ภายนอกเด็ดขาด

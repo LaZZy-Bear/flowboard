@@ -53,7 +53,7 @@ class ThemesFragment : Fragment() {
         cardBlue?.setOnClickListener { selectTheme(view, mainActivity, "Ocean Blue") }
         cardTeal?.setOnClickListener { selectTheme(view, mainActivity, "Mint Teal") }
         cardCoral?.setOnClickListener { selectTheme(view, mainActivity, "Sunset Coral") }
-        cardSakura?.setOnClickListener { selectTheme(view, mainActivity, "Sakura Pink") }
+        cardSakura?.setOnClickListener { selectTheme(view, mainActivity, "Sakura Bloom") }
     }
 
     private fun selectTheme(view: View, mainActivity: MainActivity, themeName: String) {
@@ -83,7 +83,7 @@ class ThemesFragment : Fragment() {
             "Ocean Blue" to (view.findViewById<MaterialCardView>(R.id.cardColorBlue) to view.findViewById<ImageView>(R.id.checkColorBlue)),
             "Mint Teal" to (view.findViewById<MaterialCardView>(R.id.cardColorTeal) to view.findViewById<ImageView>(R.id.checkColorTeal)),
             "Sunset Coral" to (view.findViewById<MaterialCardView>(R.id.cardColorCoral) to view.findViewById<ImageView>(R.id.checkColorCoral)),
-            "Sakura Pink" to (view.findViewById<MaterialCardView>(R.id.cardColorSakura) to view.findViewById<ImageView>(R.id.checkColorSakura))
+            "Sakura Bloom" to (view.findViewById<MaterialCardView>(R.id.cardColorSakura) to view.findViewById<ImageView>(R.id.checkColorSakura))
         )
 
         // Normalize aliases
@@ -92,7 +92,7 @@ class ThemesFragment : Fragment() {
             "Blue" -> "Ocean Blue"
             "Geo Grid", "Teal" -> "Mint Teal"
             "Warm Bokeh", "Coral" -> "Sunset Coral"
-            "Sakura" -> "Sakura Pink"
+            "Sakura Pink", "Sakura" -> "Sakura Bloom"
             else -> activeTheme
         }
 

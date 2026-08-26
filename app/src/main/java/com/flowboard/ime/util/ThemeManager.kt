@@ -87,7 +87,7 @@ object ThemeManager {
                 zoneBotStart = "#FFEBEE".toColorInt(),
                 isDark = false
             )
-            "Sakura Pink", "Sakura" -> ThemeColors(
+            "Sakura Bloom", "Sakura Pink", "Sakura" -> ThemeColors(
                 keyboardBackground = "#FDF2F4".toColorInt(),
                 keyBackground = "#FFFFFF".toColorInt(),
                 keyActive = "#FCE7EC".toColorInt(),
