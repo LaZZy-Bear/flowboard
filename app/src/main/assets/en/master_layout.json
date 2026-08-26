@@ -43,7 +43,7 @@
     "homeKey": "key_6",
     "defaultSlot": "tap"
   },
-  "/": {
+  "&": {
     "homeKey": "key_2",
     "defaultSlot": "tap"
   },
@@ -135,7 +135,7 @@
     "homeKey": "key_3",
     "defaultSlot": "tap"
   },
-  ".": {
+  "#": {
     "homeKey": "key_8",
     "defaultSlot": "left"
   },

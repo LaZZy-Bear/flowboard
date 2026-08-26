@@ -389,7 +389,8 @@ class LiveLearningManager(private val context: Context) {
         val freqItr = liveWordFreq.entries.iterator()
         while (freqItr.hasNext()) {
             val entry = freqItr.next()
-            val newCount = kotlin.math.round(entry.value * decayFactor).toInt()
+            val decayed = entry.value * decayFactor
+            val newCount = if (decayed < 1.0) 0 else kotlin.math.round(decayed).toInt()
             if (newCount <= 0) {
                 freqItr.remove()
                 liveLearnedOOV.remove(entry.key)
@@ -405,7 +406,8 @@ class LiveLearningManager(private val context: Context) {
             val innerItr = innerMap.entries.iterator()
             while (innerItr.hasNext()) {
                 val e = innerItr.next()
-                val newCount = kotlin.math.round(e.value * decayFactor).toInt()
+                val decayed = e.value * decayFactor
+                val newCount = if (decayed < 1.0) 0 else kotlin.math.round(decayed).toInt()
                 if (newCount <= 0) {
                     innerItr.remove()
                 } else {
@@ -429,7 +431,8 @@ class LiveLearningManager(private val context: Context) {
             val innerItr = innerMap.entries.iterator()
             while (innerItr.hasNext()) {
                 val e = innerItr.next()
-                val newCount = kotlin.math.round(e.value * decayFactor).toInt()
+                val decayed = e.value * decayFactor
+                val newCount = if (decayed < 1.0) 0 else kotlin.math.round(decayed).toInt()
                 if (newCount <= 0) {
                     innerItr.remove()
                 } else {
