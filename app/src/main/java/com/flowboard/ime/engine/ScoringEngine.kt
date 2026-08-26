@@ -36,12 +36,12 @@ class ScoringEngine(private val repo: FlowboardRepository) {
          * ENGINE_WEIGHTS — directly from P22 scoring.js ENGINE_WEIGHTS constant.
          */
         private val STATE_WEIGHTS = mapOf(
-            1 to EngineWeights(U = 28, B = 30, T = 41, D = 41, WB = 52,  WT = 47,  STC = 0),
-            2 to EngineWeights(U = 0,  B = 20, T = 72, D = 37, WB = 100, WT = 100, STC = 69),
-            3 to EngineWeights(U = 2,  B = 0,  T = 35, D = 34, WB = 100, WT = 100, STC = 32),
-            4 to EngineWeights(U = 0,  B = 1,  T = 4,  D = 88, WB = 90,  WT = 90,  STC = 34),
-            7 to EngineWeights(U = 12, B = 12, T = 16, D = 24, WB = 43,  WT = 100, STC = 100),
-            8 to EngineWeights(U = 0,  B = 0,  T = 62, D = 50, WB = 2,   WT = 94,  STC = 2)
+            1 to EngineWeights(U = 28, B = 23, T = 41, D = 21, WB = 40,  WT = 70,  STC = 0),
+            2 to EngineWeights(U = 0,  B = 18, T = 69, D = 37, WB = 100, WT = 100, STC = 69),
+            3 to EngineWeights(U = 1,  B = 0,  T = 35, D = 34, WB = 100, WT = 100, STC = 32),
+            4 to EngineWeights(U = 0,  B = 4,  T = 2,  D = 88, WB = 83,  WT = 93,  STC = 36),
+            7 to EngineWeights(U = 16, B = 11, T = 18, D = 24, WB = 57,  WT = 100, STC = 100),
+            8 to EngineWeights(U = 0,  B = 0,  T = 37, D = 66, WB = 12,  WT = 91,  STC = 8)
         )
 
         /**
