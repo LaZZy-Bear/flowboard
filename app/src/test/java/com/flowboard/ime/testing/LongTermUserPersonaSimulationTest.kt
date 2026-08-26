@@ -4,9 +4,6 @@ import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.engine.LayoutManager
 import com.flowboard.ime.engine.LiveLearningManager
 import com.flowboard.ime.engine.ScoringEngine
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
