@@ -70,26 +70,33 @@ class LiveLearningManager(private val context: Context) {
      * Loads saved live profile from internal storage JSON file and merges it into FlowboardRepository.
      */
     fun loadProfile() {
-        liveWordFreq.clear()
-        liveBigram.clear()
-        liveTrigram.clear()
-        liveLearnedOOV.clear()
-        isDirty.set(false)
+        // If repo already has data and live maps are empty, sync from repo
+        if (liveWordFreq.isEmpty() && !FlowboardRepository.personalProfile.isEmpty) {
+            val p = FlowboardRepository.personalProfile
+            liveWordFreq.putAll(p.wordFreq)
+            p.bigram.forEach { (k, v) -> liveBigram.getOrPut(k) { HashMap() }.putAll(v) }
+            p.trigram.forEach { (k, v) -> liveTrigram.getOrPut(k) { HashMap() }.putAll(v) }
+            liveLearnedOOV.addAll(p.learnedOOV)
+        }
 
         try {
             val file = File(context.filesDir, PROFILE_FILENAME)
             if (!file.exists()) {
-                FlowboardRepository.personalProfile = PersonalProfile.EMPTY
-                FlowboardRepository.isPersonalizationEnabled = false
-                FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
-                Log.d(TAG, "No live profile file found, starting fresh.")
+                if (FlowboardRepository.personalProfile.isEmpty) {
+                    FlowboardRepository.personalProfile = PersonalProfile.EMPTY
+                    FlowboardRepository.isPersonalizationEnabled = false
+                    FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
+                }
+                Log.d(TAG, "No live profile file found on disk.")
                 return
             }
             val text = readProfileFile(file)
             if (text.isEmpty()) {
-                FlowboardRepository.personalProfile = PersonalProfile.EMPTY
-                FlowboardRepository.isPersonalizationEnabled = false
-                FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
+                if (FlowboardRepository.personalProfile.isEmpty) {
+                    FlowboardRepository.personalProfile = PersonalProfile.EMPTY
+                    FlowboardRepository.isPersonalizationEnabled = false
+                    FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
+                }
                 return
             }
 
@@ -128,9 +135,11 @@ class LiveLearningManager(private val context: Context) {
             Log.d(TAG, "Loaded live profile: ${liveWordFreq.size} freq, ${liveBigram.size} bigram, ${liveTrigram.size} trigram, ${liveLearnedOOV.size} OOV")
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to load live profile: ${e.message}")
-            FlowboardRepository.personalProfile = PersonalProfile.EMPTY
-            FlowboardRepository.isPersonalizationEnabled = false
-            FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
+            if (FlowboardRepository.personalProfile.isEmpty) {
+                FlowboardRepository.personalProfile = PersonalProfile.EMPTY
+                FlowboardRepository.isPersonalizationEnabled = false
+                FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
+            }
         }
     }
 
@@ -517,27 +526,27 @@ class LiveLearningManager(private val context: Context) {
     }
 
     private fun writeProfileFile(file: File, content: String) {
-        val tempFile = File(context.filesDir, "$PROFILE_FILENAME.tmp")
-        if (tempFile.exists()) tempFile.delete()
-
         try {
             val masterKey = getMasterKey()
+            if (file.exists()) file.delete()
             val encryptedFile = EncryptedFile.Builder(
                 context,
-                tempFile,
+                file,
                 masterKey,
                 EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
             ).build()
             encryptedFile.openFileOutput().use { outputStream ->
                 outputStream.write(content.toByteArray(Charsets.UTF_8))
             }
-            if (file.exists()) file.delete()
-            tempFile.renameTo(file)
         } catch (e: Throwable) {
             // Graceful fallback for JVM unit testing environments where AndroidKeyStore is absent
             Log.d(TAG, "Encrypted write fallback to plain write: ${e.message}")
-            if (tempFile.exists()) tempFile.delete()
-            file.writeText(content)
+            try {
+                if (file.exists()) file.delete()
+                file.writeText(content)
+            } catch (e2: Throwable) {
+                Log.e(TAG, "Failed to write profile file: ${e2.message}")
+            }
         }
     }
 
@@ -545,13 +554,22 @@ class LiveLearningManager(private val context: Context) {
      * Get statistics of learned items for settings display.
      */
     fun getStats(): Map<String, Int> {
-        val totalPairs = liveBigram.values.sumOf { it.size } + liveTrigram.values.sumOf { it.size }
+        val profile = FlowboardRepository.personalProfile
+        val wordFreqCount = if (liveWordFreq.isNotEmpty()) liveWordFreq.size else profile.wordFreq.size
+        val bigramCount = if (liveBigram.isNotEmpty()) liveBigram.size else profile.bigram.size
+        val trigramCount = if (liveTrigram.isNotEmpty()) liveTrigram.size else profile.trigram.size
+        val totalPairs = if (liveBigram.isNotEmpty() || liveTrigram.isNotEmpty()) {
+            liveBigram.values.sumOf { it.size } + liveTrigram.values.sumOf { it.size }
+        } else {
+            profile.bigram.values.sumOf { it.size } + profile.trigram.values.sumOf { it.size }
+        }
+        val oovCount = if (liveLearnedOOV.isNotEmpty()) liveLearnedOOV.size else profile.learnedOOV.size
         return mapOf(
-            "wordFreqCount" to liveWordFreq.size,
-            "bigramCount" to liveBigram.size,
-            "trigramCount" to liveTrigram.size,
+            "wordFreqCount" to wordFreqCount,
+            "bigramCount" to bigramCount,
+            "trigramCount" to trigramCount,
             "totalPairsCount" to totalPairs,
-            "oovCount" to liveLearnedOOV.size
+            "oovCount" to oovCount
         )
     }
 }

@@ -2634,6 +2634,9 @@ class FlowboardIMEService : InputMethodService() {
             repo.stickyChar = null
             liveLearningManager.recordWordTyped(fullText)
             liveLearningManager.saveProfileIfDirty()
+            if (::scoringEngine.isInitialized) {
+                scoringEngine.resetTrieCache()
+            }
         }
 
         if (languageManager.shiftState == LanguageManager.ShiftState.OFF) {

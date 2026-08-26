@@ -255,7 +255,9 @@ class PersonalizationFragment : Fragment() {
 
         try {
             val liveMgr = LiveLearningManager(requireContext())
-            liveMgr.loadProfile()
+            if (com.flowboard.ime.data.FlowboardRepository.personalProfile.isEmpty) {
+                liveMgr.loadProfile()
+            }
             val stats = liveMgr.getStats()
             tvTracked?.text = (stats["wordFreqCount"] ?: 0).toString()
             tvPairs?.text = (stats["totalPairsCount"] ?: 0).toString()
