@@ -1015,7 +1015,9 @@ class FlowboardIMEService : InputMethodService() {
     private fun isLearningAllowedForCurrentField(): Boolean {
         val info = currentInputEditorInfo
         if (info != null) {
-            val noLearning = (info.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
+            val noLearning = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                (info.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
+            } else false
             if (noLearning) {
                 return false
             }

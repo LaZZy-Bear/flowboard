@@ -24,6 +24,7 @@ class ProfileManager(private val repo: FlowboardRepository) {
      * Called by FlowboardApplication after Phase B loading completes,
      * to cache both profiles from the repository's active profile.
      */
+    @Suppress("unused")
     fun setLoadedProfiles(chatProfileLoaded: Profile) {
         defaultProfile = Profile.DEFAULT
         chatProfile = chatProfileLoaded
@@ -41,6 +42,7 @@ class ProfileManager(private val repo: FlowboardRepository) {
     /**
      * Re-apply the current profile mode (e.g., after data reload).
      */
+    @Suppress("unused")
     fun refreshProfile() {
         applyProfile(if (currentMode == ProfileMode.CHAT) chatProfile else defaultProfile)
     }
