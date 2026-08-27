@@ -301,9 +301,8 @@ class PersonalizationLiveTest {
         assertTrue("Score for 'o' ($scoreO) should dominate 'e' ($scoreE) for learned OOV word 'imsombat'", scoreO > scoreE)
 
         val layout = layoutManager.assignLayout(scores)
-        val key7 = layout["key_7"]
-        assertNotNull(key7)
-        assertEquals("Character 'o' must win the TAP slot on key_7 when typing prefix 'ims'", "o", key7?.tap)
+        val homeKeyO = repo.masterLayout["o"]?.homeKey ?: "key_4"
+        assertEquals("Character 'o' must win the TAP slot on $homeKeyO when typing prefix 'ims'", "o", layout[homeKeyO]?.tap)
     }
 
     @Test
@@ -330,8 +329,9 @@ class PersonalizationLiveTest {
         scoringEngine.resetTrieCache()
         var scores = scoringEngine.calculateScores("aight ")
         var layout = layoutManager.assignLayout(scores)
+        val homeKeyY = repo.masterLayout["y"]?.homeKey ?: "key_8"
         assertTrue("Score for 'y' (char 1 of yet) must be boosted", (scores["y"] ?: 0.0) > 0.0)
-        assertTrue("Key 9 must contain 'y'", layout["key_9"]?.visibleChars()?.contains("y") == true)
+        assertTrue("Home key of 'y' ($homeKeyY) must contain 'y'", layout[homeKeyY]?.visibleChars()?.contains("y") == true)
 
         // 1b. User types 'y' -> next char is 'e' (char 2 of yet)
         scores = scoringEngine.calculateScores("aight y")
@@ -341,28 +341,33 @@ class PersonalizationLiveTest {
         // 1c. User types 'e' -> next char is 't' (char 3 of yet)
         scores = scoringEngine.calculateScores("aight ye")
         layout = layoutManager.assignLayout(scores)
-        assertEquals("Character 't' (char 3 of yet) must win TAP on key_2", "t", layout["key_2"]?.tap)
+        val homeKeyT = repo.masterLayout["t"]?.homeKey ?: "key_2"
+        assertEquals("Character 't' (char 3 of yet) must win TAP on $homeKeyT", "t", layout[homeKeyT]?.tap)
 
         // 2. User finishes "yet" and types space -> "aight yet " -> next word is "name", char 1 is 'n'
         scoringEngine.resetTrieCache()
         scores = scoringEngine.calculateScores("aight yet ")
         layout = layoutManager.assignLayout(scores)
-        assertEquals("Character 'n' (char 1 of name) must win TAP on key_5", "n", layout["key_5"]?.tap)
+        val homeKeyN = repo.masterLayout["n"]?.homeKey ?: "key_5"
+        assertEquals("Character 'n' (char 1 of name) must win TAP on $homeKeyN", "n", layout[homeKeyN]?.tap)
 
         // 2b. User types 'n' -> next char is 'a' (char 2 of name)
         scores = scoringEngine.calculateScores("aight yet n")
         layout = layoutManager.assignLayout(scores)
-        assertEquals("Character 'a' (char 2 of name) must win TAP on key_1", "a", layout["key_1"]?.tap)
+        val homeKeyA = repo.masterLayout["a"]?.homeKey ?: "key_2"
+        assertEquals("Character 'a' (char 2 of name) must win TAP on $homeKeyA", "a", layout[homeKeyA]?.tap)
 
         // 2c. User types 'a' -> next char is 'm' (char 3 of name)
         scores = scoringEngine.calculateScores("aight yet na")
         layout = layoutManager.assignLayout(scores)
-        assertEquals("Character 'm' (char 3 of name) must win TAP on key_9", "m", layout["key_9"]?.tap)
+        val homeKeyM = repo.masterLayout["m"]?.homeKey ?: "key_9"
+        assertEquals("Character 'm' (char 3 of name) must win TAP on $homeKeyM", "m", layout[homeKeyM]?.tap)
 
         // 2d. User types 'm' -> next char is 'e' (char 4 of name)
         scores = scoringEngine.calculateScores("aight yet nam")
         layout = layoutManager.assignLayout(scores)
-        assertEquals("Character 'e' (char 4 of name) must win TAP on key_7", "e", layout["key_7"]?.tap)
+        val homeKeyE = repo.masterLayout["e"]?.homeKey ?: "key_7"
+        assertEquals("Character 'e' (char 4 of name) must win TAP on $homeKeyE", "e", layout[homeKeyE]?.tap)
     }
 
     @Test
@@ -526,7 +531,9 @@ class PersonalizationLiveTest {
         assertTrue("Score for '-' must be greater than 0.0", (scores["-"] ?: 0.0) > 0.0)
 
         val layout = layoutManager.assignLayout(scores)
-        assertTrue("Key 4 should contain '-' or tap is '-'", layout["key_4"]?.tap == "-" || layout["key_4"]?.visibleChars()?.contains("-") == true)
+        val homeKeyDash = repo.masterLayout["-"]?.homeKey ?: "key_7"
+        assertTrue("Home key of '-' ($homeKeyDash) should contain '-' or tap is '-'",
+            layout[homeKeyDash]?.tap == "-" || layout[homeKeyDash]?.visibleChars()?.contains("-") == true)
 
         // 3. Test Word Prediction for "wi-" -> WordPredictionEngine should suggest "wi-fi"
         val wordPredictionEngine = com.flowboard.ime.engine.WordPredictionEngine(repo)
@@ -574,7 +581,8 @@ class PersonalizationLiveTest {
         scores = scoringEngine.calculateScores("somchai.dev")
         assertTrue("Score for '@' must be boosted", (scores["@"] ?: 0.0) > 0.0)
         val layout = layoutManager.assignLayout(scores)
-        assertEquals("Character '@' must win Key 8 TAP slot", "@", layout["key_8"]?.tap)
+        val homeKeyAt = repo.masterLayout["@"]?.homeKey ?: "key_1"
+        assertEquals("Character '@' must win $homeKeyAt TAP slot", "@", layout[homeKeyAt]?.tap)
 
         // c. Typing "somchai.dev@" -> next char is 'g'
         scores = scoringEngine.calculateScores("somchai.dev@")
