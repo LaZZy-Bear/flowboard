@@ -16,7 +16,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import android.content.Context
 import com.flowboard.ime.ui.onboarding.OnboardingFragment
 import com.flowboard.ime.ui.settings.SettingsFragment
 import com.flowboard.ime.ui.settings.ThemesFragment
