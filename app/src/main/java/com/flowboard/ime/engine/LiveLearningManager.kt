@@ -41,8 +41,11 @@ class LiveLearningManager(private val context: Context) {
         private const val DEFAULT_MAX_PAIRS_ENTRIES = 1000
         private const val DEFAULT_MAX_OOV_ENTRIES = 500
 
-        private const val WORDS_BETWEEN_DECAY = 500
-        private const val DAY_MILLIS = 24 * 60 * 60 * 1000L
+        // Watermark Thresholds for Capacity-Driven Forgetting (Only forget when near full)
+        const val HIGH_WATERMARK_RATIO = 0.85 // Start gentle decay when usage reaches 85% of cap
+        const val LOW_WATERMARK_RATIO = 0.70  // Target usage floor after pruning cycle
+        const val HIGH_FREQ_PROTECTION_COUNT = 3 // Words typed >= 3 times are immune from decaying to 0
+        private const val WORDS_BETWEEN_DECAY_CHECK = 100
 
         private val EMAIL_REGEX = Regex("""[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}""")
     }
@@ -70,35 +73,38 @@ class LiveLearningManager(private val context: Context) {
      * Loads saved live profile from internal storage JSON file and merges it into FlowboardRepository.
      */
     fun loadProfile() {
-        // If repo already has data and live maps are empty, sync from repo
-        if (liveWordFreq.isEmpty() && !FlowboardRepository.personalProfile.isEmpty) {
-            val p = FlowboardRepository.personalProfile
-            liveWordFreq.putAll(p.wordFreq)
-            p.bigram.forEach { (k, v) -> liveBigram.getOrPut(k) { HashMap() }.putAll(v) }
-            p.trigram.forEach { (k, v) -> liveTrigram.getOrPut(k) { HashMap() }.putAll(v) }
-            liveLearnedOOV.addAll(p.learnedOOV)
-        }
-
         try {
             val file = File(context.filesDir, PROFILE_FILENAME)
             if (!file.exists()) {
-                if (FlowboardRepository.personalProfile.isEmpty) {
-                    FlowboardRepository.personalProfile = PersonalProfile.EMPTY
-                    FlowboardRepository.isPersonalizationEnabled = false
-                    FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
-                }
+                liveWordFreq.clear()
+                liveBigram.clear()
+                liveTrigram.clear()
+                liveLearnedOOV.clear()
+                isDirty.set(false)
+                FlowboardRepository.personalProfile = PersonalProfile.EMPTY
+                FlowboardRepository.isPersonalizationEnabled = false
+                FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
                 Log.d(TAG, "No live profile file found on disk.")
                 return
             }
             val text = readProfileFile(file)
             if (text.isEmpty()) {
-                if (FlowboardRepository.personalProfile.isEmpty) {
-                    FlowboardRepository.personalProfile = PersonalProfile.EMPTY
-                    FlowboardRepository.isPersonalizationEnabled = false
-                    FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
-                }
+                liveWordFreq.clear()
+                liveBigram.clear()
+                liveTrigram.clear()
+                liveLearnedOOV.clear()
+                isDirty.set(false)
+                FlowboardRepository.personalProfile = PersonalProfile.EMPTY
+                FlowboardRepository.isPersonalizationEnabled = false
+                FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
                 return
             }
+
+            liveWordFreq.clear()
+            liveBigram.clear()
+            liveTrigram.clear()
+            liveLearnedOOV.clear()
+            isDirty.set(false)
 
             val liveData = json.decodeFromString<LiveProfileData>(text)
             lastDecayTimestamp = liveData.lastDecayTimestamp
@@ -123,11 +129,10 @@ class LiveLearningManager(private val context: Context) {
             // OOV
             liveLearnedOOV.addAll(liveData.learnedOOV)
 
-            // Check if daily aging decay is due
-            val now = System.currentTimeMillis()
-            if (lastDecayTimestamp > 0 && now - lastDecayTimestamp >= DAY_MILLIS) {
-                applyAgingDecay(0.95)
-                lastDecayTimestamp = now
+            // Check if capacity pressure warrants aging decay on load
+            if (isCapacityPressureHigh()) {
+                applyAgingDecay(0.95, force = false)
+                lastDecayTimestamp = System.currentTimeMillis()
             } else {
                 updateRepositoryProfile()
             }
@@ -220,10 +225,12 @@ class LiveLearningManager(private val context: Context) {
             pruneIfExceeded()
 
             wordsTypedSinceDecay += words.size
-            if (wordsTypedSinceDecay >= WORDS_BETWEEN_DECAY) {
-                applyAgingDecay(0.95)
+            if (wordsTypedSinceDecay >= WORDS_BETWEEN_DECAY_CHECK) {
+                if (isCapacityPressureHigh()) {
+                    applyAgingDecay(0.95, force = false)
+                    lastDecayTimestamp = System.currentTimeMillis()
+                }
                 wordsTypedSinceDecay = 0
-                lastDecayTimestamp = System.currentTimeMillis()
             }
         }
     }
@@ -274,6 +281,23 @@ class LiveLearningManager(private val context: Context) {
     private fun isAlphanumericEnabled(): Boolean {
         val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
         return prefs.getBoolean("personalization_alphanumeric_enabled", true)
+    }
+
+    /**
+     * Check if dictionary capacity pressure exceeds the high watermark (85% of maximum capacity).
+     * When false (Safe Zone), NO aging decay or forgetting occurs, preserving 100% of user data.
+     */
+    fun isCapacityPressureHigh(): Boolean {
+        val maxWordFreq = getMaxWordFreqCapacity()
+        val maxPairs = getMaxPairsCapacity()
+        val maxOOV = getMaxOOVCapacity()
+
+        val wordFreqHigh = liveWordFreq.size >= (maxWordFreq * HIGH_WATERMARK_RATIO).toInt()
+        val bigramHigh = liveBigram.size >= (maxPairs * HIGH_WATERMARK_RATIO).toInt()
+        val trigramHigh = liveTrigram.size >= (maxPairs * HIGH_WATERMARK_RATIO).toInt()
+        val oovHigh = liveLearnedOOV.size >= (maxOOV * HIGH_WATERMARK_RATIO).toInt()
+
+        return wordFreqHigh || bigramHigh || trigramHigh || oovHigh
     }
 
     /**
@@ -379,18 +403,29 @@ class LiveLearningManager(private val context: Context) {
     }
 
     /**
-     * Exponential Aging Decay (Natural Forgetting Curve):
-     * Gradually reduces frequency counts of old words and pairs.
-     * Removes forgotten words whose count decays to 0, ensuring high-frequency active words
-     * remain dominant while stale words naturally phase out.
+     * Capacity-Driven Aging Decay:
+     * Triggered ONLY when storage reaches High Watermark (>= 85% capacity).
+     * Gently decays low-frequency tail words (typos, 1-count words) until usage drops back to Low Watermark (~70%).
+     * Frequently typed words (count >= 3) are protected from zeroing out.
+     * If force = true (e.g. simulation test or maintenance), runs decay unconditionally.
      */
-    fun applyAgingDecay(decayFactor: Double = 0.95) {
-        // 1. Decay Word Frequency
+    fun applyAgingDecay(decayFactor: Double = 0.95, force: Boolean = true) {
+        if (!force && !isCapacityPressureHigh()) {
+            Log.d(TAG, "Storage in Safe Zone (< 85% cap). Aging decay skipped to protect user vocabulary.")
+            return
+        }
+
+        // 1. Decay Word Frequency with High-Frequency Protection
         val freqItr = liveWordFreq.entries.iterator()
         while (freqItr.hasNext()) {
             val entry = freqItr.next()
-            val decayed = entry.value * decayFactor
-            val newCount = if (decayed < 1.0) 0 else kotlin.math.round(decayed).toInt()
+            val currentVal = entry.value
+            val decayed = currentVal * decayFactor
+            val newCount = if (currentVal >= HIGH_FREQ_PROTECTION_COUNT) {
+                maxOf(1, kotlin.math.round(decayed).toInt())
+            } else {
+                if (decayed < 1.0) 0 else kotlin.math.round(decayed).toInt()
+            }
             if (newCount <= 0) {
                 freqItr.remove()
                 liveLearnedOOV.remove(entry.key)
@@ -407,7 +442,11 @@ class LiveLearningManager(private val context: Context) {
             while (innerItr.hasNext()) {
                 val e = innerItr.next()
                 val decayed = e.value * decayFactor
-                val newCount = if (decayed < 1.0) 0 else kotlin.math.round(decayed).toInt()
+                val newCount = if (e.value >= HIGH_FREQ_PROTECTION_COUNT) {
+                    maxOf(1, kotlin.math.round(decayed).toInt())
+                } else {
+                    if (decayed < 1.0) 0 else kotlin.math.round(decayed).toInt()
+                }
                 if (newCount <= 0) {
                     innerItr.remove()
                 } else {
@@ -432,7 +471,11 @@ class LiveLearningManager(private val context: Context) {
             while (innerItr.hasNext()) {
                 val e = innerItr.next()
                 val decayed = e.value * decayFactor
-                val newCount = if (decayed < 1.0) 0 else kotlin.math.round(decayed).toInt()
+                val newCount = if (e.value >= HIGH_FREQ_PROTECTION_COUNT) {
+                    maxOf(1, kotlin.math.round(decayed).toInt())
+                } else {
+                    if (decayed < 1.0) 0 else kotlin.math.round(decayed).toInt()
+                }
                 if (newCount <= 0) {
                     innerItr.remove()
                 } else {
@@ -451,6 +494,7 @@ class LiveLearningManager(private val context: Context) {
 
         isDirty.set(true)
         updateRepositoryProfile()
+        Log.d(TAG, "Completed Capacity-Driven Aging Decay. Active words: ${liveWordFreq.size}, Pairs: ${liveBigram.size}")
     }
 
     /**
@@ -459,6 +503,11 @@ class LiveLearningManager(private val context: Context) {
     fun saveProfileIfDirty() {
         if (!isDirty.compareAndSet(true, false)) return
         try {
+            val file = File(context.filesDir, PROFILE_FILENAME)
+            if (liveBigram.isEmpty() && liveTrigram.isEmpty() && liveWordFreq.isEmpty() && liveLearnedOOV.isEmpty()) {
+                if (file.exists()) file.delete()
+                return
+            }
             val liveData = LiveProfileData(
                 bigram = liveBigram,
                 trigram = liveTrigram,
@@ -467,7 +516,6 @@ class LiveLearningManager(private val context: Context) {
                 lastDecayTimestamp = lastDecayTimestamp
             )
             val jsonStr = json.encodeToString(liveData)
-            val file = File(context.filesDir, PROFILE_FILENAME)
             writeProfileFile(file, jsonStr)
             Log.d(TAG, "Successfully persisted encrypted live profile to internal storage (${file.length()} bytes)")
         } catch (e: Throwable) {

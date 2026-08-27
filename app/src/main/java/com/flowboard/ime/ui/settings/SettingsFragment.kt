@@ -63,8 +63,8 @@ class SettingsFragment : Fragment() {
         val switchVibration = view.findViewById<MaterialSwitch>(R.id.switchVibration)
         val switchShowSuggestions = view.findViewById<MaterialSwitch>(R.id.switchShowSuggestions)
 
-        switchSound?.isChecked = prefs.getBoolean("sound_on_keypress", false)
-        switchVibration?.isChecked = prefs.getBoolean("vibration_on_keypress", false)
+        switchSound?.isChecked = prefs.getBoolean("sound_on_keypress", true)
+        switchVibration?.isChecked = prefs.getBoolean("vibration_on_keypress", true)
         switchShowSuggestions?.isChecked = prefs.getBoolean("show_suggestions", true)
 
         switchSound?.setOnCheckedChangeListener { _, isChecked ->
@@ -93,6 +93,10 @@ class SettingsFragment : Fragment() {
 
         view.findViewById<View>(R.id.btnNavShortcuts)?.setOnClickListener {
             mainActivity.navigateToFragment(ShortcutsFragment())
+        }
+
+        view.findViewById<View>(R.id.btnNavOnboarding)?.setOnClickListener {
+            mainActivity.navigateToFragment(com.flowboard.ime.ui.onboarding.OnboardingFragment())
         }
 
         mainActivity.onKeyboardStatusChanged = {

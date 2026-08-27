@@ -8,6 +8,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.view.View
+import android.widget.FrameLayout
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -15,6 +17,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import android.content.Context
+import com.flowboard.ime.ui.onboarding.OnboardingFragment
 import com.flowboard.ime.ui.settings.SettingsFragment
 import com.flowboard.ime.ui.settings.ThemesFragment
 import com.google.android.material.appbar.MaterialToolbar
@@ -169,7 +173,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val prefs = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+        val isOnboardingCompleted = prefs.getBoolean("onboarding_completed", false)
+
         val openPage = intent?.getStringExtra("OPEN_PAGE")
+        if (openPage == "onboarding" || !isOnboardingCompleted) {
+            setMainChromeVisible(false)
+            supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+            replaceRootFragment(OnboardingFragment())
+            return
+        }
+
+        setMainChromeVisible(true)
         if (openPage == "themes.html" || openPage == "themes") {
             bottomNavigationView.selectedItemId = R.id.nav_themes
             supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
@@ -182,16 +197,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleBackNavigation() {
+        val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+        if (currentFragment is OnboardingFragment) {
+            finish()
+            return
+        }
+
         if (supportFragmentManager.backStackEntryCount > 0) {
             supportFragmentManager.popBackStack()
-            val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
-            if (currentFragment is ThemesFragment) {
+            val afterPop = supportFragmentManager.findFragmentById(R.id.fragment_container)
+            if (afterPop is ThemesFragment) {
                 setToolbarTitle("Keyboard Themes", false)
             } else {
                 setToolbarTitle("Keyboard Settings", false)
             }
         } else {
             finish()
+        }
+    }
+
+    fun setMainChromeVisible(visible: Boolean) {
+        val appBar = findViewById<View>(R.id.appBarLayout)
+        val bottomNav = findViewById<View>(R.id.bottomNavigationView)
+        val container = findViewById<View>(R.id.fragment_container)
+
+        appBar?.visibility = if (visible) View.VISIBLE else View.GONE
+        bottomNav?.visibility = if (visible) View.VISIBLE else View.GONE
+
+        val marginPx = if (visible) (80 * resources.displayMetrics.density).toInt() else 0
+        (container?.layoutParams as? androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams)?.let { lp ->
+            lp.bottomMargin = marginPx
+            container.layoutParams = lp
         }
     }
 

@@ -34,7 +34,7 @@ class SidebarSettingsFragment : Fragment() {
 
         // Docked Sidebar
         val rgDocked = view.findViewById<RadioGroup>(R.id.rgDockedSidebar)
-        val isDockedLeft = prefs.getBoolean("docked_side_tools_left", false)
+        val isDockedLeft = prefs.getBoolean("docked_side_tools_left", true)
         if (isDockedLeft) {
             view.findViewById<RadioButton>(R.id.rbDockedLeft)?.isChecked = true
         } else {
@@ -64,7 +64,7 @@ class SidebarSettingsFragment : Fragment() {
 
         // Delete Button Position
         val rgDelete = view.findViewById<RadioGroup>(R.id.rgDeleteButton)
-        val followSide = prefs.getBoolean("delete_btn_follow_side_tools", true)
+        val followSide = prefs.getBoolean("delete_btn_follow_side_tools", false)
         val fixedSide = prefs.getString("delete_btn_fixed_side", "right") ?: "right"
 
         if (followSide) {

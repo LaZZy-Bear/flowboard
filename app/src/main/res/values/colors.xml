@@ -36,6 +36,10 @@
     <color name="blue_700">#1D4ED8</color>
     <color name="blue_900">#1E3A8A</color>
 
+    <!-- Status & Alerts -->
+    <color name="green_active">#16A34A</color>
+    <color name="red_inactive">#DC2626</color>
+
     <!-- Legacy references (kept for backward compatibility) -->
     <color name="kb_accent">#2563EB</color>
     <color name="kb_text">#1D1D1F</color>

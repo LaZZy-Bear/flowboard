@@ -105,18 +105,19 @@
     <string name="clear">Clear</string>
     <string name="save">Save</string>
 
-    <!-- Sidebar Settings Fragment -->
     <string name="docked_sidebar_title">Docked Sidebar Position</string>
     <string name="docked_sidebar_desc">Side tools placement when keyboard is docked at bottom.</string>
-    <string name="sidebar_right_default">Right Side (Default)</string>
+    <string name="sidebar_left_default">Left Side (Default)</string>
     <string name="sidebar_left">Left Side</string>
+    <string name="sidebar_right_default">Right Side (Default)</string>
+    <string name="sidebar_right">Right Side</string>
     <string name="floating_sidebar_title">Floating Sidebar Position</string>
     <string name="floating_sidebar_desc">Side tools placement when keyboard is in floating window mode.</string>
     <string name="delete_btn_title">Delete Button Position</string>
     <string name="delete_btn_desc">Choose whether backspace moves with side tools or stays fixed.</string>
-    <string name="delete_btn_follow">Follow Side Tools (Default)</string>
-    <string name="delete_btn_fixed_right">Always Fixed Right</string>
-    <string name="delete_btn_fixed_left">Always Fixed Left</string>
+    <string name="delete_btn_follow">Follow Side Tools</string>
+    <string name="delete_btn_fixed_right">Fixed Right (Default)</string>
+    <string name="delete_btn_fixed_left">Fixed Left</string>
 
     <!-- Personalization Fragment -->
     <string name="enable_personalization">Enable Personalization</string>

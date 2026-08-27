@@ -228,7 +228,7 @@ class AssetLoader(private val context: Context) {
         }
     }
 
-    private fun loadMasterLayout(path: String = "$DIR_EN/master_layout.json"): Map<String, MasterLayoutEntry> {
+    fun loadMasterLayout(path: String = "$DIR_EN/master_layout.json"): Map<String, MasterLayoutEntry> {
         return try {
             val text = readAssetText(path)
             json.decodeFromString<Map<String, MasterLayoutEntry>>(text)

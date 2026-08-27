@@ -12,8 +12,8 @@ import com.flowboard.ime.R
 
 class SoundHapticManager(private val context: Context) {
 
-    var isSoundEnabled: Boolean = false
-    var isVibrationEnabled: Boolean = false
+    var isSoundEnabled: Boolean = true
+    var isVibrationEnabled: Boolean = true
 
     private var soundPool: SoundPool? = null
     private var soundTapId: Int = 0

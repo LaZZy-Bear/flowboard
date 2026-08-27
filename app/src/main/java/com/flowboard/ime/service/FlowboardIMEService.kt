@@ -118,17 +118,17 @@ class FlowboardIMEService : InputMethodService() {
                     refreshLayout()
                 }
                 "sound_on_keypress" -> {
-                    soundHapticManager.isSoundEnabled = intent.getBooleanExtra("setting_val_bool", false)
+                    soundHapticManager.isSoundEnabled = intent.getBooleanExtra("setting_val_bool", true)
                 }
                 "vibration_on_keypress" -> {
-                    soundHapticManager.isVibrationEnabled = intent.getBooleanExtra("setting_val_bool", false)
+                    soundHapticManager.isVibrationEnabled = intent.getBooleanExtra("setting_val_bool", true)
                 }
                 "show_suggestions" -> {
                     isShowSuggestions = intent.getBooleanExtra("setting_val_bool", true)
                     updatePredictions()
                 }
                 "docked_side_tools_left" -> {
-                    isDockedLeftHanded = intent.getBooleanExtra("setting_val_bool", false)
+                    isDockedLeftHanded = intent.getBooleanExtra("setting_val_bool", true)
                     setHandedness(if (isFloatingMode) isFloatingLeftHanded else isDockedLeftHanded)
                 }
                 "floating_side_tools_left" -> {
@@ -137,6 +137,36 @@ class FlowboardIMEService : InputMethodService() {
                 }
                 "delete_btn_follow_side_tools", "delete_btn_fixed_side" -> {
                     updateDeleteButtonPosition()
+                }
+                "personalization_enabled" -> {
+                    context?.let { ctx ->
+                        liveLearningManager.loadProfile()
+                        AssetLoader(ctx).updatePersonalizationState(ctx, repo)
+                    }
+                    if (::scoringEngine.isInitialized) {
+                        scoringEngine.resetTrieCache()
+                    }
+                    val root = keyboardRoot
+                    if (root != null) {
+                        refreshLayout()
+                        renderToolbar()
+                        updatePredictions()
+                    }
+                }
+                "clear_personalization" -> {
+                    liveLearningManager.clearProfile()
+                    context?.let { ctx ->
+                        AssetLoader(ctx).updatePersonalizationState(ctx, repo)
+                    }
+                    if (::scoringEngine.isInitialized) {
+                        scoringEngine.resetTrieCache()
+                    }
+                    val root = keyboardRoot
+                    if (root != null) {
+                        refreshLayout()
+                        renderToolbar()
+                        updatePredictions()
+                    }
                 }
                 else -> {
                     if (key?.startsWith("shortcut_") == true) {
@@ -149,7 +179,7 @@ class FlowboardIMEService : InputMethodService() {
                             }
                         }
                     } else {
-                        // Personalization / clear data / general reload
+                        // Personalization / general reload
                         loadSettings()
                         context?.let { ctx ->
                             liveLearningManager.loadProfile()
@@ -251,7 +281,7 @@ class FlowboardIMEService : InputMethodService() {
     private var btnCloseHeightAdjust: ImageView? = null
 
     // Control Panel States
-    private var isDockedLeftHanded = false
+    private var isDockedLeftHanded = true
     private var isFloatingLeftHanded = false
     private var isDarkModeOverride: Boolean? = null
     private var isFloatingMode = false
@@ -268,10 +298,10 @@ class FlowboardIMEService : InputMethodService() {
 
     private fun loadSettings() {
         val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
-        soundHapticManager.isSoundEnabled = prefs.getBoolean("sound_on_keypress", false)
-        soundHapticManager.isVibrationEnabled = prefs.getBoolean("vibration_on_keypress", false)
+        soundHapticManager.isSoundEnabled = prefs.getBoolean("sound_on_keypress", true)
+        soundHapticManager.isVibrationEnabled = prefs.getBoolean("vibration_on_keypress", true)
         isShowSuggestions = prefs.getBoolean("show_suggestions", true)
-        isDockedLeftHanded = prefs.getBoolean("docked_side_tools_left", false)
+        isDockedLeftHanded = prefs.getBoolean("docked_side_tools_left", true)
         isFloatingLeftHanded = prefs.getBoolean("floating_side_tools_left", false)
         isFloatingMode = prefs.getBoolean("is_floating_mode", false)
         floatingX = prefs.getInt("floating_x", -1)
@@ -3202,7 +3232,7 @@ class FlowboardIMEService : InputMethodService() {
         val del = btnDelete ?: return
 
         val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
-        val followSideTools = prefs.getBoolean("delete_btn_follow_side_tools", true)
+        val followSideTools = prefs.getBoolean("delete_btn_follow_side_tools", false)
         val fixedSide = prefs.getString("delete_btn_fixed_side", "right") ?: "right"
 
         val deleteOnLeft = if (followSideTools) {

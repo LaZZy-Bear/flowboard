@@ -808,6 +808,101 @@ class PersonalizationLiveTest {
         assertTrue("Repository profile must be empty", repo.personalProfile.isEmpty)
     }
 
+    @Test
+    fun testClearProfileDoesNotResurrectOnNextLifecycleOrSave() {
+        val filesDir = tempFolder.newFolder("files_clear_lifecycle_test")
+        val mockContext = MockContext(filesDir)
+        val serviceManager = LiveLearningManager(mockContext)
+
+        // 1. Service learns words
+        serviceManager.loadProfile()
+        serviceManager.recordWordTyped("hello world from testing")
+        serviceManager.saveProfileIfDirty()
+
+        val statsBefore = serviceManager.getStats()
+        assertTrue("Words must be learned", (statsBefore["wordFreqCount"] ?: 0) > 0)
+
+        // 2. User opens Settings and clicks Clear
+        val settingsManager = LiveLearningManager(mockContext)
+        settingsManager.clearProfile()
+
+        // 3. Service receives broadcast and clears itself
+        serviceManager.clearProfile()
+
+        val statsAfterClear = serviceManager.getStats()
+        assertEquals(0, statsAfterClear["wordFreqCount"])
+        assertEquals(0, statsAfterClear["totalPairsCount"])
+        assertEquals(0, statsAfterClear["oovCount"])
+        assertTrue(repo.personalProfile.isEmpty)
+        assertFalse(repo.isPersonalizationEnabled)
+
+        // 4. Keyboard lifecycle events happen (saveProfileIfDirty, etc.)
+        serviceManager.saveProfileIfDirty()
+
+        val savedFile = java.io.File(filesDir, "flowboard_live_profile.json")
+        assertFalse("Profile file must NOT be recreated if profile is empty", savedFile.exists())
+
+        // 5. User opens Settings again to view stats
+        val thirdManager = LiveLearningManager(mockContext)
+        thirdManager.loadProfile()
+        val statsThird = thirdManager.getStats()
+        assertEquals(0, statsThird["wordFreqCount"])
+        assertEquals(0, statsThird["totalPairsCount"])
+        assertEquals(0, statsThird["oovCount"])
+        assertTrue(repo.personalProfile.isEmpty)
+    }
+
+    @Test
+    fun testSafeZoneProtectsLightUserFromForgetting() {
+        val filesDir = tempFolder.newFolder("files_safe_zone_test")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+        liveMgr.loadProfile()
+
+        // Light user types 5 words (well below 85% cap)
+        liveMgr.recordWordTyped("uniquerareword")
+        liveMgr.recordWordTyped("anotherrareword")
+        liveMgr.recordWordTyped("dailyphrase here")
+
+        assertFalse("Capacity pressure must be false in safe zone", liveMgr.isCapacityPressureHigh())
+
+        // Routine background decay attempt (force = false)
+        liveMgr.applyAgingDecay(decayFactor = 0.5, force = false)
+
+        // Verify words are 100% preserved
+        val stats = liveMgr.getStats()
+        assertTrue("Unique words must NOT be forgotten in Safe Zone", (stats["wordFreqCount"] ?: 0) >= 4)
+        assertTrue("Repo must still contain 'uniquerareword'", repo.personalProfile.wordFreq.containsKey("uniquerareword"))
+    }
+
+    @Test
+    fun testHighFrequencyProtectionUnderCapacityPressure() {
+        val filesDir = tempFolder.newFolder("files_hfp_test")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+        liveMgr.loadProfile()
+
+        // 1. Record frequent word 5 times
+        repeat(5) {
+            liveMgr.recordWordTyped("myfavoritekeyword")
+        }
+        // 2. Record single-count typo word 1 time
+        liveMgr.recordWordTyped("typowordx")
+
+        assertEquals(5, repo.personalProfile.wordFreq["myfavoritekeyword"])
+        assertEquals(1, repo.personalProfile.wordFreq["typowordx"])
+
+        // 3. Force capacity decay cycles
+        liveMgr.applyAgingDecay(decayFactor = 0.7, force = true)
+
+        // Typo (count=1 -> 0.7 < 1.0) must be purged to 0 and removed
+        assertFalse("Single-count typo must be forgotten after decay", repo.personalProfile.wordFreq.containsKey("typowordx"))
+
+        // Frequent word (count=5 -> protected floor >= 1) must never be purged
+        assertTrue("Frequent user keyword must NEVER be purged", repo.personalProfile.wordFreq.containsKey("myfavoritekeyword"))
+        assertTrue("Frequent word count must remain >= 1", (repo.personalProfile.wordFreq["myfavoritekeyword"] ?: 0) >= 1)
+    }
+
     private class MockContext(
         private val baseDir: java.io.File,
         private val prefsData: MutableMap<String, Any> = mutableMapOf()

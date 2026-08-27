@@ -60,16 +60,16 @@
                     android:layout_height="wrap_content">
 
                     <com.google.android.material.radiobutton.MaterialRadioButton
-                        android:id="@+id/rbDockedRight"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/sidebar_right_default" />
-
-                    <com.google.android.material.radiobutton.MaterialRadioButton
                         android:id="@+id/rbDockedLeft"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/sidebar_left" />
+                        android:text="@string/sidebar_left_default" />
+
+                    <com.google.android.material.radiobutton.MaterialRadioButton
+                        android:id="@+id/rbDockedRight"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sidebar_right" />
                 </RadioGroup>
 
             </LinearLayout>
