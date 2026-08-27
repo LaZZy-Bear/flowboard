@@ -161,4 +161,33 @@
     <string name="stat_custom">Custom</string>
     <string name="clear_learned_data">Clear Learned Data</string>
     <string name="privacy_footer">100% on-device. Your typing data never leaves your phone.</string>
+
+    <!-- Onboarding Wizard -->
+    <string name="step_counter_format">Step %1$d of %2$d</string>
+    <string name="skip">Skip</string>
+    <string name="onboarding_welcome_title">Welcome to Flowboard</string>
+    <string name="onboarding_welcome_desc">Enable and select Flowboard to start experiencing revolutionary 9-key swipe typing.</string>
+    <string name="onboarding_step_enable_title">1. Enable Flowboard</string>
+    <string name="badge_required">Required</string>
+    <string name="badge_enabled">✓ Enabled</string>
+    <string name="badge_selected">✓ Selected</string>
+    <string name="onboarding_step_enable_desc">Turn on Flowboard in your device\'s input method settings.</string>
+    <string name="btn_enable_in_settings">Enable in Settings</string>
+    <string name="btn_enabled">Enabled</string>
+    <string name="onboarding_step_select_title">2. Select Flowboard</string>
+    <string name="onboarding_step_select_desc">Switch your active input method to Flowboard.</string>
+    <string name="btn_switch_to_flowboard">Switch to Flowboard</string>
+    <string name="btn_active_keyboard">Active Keyboard</string>
+    <string name="onboarding_personalization_title">Smart Personalization</string>
+    <string name="onboarding_personalization_desc">Flowboard dynamically adapts its layout to your typing habits for faster, smarter 1-tap word suggestions.</string>
+    <string name="onboarding_enable_personalization_desc">Recommended • Real-time adaptive letter placement and next-word ranking</string>
+    <string name="onboarding_privacy_title">100% On-Device &amp; Private</string>
+    <string name="onboarding_privacy_desc">Your typing data never leaves your device. All learned vocabulary is protected with hardware-backed AES-256 GCM encryption and never backed up to the cloud.</string>
+    <string name="btn_back">Back</string>
+    <string name="btn_continue">Continue</string>
+    <string name="btn_finish_setup">Finish Setup &amp; Start Typing</string>
+
+    <!-- Settings Wizard Tile -->
+    <string name="setup_wizard_title">Setup Wizard</string>
+    <string name="setup_wizard_desc">Replay interactive welcome and setup guide</string>
 </resources>

@@ -9,7 +9,6 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.view.View
-import android.widget.FrameLayout
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -173,7 +172,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val prefs = getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
         val isOnboardingCompleted = prefs.getBoolean("onboarding_completed", false)
 
         val openPage = intent?.getStringExtra("OPEN_PAGE")

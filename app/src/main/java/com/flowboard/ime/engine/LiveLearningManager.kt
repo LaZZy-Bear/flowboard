@@ -43,7 +43,6 @@ class LiveLearningManager(private val context: Context) {
 
         // Watermark Thresholds for Capacity-Driven Forgetting (Only forget when near full)
         const val HIGH_WATERMARK_RATIO = 0.85 // Start gentle decay when usage reaches 85% of cap
-        const val LOW_WATERMARK_RATIO = 0.70  // Target usage floor after pruning cycle
         const val HIGH_FREQ_PROTECTION_COUNT = 3 // Words typed >= 3 times are immune from decaying to 0
         private const val WORDS_BETWEEN_DECAY_CHECK = 100
 

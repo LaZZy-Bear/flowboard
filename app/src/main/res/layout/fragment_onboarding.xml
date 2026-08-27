@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
@@ -32,7 +33,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Step 1 of 2"
+            tools:text="Step 1 of 2"
             android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
             android:textColor="?attr/colorPrimary" />
 
@@ -41,7 +42,7 @@
             style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Skip"
+            android:text="@string/skip"
             android:textColor="?android:attr/textColorSecondary" />
     </LinearLayout>
 
@@ -74,13 +75,14 @@
                     android:layout_gravity="center_horizontal"
                     android:layout_marginTop="16dp"
                     android:layout_marginBottom="16dp"
+                    android:contentDescription="@null"
                     android:src="@drawable/ic_keyboard"
                     app:tint="?attr/colorPrimary" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Welcome to Flowboard"
+                    android:text="@string/onboarding_welcome_title"
                     android:textAlignment="center"
                     android:textAppearance="@style/TextAppearance.Material3.HeadlineMedium"
                     android:textStyle="bold"
@@ -91,7 +93,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="24dp"
-                    android:text="Enable and select Flowboard to start experiencing revolutionary 9-key swipe typing."
+                    android:text="@string/onboarding_welcome_desc"
                     android:textAlignment="center"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                     android:textColor="?android:attr/textColorSecondary" />
@@ -124,7 +126,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="1. Enable Flowboard"
+                                android:text="@string/onboarding_step_enable_title"
                                 android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                                 android:textStyle="bold"
                                 android:textColor="?android:attr/textColorPrimary" />
@@ -136,7 +138,7 @@
                                 android:background="@drawable/bg_badge_dropdown"
                                 android:paddingHorizontal="10dp"
                                 android:paddingVertical="4dp"
-                                android:text="Required"
+                                android:text="@string/badge_required"
                                 android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
                                 android:textColor="@color/red_inactive" />
                         </LinearLayout>
@@ -146,7 +148,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:layout_marginBottom="12dp"
-                            android:text="Turn on Flowboard in your device's input method settings."
+                            android:text="@string/onboarding_step_enable_desc"
                             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                             android:textColor="?android:attr/textColorSecondary" />
 
@@ -154,7 +156,7 @@
                             android:id="@+id/btnEnableKeyboard"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Enable in Settings"
+                            android:text="@string/btn_enable_in_settings"
                             app:cornerRadius="12dp"
                             app:icon="@drawable/ic_settings" />
                     </LinearLayout>
@@ -188,7 +190,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="2. Select Flowboard"
+                                android:text="@string/onboarding_step_select_title"
                                 android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                                 android:textStyle="bold"
                                 android:textColor="?android:attr/textColorPrimary" />
@@ -200,7 +202,7 @@
                                 android:background="@drawable/bg_badge_dropdown"
                                 android:paddingHorizontal="10dp"
                                 android:paddingVertical="4dp"
-                                android:text="Required"
+                                android:text="@string/badge_required"
                                 android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
                                 android:textColor="@color/red_inactive" />
                         </LinearLayout>
@@ -210,7 +212,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:layout_marginBottom="12dp"
-                            android:text="Switch your active input method to Flowboard."
+                            android:text="@string/onboarding_step_select_desc"
                             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                             android:textColor="?android:attr/textColorSecondary" />
 
@@ -219,7 +221,7 @@
                             style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Switch to Flowboard"
+                            android:text="@string/btn_switch_to_flowboard"
                             app:cornerRadius="12dp"
                             app:icon="@drawable/ic_keyboard" />
                     </LinearLayout>
@@ -240,13 +242,14 @@
                     android:layout_gravity="center_horizontal"
                     android:layout_marginTop="16dp"
                     android:layout_marginBottom="12dp"
+                    android:contentDescription="@null"
                     android:src="@drawable/ic_psychology"
                     app:tint="?attr/colorPrimary" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Smart Personalization"
+                    android:text="@string/onboarding_personalization_title"
                     android:textAlignment="center"
                     android:textAppearance="@style/TextAppearance.Material3.HeadlineSmall"
                     android:textStyle="bold"
@@ -257,7 +260,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:layout_marginBottom="24dp"
-                    android:text="Flowboard dynamically adapts its layout to your typing habits for faster, smarter 1-tap word suggestions."
+                    android:text="@string/onboarding_personalization_desc"
                     android:textAlignment="center"
                     android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                     android:textColor="?android:attr/textColorSecondary" />
@@ -289,7 +292,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Enable Personalization"
+                                android:text="@string/enable_personalization"
                                 android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                                 android:textStyle="bold"
                                 android:textColor="?android:attr/textColorPrimary" />
@@ -298,7 +301,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="Recommended • Real-time adaptive letter placement and next-word ranking"
+                                android:text="@string/onboarding_enable_personalization_desc"
                                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                                 android:textColor="?attr/colorPrimary" />
                         </LinearLayout>
@@ -328,33 +331,23 @@
                         android:orientation="vertical"
                         android:padding="16dp">
 
-                        <LinearLayout
+                        <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
+                            android:layout_marginBottom="8dp"
                             android:gravity="center_vertical"
-                            android:layout_marginBottom="8dp">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_lock"
-                                app:tint="?attr/colorPrimary" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:text="100% On-Device &amp; Private"
-                                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
-                                android:textStyle="bold"
-                                android:textColor="?android:attr/textColorPrimary" />
-                        </LinearLayout>
+                            android:text="@string/onboarding_privacy_title"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                            android:textColor="?android:attr/textColorPrimary"
+                            android:textStyle="bold"
+                            app:drawableStartCompat="@drawable/ic_lock"
+                            app:drawableTint="?attr/colorPrimary"
+                            android:drawablePadding="8dp" />
 
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Your typing data never leaves your device. All learned vocabulary is protected with hardware-backed AES-256 GCM encryption and never backed up to the cloud."
+                            android:text="@string/onboarding_privacy_desc"
                             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                             android:textColor="?android:attr/textColorSecondary" />
                     </LinearLayout>
@@ -381,7 +374,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="Back"
+            android:text="@string/btn_back"
             android:visibility="gone"
             app:cornerRadius="12dp" />
 
@@ -390,7 +383,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="2"
-            android:text="Continue"
+            android:text="@string/btn_continue"
             app:cornerRadius="12dp" />
     </LinearLayout>
 

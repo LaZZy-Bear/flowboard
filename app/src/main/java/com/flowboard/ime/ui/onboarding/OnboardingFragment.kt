@@ -122,26 +122,26 @@ class OnboardingFragment : Fragment() {
         val redColor = ContextCompat.getColor(requireContext(), R.color.red_inactive)
 
         if (isEnabled) {
-            tvEnableBadge.text = "✓ Enabled"
+            tvEnableBadge.text = getString(R.string.badge_enabled)
             tvEnableBadge.setTextColor(greenColor)
-            btnEnableKeyboard.text = "Enabled"
+            btnEnableKeyboard.text = getString(R.string.btn_enabled)
             btnEnableKeyboard.isEnabled = false
         } else {
-            tvEnableBadge.text = "Required"
+            tvEnableBadge.text = getString(R.string.badge_required)
             tvEnableBadge.setTextColor(redColor)
-            btnEnableKeyboard.text = "Enable in Settings"
+            btnEnableKeyboard.text = getString(R.string.btn_enable_in_settings)
             btnEnableKeyboard.isEnabled = true
         }
 
         if (isSelected) {
-            tvSelectBadge.text = "✓ Selected"
+            tvSelectBadge.text = getString(R.string.badge_selected)
             tvSelectBadge.setTextColor(greenColor)
-            btnSelectKeyboard.text = "Active Keyboard"
+            btnSelectKeyboard.text = getString(R.string.btn_active_keyboard)
             btnSelectKeyboard.isEnabled = false
         } else {
-            tvSelectBadge.text = "Required"
+            tvSelectBadge.text = getString(R.string.badge_required)
             tvSelectBadge.setTextColor(redColor)
-            btnSelectKeyboard.text = "Switch to Flowboard"
+            btnSelectKeyboard.text = getString(R.string.btn_switch_to_flowboard)
             btnSelectKeyboard.isEnabled = true
         }
     }
@@ -178,13 +178,13 @@ class OnboardingFragment : Fragment() {
 
     private fun updateStepUI(mainActivity: MainActivity) {
         progressIndicator.progress = currentStep
-        tvStepCounter.text = "Step $currentStep of $totalSteps"
+        tvStepCounter.text = getString(R.string.step_counter_format, currentStep, totalSteps)
 
         step1Layout.visibility = if (currentStep == 1) View.VISIBLE else View.GONE
         step2Layout.visibility = if (currentStep == 2) View.VISIBLE else View.GONE
 
         btnBack.visibility = if (currentStep > 1) View.VISIBLE else View.GONE
-        btnContinue.text = if (currentStep == totalSteps) "Finish Setup & Start Typing" else "Continue"
+        btnContinue.text = if (currentStep == totalSteps) getString(R.string.btn_finish_setup) else getString(R.string.btn_continue)
 
         if (currentStep == 1) {
             checkActivationStatus(mainActivity)
