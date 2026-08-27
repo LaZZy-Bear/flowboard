@@ -232,6 +232,28 @@ class PersonalizationLiveTest {
     }
 
     @Test
+    fun testPunctuationDelimitersAndNewlines() {
+        val filesDir = tempFolder.newFolder("filesPunc")
+        val mockContext = MockContext(filesDir)
+        val liveMgr = LiveLearningManager(mockContext)
+        liveMgr.loadProfile()
+
+        // 1. Punctuation acts like space/delimiter and preserves bigrams: "asb3!ppk"
+        liveMgr.recordWordTyped("asb3!ppk")
+        assertTrue("Word 'asb3' should be tracked", repo.personalProfile.wordFreq.containsKey("asb3"))
+        assertTrue("Word 'ppk' should be tracked", repo.personalProfile.wordFreq.containsKey("ppk"))
+        assertTrue("Bigram 'asb3' -> 'ppk' should exist", repo.personalProfile.bigram["asb3"]?.containsKey("ppk") == true)
+
+        // 2. Newline separates lines so bigrams do not cross lines: "ayo chill\naight bet"
+        liveMgr.clearProfile()
+        liveMgr.recordWordTyped("ayo chill\naight bet")
+        assertEquals(4, liveMgr.getStats()["wordFreqCount"])
+        assertTrue("Bigram 'ayo' -> 'chill' should exist", repo.personalProfile.bigram["ayo"]?.containsKey("chill") == true)
+        assertTrue("Bigram 'aight' -> 'bet' should exist", repo.personalProfile.bigram["aight"]?.containsKey("bet") == true)
+        assertFalse("Bigram 'chill' -> 'aight' should NOT exist across newline", repo.personalProfile.bigram["chill"]?.containsKey("aight") == true)
+    }
+
+    @Test
     fun testCapacityLimitsAndPruning() {
         val filesDir = tempFolder.newFolder("files6")
         val prefs = mutableMapOf<String, Any>(

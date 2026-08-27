@@ -34,19 +34,19 @@ class ProfileManager(private val repo: FlowboardRepository) {
      * Switch to a different typing profile mode.
      */
     fun switchProfile(mode: ProfileMode) {
-        currentMode = ProfileMode.DEFAULT
-        applyProfile(defaultProfile)
+        currentMode = mode
+        applyProfile(if (mode == ProfileMode.CHAT) chatProfile else defaultProfile)
     }
 
     /**
      * Re-apply the current profile mode (e.g., after data reload).
      */
     fun refreshProfile() {
-        switchProfile(currentMode)
+        applyProfile(if (currentMode == ProfileMode.CHAT) chatProfile else defaultProfile)
     }
 
     private fun applyProfile(profile: Profile) {
-        repo.activeProfile = Profile.DEFAULT
-        repo.bonusDict = Profile.DEFAULT.bonusDict
+        repo.activeProfile = profile
+        repo.bonusDict = profile.bonusDict
     }
 }

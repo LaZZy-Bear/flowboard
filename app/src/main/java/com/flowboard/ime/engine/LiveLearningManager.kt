@@ -47,6 +47,7 @@ class LiveLearningManager(private val context: Context) {
         private const val WORDS_BETWEEN_DECAY_CHECK = 100
 
         private val EMAIL_REGEX = Regex("""[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}""")
+        private val LINE_BREAK_REGEX = Regex("""[\r\n]+""")
     }
 
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
@@ -168,14 +169,22 @@ class LiveLearningManager(private val context: Context) {
         }
 
         val allowAlphanumeric = isAlphanumericEnabled()
-        val regex = if (allowAlphanumeric) {
+        val wordRegex = if (allowAlphanumeric) {
             Regex("[a-z0-9]+(?:['.-][a-z0-9]+)*")
         } else {
             Regex("[a-z]+(?:'[a-z]+)?")
         }
-        val words = regex.findAll(fullText.lowercase()).map { it.value }.toList()
 
-        if (words.isNotEmpty()) {
+        // Split text by line breaks so bigrams/trigrams only split on actual newlines (\r\n)
+        // Punctuation marks (. ! ? ;) within a line act like word delimiters (spaces) and preserve bigram learning
+        val segments = fullText.lowercase().split(LINE_BREAK_REGEX)
+        var totalWordsInDoc = 0
+
+        for (segment in segments) {
+            val words = wordRegex.findAll(segment).map { it.value }.toList()
+            if (words.isEmpty()) continue
+            totalWordsInDoc += words.size
+
             for (w in words) {
                 // 1. Update Word Frequency
                 if (w.length >= 2 || w == "i" || w == "a") {
@@ -195,7 +204,7 @@ class LiveLearningManager(private val context: Context) {
                 }
             }
 
-            // 3. Update Bigram for all consecutive word pairs in sequence
+            // 3. Update Bigram ONLY for consecutive word pairs within the same sentence/line segment
             for (i in 0 until words.size - 1) {
                 val w1 = words[i]
                 val w2 = words[i + 1]
@@ -205,7 +214,7 @@ class LiveLearningManager(private val context: Context) {
                 }
             }
 
-            // 4. Update Trigram for all consecutive triplets in sequence
+            // 4. Update Trigram ONLY for consecutive triplets within the same sentence/line segment
             for (i in 0 until words.size - 2) {
                 val w1 = words[i]
                 val w2 = words[i + 1]
@@ -218,12 +227,12 @@ class LiveLearningManager(private val context: Context) {
             }
         }
 
-        if (emailMatches.isNotEmpty() || words.isNotEmpty()) {
+        if (emailMatches.isNotEmpty() || totalWordsInDoc > 0) {
             isDirty.set(true)
             updateRepositoryProfile()
             pruneIfExceeded()
 
-            wordsTypedSinceDecay += words.size
+            wordsTypedSinceDecay += totalWordsInDoc
             if (wordsTypedSinceDecay >= WORDS_BETWEEN_DECAY_CHECK) {
                 if (isCapacityPressureHigh()) {
                     applyAgingDecay(0.95, force = false)
@@ -576,24 +585,35 @@ class LiveLearningManager(private val context: Context) {
     }
 
     private fun writeProfileFile(file: File, content: String) {
+        val tmpFile = File(file.parentFile, "${file.name}.tmp")
         try {
             val masterKey = getMasterKey()
-            if (file.exists()) file.delete()
+            if (tmpFile.exists()) tmpFile.delete()
             val encryptedFile = EncryptedFile.Builder(
                 context,
-                file,
+                tmpFile,
                 masterKey,
                 EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
             ).build()
             encryptedFile.openFileOutput().use { outputStream ->
                 outputStream.write(content.toByteArray(Charsets.UTF_8))
             }
+            if (file.exists()) file.delete()
+            if (!tmpFile.renameTo(file)) {
+                tmpFile.copyTo(file, overwrite = true)
+                tmpFile.delete()
+            }
         } catch (e: Throwable) {
             // Graceful fallback for JVM unit testing environments where AndroidKeyStore is absent
             Log.d(TAG, "Encrypted write fallback to plain write: ${e.message}")
             try {
+                if (tmpFile.exists()) tmpFile.delete()
+                tmpFile.writeText(content)
                 if (file.exists()) file.delete()
-                file.writeText(content)
+                if (!tmpFile.renameTo(file)) {
+                    tmpFile.copyTo(file, overwrite = true)
+                    tmpFile.delete()
+                }
             } catch (e2: Throwable) {
                 Log.e(TAG, "Failed to write profile file: ${e2.message}")
             }

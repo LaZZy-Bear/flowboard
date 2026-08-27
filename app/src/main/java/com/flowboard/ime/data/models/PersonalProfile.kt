@@ -23,5 +23,5 @@ data class PersonalProfile(
     }
 
     val isEmpty: Boolean
-        get() = bigram.isEmpty() && wordFreq.isEmpty() && learnedOOV.isEmpty()
+        get() = bigram.isEmpty() && trigram.isEmpty() && wordFreq.isEmpty() && learnedOOV.isEmpty()
 }

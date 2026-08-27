@@ -44,6 +44,16 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             8 to EngineWeights(U = 0,  B = 0,  T = 38, D = 66, WB = 10,  WT = 98,  STC = 9)
         )
 
+        private val DECAY_POWERS_0_80 = doubleArrayOf(
+            1.0,        // depth 1
+            0.80,       // depth 2
+            0.64,       // depth 3
+            0.512,      // depth 4
+            0.4096,     // depth 5
+            0.32768,    // depth 6
+            0.262144    // depth 7
+        )
+
         /**
          * CONNECTORS_SET — words that trigger State 8 (Connector Spacebar).
          * After these words, the STC engine provides domain-aware predictions.
@@ -400,7 +410,8 @@ class ScoringEngine(private val repo: FlowboardRepository) {
                 // Lower index in wordList = higher popularity (1.0 -> 0.0)
                 var pop = 1.0 - (curr.frequency.toDouble() / totalWords)
                 if (isOOV) pop *= 0.5 // Penalty for OOV words
-                val depthFactor = Math.pow(decay, (depth - 1).toDouble()) // Depth 1 = 1.0, Depth 2 = 0.80, ...
+                val depthIdx = (depth - 1).coerceIn(0, DECAY_POWERS_0_80.size - 1)
+                val depthFactor = if (decay == 0.80) DECAY_POWERS_0_80[depthIdx] else Math.pow(decay, (depth - 1).toDouble())
                 val s = pop * depthFactor * 100.0
                 if (s > top1) {
                     top2 = top1
@@ -622,16 +633,6 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
         val testPrefix = activePrefix + safeChar
 
-        // Check if character is restricted from being doubled (i, v, j, q, x, u)
-        if (RESTRICTED_DOUBLE_CHARS.contains(safeChar)) {
-            val inPersonalFreq = repo.personalProfile.wordFreq.keys.any { it.lowercase().startsWith(testPrefix) }
-            val inLearnedOOV = repo.personalProfile.learnedOOV.any { it.lowercase().startsWith(testPrefix) }
-            val isAllowedByPersonalization = inPersonalFreq || inLearnedOOV
-            if (!isAllowedByPersonalization) {
-                return false
-            }
-        }
-
         fun checkTrie(root: TrieNode?): Boolean {
             if (root == null) return false
             var node = root
@@ -640,6 +641,16 @@ class ScoringEngine(private val repo: FlowboardRepository) {
                 if (node == null) return false
             }
             return true
+        }
+
+        // Check if character is restricted from being doubled (i, v, j, q, x, u)
+        if (RESTRICTED_DOUBLE_CHARS.contains(safeChar)) {
+            val inPersonalFreq = repo.personalProfile.wordFreq.keys.any { it.startsWith(testPrefix, ignoreCase = true) }
+            val inLearnedOOV = checkTrie(repo.trieDictOOV) || repo.personalProfile.learnedOOV.any { it.startsWith(testPrefix, ignoreCase = true) }
+            val isAllowedByPersonalization = inPersonalFreq || inLearnedOOV
+            if (!isAllowedByPersonalization) {
+                return false
+            }
         }
 
         return checkTrie(repo.trieDict) || checkTrie(repo.trieDictOOV)

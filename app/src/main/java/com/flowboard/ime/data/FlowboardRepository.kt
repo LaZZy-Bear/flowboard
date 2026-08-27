@@ -23,45 +23,45 @@ object FlowboardRepository {
     // ══════════════════════════════════════════
     // English Language Data
     // ══════════════════════════════════════════
-    var unigram: List<String> = emptyList()
-    var unigramStart: List<String> = emptyList()       // Sentence-starting char frequencies (State 1)
-    var masterLayout: Map<String, MasterLayoutEntry> = emptyMap()
-    var bigram: Map<String, List<String>> = emptyMap()
-    var trigram: Map<String, List<String>> = emptyMap()
-    var trieDict: TrieNode? = null
-    var trieDictOOV: TrieNode? = null                  // Secondary OOV fallback trie
-    var baseTrieDictOOV: TrieNode? = null              // Immutable base for OOV trie (for resetting)
-    var wordList: List<String> = emptyList()
-    var wordReverseMap: Map<String, Int> = emptyMap()
-    var clusteredBigram: ClusteredWordBigram = ClusteredWordBigram.EMPTY
-    var clusteredTrigram: ClusteredWordBigram = ClusteredWordBigram.EMPTY  // Word Trigram (2-word history)
-    var sentenceTopicClusters: SentenceTopicClusters = SentenceTopicClusters.EMPTY
+    @Volatile var unigram: List<String> = emptyList()
+    @Volatile var unigramStart: List<String> = emptyList()       // Sentence-starting char frequencies (State 1)
+    @Volatile var masterLayout: Map<String, MasterLayoutEntry> = emptyMap()
+    @Volatile var bigram: Map<String, List<String>> = emptyMap()
+    @Volatile var trigram: Map<String, List<String>> = emptyMap()
+    @Volatile var trieDict: TrieNode? = null
+    @Volatile var trieDictOOV: TrieNode? = null                  // Secondary OOV fallback trie
+    @Volatile var baseTrieDictOOV: TrieNode? = null              // Immutable base for OOV trie (for resetting)
+    @Volatile var wordList: List<String> = emptyList()
+    @Volatile var wordReverseMap: Map<String, Int> = emptyMap()
+    @Volatile var clusteredBigram: ClusteredWordBigram = ClusteredWordBigram.EMPTY
+    @Volatile var clusteredTrigram: ClusteredWordBigram = ClusteredWordBigram.EMPTY  // Word Trigram (2-word history)
+    @Volatile var sentenceTopicClusters: SentenceTopicClusters = SentenceTopicClusters.EMPTY
 
     // ══════════════════════════════════════════
     // Shared Data
     // ══════════════════════════════════════════
-    var symbolPage1: Map<String, KeySlots> = emptyMap()
-    var symbolPage2: Map<String, KeySlots> = emptyMap()
+    @Volatile var symbolPage1: Map<String, KeySlots> = emptyMap()
+    @Volatile var symbolPage2: Map<String, KeySlots> = emptyMap()
 
     // ══════════════════════════════════════════
     // Personalization
     // ══════════════════════════════════════════
-    var personalProfile: PersonalProfile = PersonalProfile.EMPTY
-    var isPersonalizationEnabled: Boolean = false
-    var personalizationBoostMultiplier: Double = 1.0
-    var personalizationPairsEnabled: Boolean = true
-    var personalizationFreqEnabled: Boolean = true
-    var personalizationAlphanumericEnabled: Boolean = true
-    var personalizationLearnPasswordsEnabled: Boolean = false
-    var personalizationOOVMultiplier: Double = 1.3
-    var personalizationFirstTypeBonus: Double = 30.0
-    var personalizationUncertaintyGap: Double = 15.0
+    @Volatile var personalProfile: PersonalProfile = PersonalProfile.EMPTY
+    @Volatile var isPersonalizationEnabled: Boolean = false
+    @Volatile var personalizationBoostMultiplier: Double = 1.0
+    @Volatile var personalizationPairsEnabled: Boolean = true
+    @Volatile var personalizationFreqEnabled: Boolean = true
+    @Volatile var personalizationAlphanumericEnabled: Boolean = true
+    @Volatile var personalizationLearnPasswordsEnabled: Boolean = false
+    @Volatile var personalizationOOVMultiplier: Double = 1.3
+    @Volatile var personalizationFirstTypeBonus: Double = 30.0
+    @Volatile var personalizationUncertaintyGap: Double = 15.0
 
     // ══════════════════════════════════════════
     // Active Profile
     // ══════════════════════════════════════════
-    var activeProfile: Profile = Profile.DEFAULT
-    var bonusDict: Map<String, Double> = emptyMap()
+    @Volatile var activeProfile: Profile = Profile.DEFAULT
+    @Volatile var bonusDict: Map<String, Double> = emptyMap()
 
     // ══════════════════════════════════════════
     // Sticky Key State

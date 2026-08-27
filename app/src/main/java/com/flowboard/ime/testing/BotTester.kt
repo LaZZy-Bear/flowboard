@@ -208,7 +208,7 @@ class BotTester(
                 if (foundAction == "tap") {
                     stats.taps++
                     engineEntry.taps++
-                } else if (foundAction in listOf("up", "left", "right", "down", "swipe")) {
+                } else if (foundAction in SWIPE_ACTIONS) {
                     stats.swipes++
                     stats.swipeDetails[charStr] = (stats.swipeDetails[charStr] ?: 0) + 1
                     engineEntry.swipes++
@@ -217,9 +217,9 @@ class BotTester(
                     swipeWordCounts[curWord] = (swipeWordCounts[curWord] ?: 0) + 1
 
                     if (targetCheckChar.length == 1 && targetCheckChar[0] in 'a'..'z') {
-                        val enParts = botTypedText.lowercase().trim().split("\\s+".toRegex())
+                        val enParts = botTypedText.lowercase().trim().split(SPLIT_WHITESPACE_REGEX)
                         val currentWordPrefix = if (enParts.isNotEmpty()) enParts.last() else ""
-                        val targetWord = (currentWordPrefix + targetCheckChar).replace(Regex("[^a-z]"), "")
+                        val targetWord = (currentWordPrefix + targetCheckChar).replace(NON_A_Z_REGEX, "")
                         if (targetWord.isNotEmpty()) {
                             val mapForChar = letterSwipeCounts[targetCheckChar]
                             if (mapForChar != null) {
@@ -280,5 +280,11 @@ class BotTester(
         stats.swipesByLetter = swipesByLetter
 
         return stats
+    }
+
+    companion object {
+        private val SPLIT_WHITESPACE_REGEX = Regex("\\s+")
+        private val NON_A_Z_REGEX = Regex("[^a-z]")
+        private val SWIPE_ACTIONS = setOf("up", "left", "right", "down", "swipe")
     }
 }

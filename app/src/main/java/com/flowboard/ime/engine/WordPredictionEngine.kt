@@ -287,7 +287,7 @@ class WordPredictionEngine(private val repo: FlowboardRepository) {
             }
             if (oovNode != null) {
                 fun dfsOOV(n: TrieNode, word: String, depth: Int) {
-                    if (depth > 12) return
+                    if (allResults.size >= 400 || depth > 12) return
                     if (n.isEndOfWord) {
                         // User-learned OOV words get highest priority
                         allResults.add(word to 0)

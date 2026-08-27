@@ -120,12 +120,16 @@ class SoundHapticManager(private val context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 vib.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val timings = longArrayOf(0, 10, 12, 18)
-                val amplitudes = intArrayOf(0, 120, 0, 200)
-                vib.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+                if (vib.hasAmplitudeControl()) {
+                    val timings = longArrayOf(0, 10, 12, 18)
+                    val amplitudes = intArrayOf(0, 120, 0, 200)
+                    vib.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+                } else {
+                    vib.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE))
+                }
             } else {
                 @Suppress("DEPRECATION")
-                vib.vibrate(25)
+                vib.vibrate(20)
             }
         } catch (_: Exception) {}
     }

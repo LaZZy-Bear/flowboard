@@ -2,6 +2,7 @@ package com.flowboard.ime.service
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -367,6 +368,8 @@ class FlowboardIMEService : InputMethodService() {
     private var symbolPageIndex = 0
 
     private val liveLearningManager by lazy { LiveLearningManager(this) }
+    private var clipboardManager: ClipboardManager? = null
+    private var primaryClipListener: ClipboardManager.OnPrimaryClipChangedListener? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -382,25 +385,39 @@ class FlowboardIMEService : InputMethodService() {
         liveLearningManager.loadProfile()
 
         clipboardHelper = ClipboardManagerHelper(this)
-        val clipMgr = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
-        clipMgr?.addPrimaryClipChangedListener {
+        clipboardManager = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
+        primaryClipListener = ClipboardManager.OnPrimaryClipChangedListener {
+            val clipMgr = clipboardManager ?: return@OnPrimaryClipChangedListener
             val primaryClip = clipMgr.primaryClip
             if (primaryClip != null && primaryClip.itemCount > 0) {
+                // Privacy check: ignore sensitive clipboard items (e.g. passwords from password managers on API 33+)
+                val desc = clipMgr.primaryClipDescription
+                val isSensitive = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    desc?.extras?.getBoolean(ClipDescription.EXTRA_IS_SENSITIVE, false) ?: false
+                } else false
+
                 val clipText = primaryClip.getItemAt(0)?.coerceToText(this)?.toString()
                 if (!clipText.isNullOrBlank()) {
-                    val newItem = clipboardHelper.addClip(clipText)
-                    if (newItem != null) {
-                        showQuickPasteChip(newItem.text)
-                        if (clipboardPanel?.visibility == View.VISIBLE) {
-                            updateClipboardPanel()
+                    if (!isSensitive) {
+                        // Regular text: save to persistent clipboard history & show quick paste
+                        val newItem = clipboardHelper.addClip(clipText)
+                        if (newItem != null) {
+                            showQuickPasteChip(newItem.text)
+                            if (clipboardPanel?.visibility == View.VISIBLE) {
+                                updateClipboardPanel()
+                            }
                         }
+                    } else {
+                        // Sensitive text (e.g. Password/OTP): allow instant 1-tap paste via toolbar, but DO NOT save to persistent history
+                        showQuickPasteChip(clipText)
                     }
                 }
             }
         }
+        primaryClipListener?.let { clipboardManager?.addPrimaryClipChangedListener(it) }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(settingsReceiver, IntentFilter("com.flowboard.ime.ACTION_SETTINGS_CHANGED"), RECEIVER_EXPORTED)
+            registerReceiver(settingsReceiver, IntentFilter("com.flowboard.ime.ACTION_SETTINGS_CHANGED"), RECEIVER_NOT_EXPORTED)
         } else {
             @Suppress("UnspecifiedRegisterReceiverFlag")
             registerReceiver(settingsReceiver, IntentFilter("com.flowboard.ime.ACTION_SETTINGS_CHANGED"))
@@ -996,6 +1013,13 @@ class FlowboardIMEService : InputMethodService() {
     }
 
     private fun isLearningAllowedForCurrentField(): Boolean {
+        val info = currentInputEditorInfo
+        if (info != null) {
+            val noLearning = (info.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
+            if (noLearning) {
+                return false
+            }
+        }
         if (isCurrentInputPasswordField() && !liveLearningManager.isLearnPasswordsEnabled()) {
             return false
         }
@@ -1008,14 +1032,12 @@ class FlowboardIMEService : InputMethodService() {
         return !c.isLetterOrDigit() && c != '\'' && c != '@' && c != '.' && c != '-'
     }
 
+    private var lastRecordedSessionText: String? = null
+
     override fun onFinishInput() {
         super.onFinishInput()
         Log.d(TAG, "onFinishInput")
-        val currentText = getFullTextBeforeCursor()
-        if (currentText.isNotEmpty() && isLearningAllowedForCurrentField()) {
-            liveLearningManager.recordWordTyped(currentText)
-            liveLearningManager.saveProfileIfDirty()
-        }
+        lastRecordedSessionText = null
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -1023,7 +1045,8 @@ class FlowboardIMEService : InputMethodService() {
         Log.d(TAG, "onFinishInputView (finishingInput=$finishingInput)")
         closeSubPanelsToKeyboard()
         val currentText = getFullTextBeforeCursor()
-        if (currentText.isNotEmpty() && isLearningAllowedForCurrentField()) {
+        if (currentText.isNotEmpty() && currentText != lastRecordedSessionText && isLearningAllowedForCurrentField()) {
+            lastRecordedSessionText = currentText
             liveLearningManager.recordWordTyped(currentText)
             liveLearningManager.saveProfileIfDirty()
         }
@@ -1033,11 +1056,6 @@ class FlowboardIMEService : InputMethodService() {
         super.onWindowHidden()
         Log.d(TAG, "onWindowHidden")
         closeSubPanelsToKeyboard()
-        val currentText = getFullTextBeforeCursor()
-        if (currentText.isNotEmpty() && isLearningAllowedForCurrentField()) {
-            liveLearningManager.recordWordTyped(currentText)
-            liveLearningManager.saveProfileIfDirty()
-        }
     }
 
     override fun onDestroy() {
@@ -1048,6 +1066,11 @@ class FlowboardIMEService : InputMethodService() {
             speechRecognizer?.destroy()
             speechRecognizer = null
         } catch (_: Exception) {}
+        try {
+            primaryClipListener?.let { clipboardManager?.removePrimaryClipChangedListener(it) }
+        } catch (_: Exception) {}
+        primaryClipListener = null
+        clipboardManager = null
         liveLearningManager.saveProfileIfDirty()
         soundHapticManager.release()
         try {

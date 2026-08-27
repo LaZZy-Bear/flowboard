@@ -410,9 +410,9 @@ class AssetLoader(private val context: Context) {
                 wordFreq[word] = count.jsonPrimitive.int
             }
 
-            // Parse learnedOOV
-            val oovArr = root["learnedOOV"]?.jsonArray ?: return PersonalProfile.EMPTY
-            val learnedOOV = oovArr.map { it.jsonPrimitive.content }
+            // Parse learnedOOV (optional)
+            val oovArr = root["learnedOOV"]?.jsonArray
+            val learnedOOV = oovArr?.map { it.jsonPrimitive.content } ?: emptyList()
 
             PersonalProfile(bigram = bigram, trigram = trigram, wordFreq = wordFreq, learnedOOV = learnedOOV)
         } catch (e: Throwable) {

@@ -256,7 +256,7 @@ class KeyView @JvmOverloads constructor(
             var textY = centerY - (tapTextPaint.descent() + tapTextPaint.ascent()) / 2f
             
             // Shift tall Thai characters downwards slightly to prevent overlapping with top text
-            val isTallChar = keySlots.tap.any { it in listOf('ไ', 'ใ', 'โ', 'ป', 'ฝ', 'ฟ', 'ฬ') }
+            val isTallChar = keySlots.tap.any { it in TALL_THAI_CHARS }
             if (isTallChar) {
                 textY += 4f * dp
             }
@@ -333,5 +333,9 @@ class KeyView @JvmOverloads constructor(
 
         // Reset text align
         swipeTextPaint.textAlign = Paint.Align.CENTER
+    }
+
+    companion object {
+        private val TALL_THAI_CHARS = setOf('ไ', 'ใ', 'โ', 'ป', 'ฝ', 'ฟ', 'ฬ')
     }
 }
