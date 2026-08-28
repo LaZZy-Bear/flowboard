@@ -12,8 +12,8 @@
     "defaultSlot": "tap"
   },
   "?": {
-    "homeKey": "key_8",
-    "defaultSlot": "right"
+    "homeKey": "key_3",
+    "defaultSlot": "left"
   },
   "e": {
     "homeKey": "key_7",
@@ -25,11 +25,11 @@
   },
   "f": {
     "homeKey": "key_3",
-    "defaultSlot": "left"
+    "defaultSlot": "right"
   },
   "!": {
-    "homeKey": "key_5",
-    "defaultSlot": "up"
+    "homeKey": "key_8",
+    "defaultSlot": "left"
   },
   "i": {
     "homeKey": "key_3",
@@ -40,23 +40,23 @@
     "defaultSlot": "tap"
   },
   "j": {
-    "homeKey": "key_1",
-    "defaultSlot": "up"
+    "homeKey": "key_2",
+    "defaultSlot": "left"
   },
   "&": {
-    "homeKey": "key_6",
-    "defaultSlot": "right"
+    "homeKey": "key_4",
+    "defaultSlot": "left"
   },
   "o": {
     "homeKey": "key_4",
     "defaultSlot": "up"
   },
   "k": {
-    "homeKey": "key_4",
-    "defaultSlot": "tap"
+    "homeKey": "key_9",
+    "defaultSlot": "right"
   },
   "l": {
-    "homeKey": "key_1",
+    "homeKey": "key_9",
     "defaultSlot": "tap"
   },
   "@": {
@@ -68,15 +68,15 @@
     "defaultSlot": "left"
   },
   "m": {
-    "homeKey": "key_9",
+    "homeKey": "key_1",
     "defaultSlot": "up"
   },
   "u": {
     "homeKey": "key_8",
-    "defaultSlot": "up"
+    "defaultSlot": "right"
   },
   "v": {
-    "homeKey": "key_9",
+    "homeKey": "key_1",
     "defaultSlot": "tap"
   },
   "r": {
@@ -88,7 +88,7 @@
     "defaultSlot": "tap"
   },
   "q": {
-    "homeKey": "key_2",
+    "homeKey": "key_4",
     "defaultSlot": "tap"
   },
   "-": {
@@ -101,7 +101,7 @@
   },
   "w": {
     "homeKey": "key_9",
-    "defaultSlot": "right"
+    "defaultSlot": "up"
   },
   "x": {
     "homeKey": "key_6",
@@ -116,31 +116,31 @@
     "defaultSlot": "right"
   },
   "y": {
-    "homeKey": "key_8",
+    "homeKey": "key_9",
     "defaultSlot": "left"
   },
   "z": {
     "homeKey": "key_2",
-    "defaultSlot": "left"
+    "defaultSlot": "tap"
   },
   ",": {
-    "homeKey": "key_4",
-    "defaultSlot": "left"
+    "homeKey": "key_7",
+    "defaultSlot": "up"
   },
   "h": {
     "homeKey": "key_5",
     "defaultSlot": "right"
   },
   "'": {
-    "homeKey": "key_9",
-    "defaultSlot": "left"
-  },
-  "#": {
-    "homeKey": "key_3",
+    "homeKey": "key_6",
     "defaultSlot": "right"
   },
+  "#": {
+    "homeKey": "key_8",
+    "defaultSlot": "up"
+  },
   "\"": {
-    "homeKey": "key_7",
+    "homeKey": "key_5",
     "defaultSlot": "up"
   }
 }

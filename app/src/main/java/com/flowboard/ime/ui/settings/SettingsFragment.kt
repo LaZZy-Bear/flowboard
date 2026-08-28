@@ -95,8 +95,17 @@ class SettingsFragment : Fragment() {
             mainActivity.navigateToFragment(ShortcutsFragment())
         }
 
-        view.findViewById<View>(R.id.btnNavOnboarding)?.setOnClickListener {
-            mainActivity.navigateToFragment(com.flowboard.ime.ui.onboarding.OnboardingFragment())
+        view.findViewById<View>(R.id.btnNavAbout)?.setOnClickListener {
+            mainActivity.navigateToFragment(AboutFragment())
+        }
+
+        // Developer & Advanced Tuning
+        val isDevUnlocked = prefs.getBoolean("developer_options_unlocked", false)
+        view.findViewById<View>(R.id.tvSectionAdvanced)?.visibility = if (isDevUnlocked) View.VISIBLE else View.GONE
+        view.findViewById<View>(R.id.cardAdvancedTuning)?.visibility = if (isDevUnlocked) View.VISIBLE else View.GONE
+
+        view.findViewById<View>(R.id.btnNavAdvancedTuning)?.setOnClickListener {
+            mainActivity.navigateToFragment(AdvancedTuningFragment())
         }
 
         mainActivity.onKeyboardStatusChanged = {
@@ -109,6 +118,9 @@ class SettingsFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         val mainActivity = activity as? MainActivity ?: return
+        val isDevUnlocked = prefs.getBoolean("developer_options_unlocked", false)
+        view?.findViewById<View>(R.id.tvSectionAdvanced)?.visibility = if (isDevUnlocked) View.VISIBLE else View.GONE
+        view?.findViewById<View>(R.id.cardAdvancedTuning)?.visibility = if (isDevUnlocked) View.VISIBLE else View.GONE
         view?.let { setupActivationCard(it, mainActivity) }
         startStatusChecker()
     }

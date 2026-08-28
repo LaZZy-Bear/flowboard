@@ -91,6 +91,8 @@ app/src/main/
 │   │   ├── onboarding/
 │   │   │   └── OnboardingFragment.kt      # 2-Step First-Launch Setup Wizard (Activation & Personalization)
 │   │   └── settings/
+│   │       ├── AboutFragment.kt           # App Information, Version, Security & Support Links
+│   │       ├── AdvancedTuningFragment.kt  # Developer Mode Engine Tuner (Ratios, Layout, Weights)
 │   │       ├── PersonalizationFragment.kt # Settings for Live Learning, OOV, Multipliers, Storage Info
 │   │       ├── SettingsFragment.kt        # Master Settings UI & Live Activation Status Checker
 │   │       ├── ShortcutsFragment.kt       # Quick Text Snippets Editor (Keys 1-9)
@@ -122,6 +124,8 @@ app/src/main/
 ├── res/
 │   ├── layout/
 │   │   ├── activity_main.xml              # Main Companion App Container (CoordinatorLayout)
+│   │   ├── fragment_about.xml             # About Screen (Version, Architecture, Security, Support)
+│   │   ├── fragment_advanced_tuning.xml   # Advanced Engine Tuner (Ratios, Master Layout, State Weights)
 │   │   ├── fragment_onboarding.xml        # 2-Step Fullscreen Setup Wizard with Insets Protection
 │   │   ├── fragment_settings.xml          # Main Settings Dashboard
 │   │   ├── fragment_personalization.xml   # Personalization & Privacy Settings
@@ -143,6 +147,7 @@ app/src/test/java/com/flowboard/ime/       # Unit & Persona Simulation Benchmark
 ├── engine/
 │   └── ScoringEngineTest.kt               # 7-Sub-Engine Weighting & State Transitions Test
 └── testing/
+    ├── AdvancedTuningTest.kt              # Ratio Overrides, Layout & Weight Customization Test
     ├── BotTesterTest.kt                   # P22 Benchmark Tap Rate Simulation Test
     ├── PersonalizationLiveTest.kt         # Live Learning, OOV Ranking & Encryption Verification
     ├── HeavyUserPersonaSimulationTest.kt  # 5,000+ Words High-Capacity Stress Simulation
@@ -292,7 +297,7 @@ sequenceDiagram
 
 | การตั้งค่า (Feature) | ค่าเริ่มต้น (Default) | คีย์ SharedPreferences & ชนิดข้อมูล | พฤติกรรมการทำงาน |
 |---|---|---|---|
-| **ขนาดคีย์บอร์ด (Height)** | **Medium** | `docked_keyboard_scale = 1.25f` (Float) | ปรับความสูงแป้นพิมพ์และขนาดตัวอักษรให้พอดีกับนิ้วมือ |
+| **ขนาดคีย์บอร์ด (Height)** | **Small** | `docked_keyboard_scale = 1.0f` (Float) | ปรับความสูงแป้นพิมพ์กะทัดรัด เหมาะกับการพิมพ์มือเดียว |
 | **ธีมคีย์บอร์ด (Theme)** | **Auto** | `active_theme = "System default"` (String) | ปรับเปลี่ยนสีตามโหมด Light/Dark ของระบบ Android อัตโนมัติ |
 | **ตำแหน่งแถบเครื่องมือ (Sidebar)** | **ชิดซ้าย (Left)** | `docked_side_tools_left = true` (Boolean) | วางแถบเครื่องมือ (อิโมจิ, คลิปบอร์ด, ตั้งค่า) ไว้ฝั่งซ้ายของแป้น |
 | **ตำแหน่งปุ่มลบ (Delete Button)** | **ชิดขวา (Right)** | `delete_btn_follow_side_tools = false`<br/>`delete_btn_fixed_side = "right"` | ตรึงปุ่ม Backspace ไว้ฝั่งขวาเสมอ |

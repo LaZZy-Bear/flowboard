@@ -36,13 +36,15 @@ class ScoringEngine(private val repo: FlowboardRepository) {
          * ENGINE_WEIGHTS — directly from P22 scoring.js ENGINE_WEIGHTS constant.
          */
         private val STATE_WEIGHTS = mapOf(
-            1 to EngineWeights(U = 31, B = 23, T = 41, D = 21, WB = 31,  WT = 70,  STC = 0),
-            2 to EngineWeights(U = 0,  B = 18, T = 69, D = 27, WB = 100, WT = 100, STC = 69),
-            3 to EngineWeights(U = 0,  B = 0,  T = 29, D = 34, WB = 100, WT = 100, STC = 32),
-            4 to EngineWeights(U = 0,  B = 4,  T = 2,  D = 83, WB = 83,  WT = 93,  STC = 36),
-            7 to EngineWeights(U = 28, B = 11, T = 0,  D = 23, WB = 45,  WT = 100, STC = 100),
-            8 to EngineWeights(U = 0,  B = 0,  T = 38, D = 66, WB = 10,  WT = 98,  STC = 9)
+            1 to EngineWeights(U = 13, B = 32, T = 41, D = 33, WB = 31,  WT = 64,  STC = 0),
+            2 to EngineWeights(U = 0,  B = 18, T = 88, D = 23, WB = 100, WT = 100, STC = 67),
+            3 to EngineWeights(U = 0,  B = 0,  T = 27, D = 27, WB = 100, WT = 100, STC = 32),
+            4 to EngineWeights(U = 0,  B = 4,  T = 9,  D = 89, WB = 83,  WT = 93,  STC = 36),
+            7 to EngineWeights(U = 20, B = 22, T = 0,  D = 31, WB = 59,  WT = 100, STC = 100),
+            8 to EngineWeights(U = 0,  B = 2,  T = 33, D = 66, WB = 7,   WT = 84,  STC = 0)
         )
+
+        fun getDefaultStateWeights(): Map<Int, EngineWeights> = STATE_WEIGHTS
 
         private val DECAY_POWERS_0_80 = doubleArrayOf(
             1.0,        // depth 1
@@ -164,10 +166,9 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         }
 
         val fallback = EngineWeights(U = 100, B = 0, T = 0, D = 0, WB = 0, WT = 0, STC = 0)
-        val W = (STATE_WEIGHTS[state] ?: fallback).mutableCopy()
-        engineStatus = STATE_WEIGHTS[state]?.let {
-            "State $state (${it.U}U ${it.B}B ${it.T}T ${it.D}D ${it.WB}WB ${it.WT}WT ${it.STC}STC)"
-        } ?: "Fallback"
+        val activeWeights = repo.customStateWeights?.get(state) ?: STATE_WEIGHTS[state] ?: fallback
+        val W = activeWeights.mutableCopy()
+        engineStatus = "${activeWeights.status ?: "State $state"} (${activeWeights.U}U ${activeWeights.B}B ${activeWeights.T}T ${activeWeights.D}D ${activeWeights.WB}WB ${activeWeights.WT}WT ${activeWeights.STC}STC)"
 
         // ── Sub-engine score computation ──
         val isWordStart = (state == 1 || state == 7 || state == 8)

@@ -148,6 +148,14 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        supportFragmentManager.addOnBackStackChangedListener {
+            val isRoot = supportFragmentManager.backStackEntryCount == 0
+            val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+            if (currentFragment !is OnboardingFragment) {
+                setBottomNavVisible(isRoot)
+            }
+        }
+
         if (savedInstanceState == null) {
             handleIntent(intent)
         }
@@ -214,12 +222,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun setMainChromeVisible(visible: Boolean) {
-        val appBar = findViewById<View>(R.id.appBarLayout)
+    fun setBottomNavVisible(visible: Boolean) {
         val bottomNav = findViewById<View>(R.id.bottomNavigationView)
         val container = findViewById<View>(R.id.fragment_container)
 
-        appBar?.visibility = if (visible) View.VISIBLE else View.GONE
         bottomNav?.visibility = if (visible) View.VISIBLE else View.GONE
 
         val marginPx = if (visible) (80 * resources.displayMetrics.density).toInt() else 0
@@ -229,13 +235,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun setMainChromeVisible(visible: Boolean) {
+        val appBar = findViewById<View>(R.id.appBarLayout)
+        val container = findViewById<View>(R.id.fragment_container)
+
+        appBar?.visibility = if (visible) View.VISIBLE else View.GONE
+        setBottomNavVisible(visible)
+    }
+
     fun replaceRootFragment(fragment: Fragment) {
+        setBottomNavVisible(true)
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .commit()
     }
 
     fun navigateToFragment(fragment: Fragment) {
+        setBottomNavVisible(false)
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .addToBackStack(null)

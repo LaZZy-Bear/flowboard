@@ -169,6 +169,19 @@ class FlowboardIMEService : InputMethodService() {
                         updatePredictions()
                     }
                 }
+                "advanced_tuning_changed" -> {
+                    context?.let { ctx ->
+                        repo.reloadAdvancedTuning(ctx)
+                    }
+                    if (::scoringEngine.isInitialized) {
+                        scoringEngine.resetTrieCache()
+                    }
+                    val root = keyboardRoot
+                    if (root != null) {
+                        refreshLayout()
+                        updatePredictions()
+                    }
+                }
                 else -> {
                     if (key?.startsWith("shortcut_") == true) {
                         val num = intent.getIntExtra("shortcut_key_num", 0)
@@ -298,6 +311,7 @@ class FlowboardIMEService : InputMethodService() {
     private val shortcutTexts = Array(10) { "" }
 
     private fun loadSettings() {
+        repo.reloadAdvancedTuning(this)
         val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
         soundHapticManager.isSoundEnabled = prefs.getBoolean("sound_on_keypress", true)
         soundHapticManager.isVibrationEnabled = prefs.getBoolean("vibration_on_keypress", true)
@@ -640,8 +654,8 @@ class FlowboardIMEService : InputMethodService() {
         val btnSizeLarge = rootView.findViewById<Button>(R.id.btnSizeLarge)
 
         val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
-        // Ensure default is 1.2f if not set
-        var currentScale = prefs.getFloat("docked_keyboard_scale", 1.2f)
+        // Ensure default is 1.0f (Small) if not set
+        var currentScale = prefs.getFloat("docked_keyboard_scale", 1.0f)
         if (!isFloatingMode) {
             applyDockedScale(currentScale)
         }
@@ -956,6 +970,7 @@ class FlowboardIMEService : InputMethodService() {
         super.onStartInputView(info, restarting)
         Log.d(TAG, "onStartInputView (restarting=$restarting)")
 
+        repo.reloadAdvancedTuning(this)
         closeSubPanelsToKeyboard()
 
         if (::scoringEngine.isInitialized) {
@@ -1091,7 +1106,7 @@ class FlowboardIMEService : InputMethodService() {
         val tools = sideTools ?: return
         tools.removeAllViews()
         val prefs = getSharedPreferences("flowboard_settings", MODE_PRIVATE)
-        val scale = if (!isFloatingMode) prefs.getFloat("docked_keyboard_scale", 1.3f) else currentFloatingScale
+        val scale = if (!isFloatingMode) prefs.getFloat("docked_keyboard_scale", 1.0f) else currentFloatingScale
         
         val displayActions = if (isFloatingMode) {
             val floatingShortcuts = activeShortcuts.filter { it != ToolbarAction.RESIZE }
@@ -2155,7 +2170,7 @@ class FlowboardIMEService : InputMethodService() {
             // Reset scale down transformations back to original (1f)
             root.scaleX = 1f
             root.scaleY = 1f
-            val dockedScale = prefs.getFloat("docked_keyboard_scale", 1.3f)
+            val dockedScale = prefs.getFloat("docked_keyboard_scale", 1.0f)
             applyDockedScale(dockedScale)
             
             lp.width = ViewGroup.LayoutParams.MATCH_PARENT

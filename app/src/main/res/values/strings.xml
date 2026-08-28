@@ -190,4 +190,32 @@
     <!-- Settings Wizard Tile -->
     <string name="setup_wizard_title">Setup Wizard</string>
     <string name="setup_wizard_desc">Replay interactive welcome and setup guide</string>
+
+    <!-- About Fragment -->
+    <string name="about_title">About Flowboard</string>
+    <string name="about_flowboard">About Flowboard</string>
+    <string name="about_flowboard_desc">Version info, engine architecture &amp; open source</string>
+    <string name="about_app_slogan">Smart 9-Key Ergonomic Keyboard for Android</string>
+    <string name="about_version_format">Version %1$s (Build %2$d)</string>
+    <string name="about_desc_overview">Flowboard is an intelligent, single-handed 9-key keyboard engineered to eliminate fat-finger typos on traditional QWERTY layouts with dynamic, real-time character prediction.</string>
+    <string name="section_core_technology">CORE TECHNOLOGY &amp; ENGINE</string>
+    <string name="tech_engine_title">6 Contextual States</string>
+    <string name="tech_engine_desc">Smart character scoring dynamically calculated across 6 typing contexts</string>
+    <string name="tech_domino_title">Partner Tap Swap</string>
+    <string name="tech_domino_desc">Paired keys: Key 1 ↔ 2, Key 3 ↔ 6, Key 4 ↔ 7, Key 8 ↔ 9 (Key 5 Solo)</string>
+    <string name="section_security_privacy">SECURITY &amp; PRIVACY GUARANTEE</string>
+    <string name="security_offline_title">100% Offline Architecture</string>
+    <string name="security_offline_desc">Zero network permissions requested. No data ever leaves your device.</string>
+    <string name="security_encryption_title">Hardware-Backed AES-256 GCM</string>
+    <string name="security_encryption_desc">All learned vocabulary is encrypted on-disk via Android Keystore.</string>
+    <string name="security_no_cloud_title">Zero Cloud Sync &amp; Backup</string>
+    <string name="security_no_cloud_desc">Excluded from Google Drive cloud backups to protect your privacy.</string>
+    <string name="section_links_support">LINKS &amp; SUPPORT</string>
+    <string name="btn_github">GitHub Project</string>
+    <string name="btn_github_desc">https://github.com/penLumm</string>
+    <string name="btn_feedback">Feedback &amp; Support</string>
+    <string name="btn_feedback_desc">sathit.imdev@gmail.com</string>
+    <string name="btn_licenses">Open-Source Licenses</string>
+    <string name="btn_licenses_desc">Third-party libraries &amp; acknowledgements</string>
+    <string name="about_copyright">© 2026 Flowboard. All rights reserved.\nCrafted with ❤️ for effortless single-handed typing.</string>
 </resources>

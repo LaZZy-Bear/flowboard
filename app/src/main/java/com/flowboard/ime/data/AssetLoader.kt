@@ -55,7 +55,10 @@ class AssetLoader(private val context: Context) {
         repo.symbolPage1 = symbolPage1Job.await()
         repo.symbolPage2 = symbolPage2Job.await()
         repo.unigram = unigramJob.await()
-        repo.masterLayout = masterJob.await()
+        val loadedMaster = masterJob.await()
+        repo.defaultMasterLayout = loadedMaster
+        repo.masterLayout = loadedMaster
+        repo.reloadAdvancedTuning(context)
 
         val elapsed = System.currentTimeMillis() - startTime
         Log.d(TAG, "Phase A complete in ${elapsed}ms")

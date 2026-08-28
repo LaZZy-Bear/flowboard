@@ -197,7 +197,7 @@ class OnboardingFragment : Fragment() {
         prefs.edit {
             putBoolean("onboarding_completed", true)
             // Ensure system defaults are explicitly saved if not present
-            if (!prefs.contains("docked_keyboard_scale")) putFloat("docked_keyboard_scale", 1.25f)
+            if (!prefs.contains("docked_keyboard_scale")) putFloat("docked_keyboard_scale", 1.0f)
             if (!prefs.contains("active_theme")) putString("active_theme", "System default")
             if (!prefs.contains("docked_side_tools_left")) putBoolean("docked_side_tools_left", true)
             if (!prefs.contains("delete_btn_follow_side_tools")) putBoolean("delete_btn_follow_side_tools", false)

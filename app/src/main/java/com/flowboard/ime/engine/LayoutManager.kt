@@ -35,8 +35,11 @@ class LayoutManager(private val repo: FlowboardRepository) {
             "key_5" to null                            // center — no partner
         )
 
-        /** Lazy tap ratio: runner-up must beat current tap by >15% to take it. */
-        private const val LAZY_TAP_RATIO = 1.15
+        /** Default lazy tap ratio: runner-up must beat current default tap by >15% (1.15x) to take it on the same key. */
+        const val DEFAULT_LAZY_TAP_RATIO = 1.15
+
+        /** Default partner tap ratio: runner-up on Key A must beat partner Key B's tap by >35% (1.35x) to swap. */
+        const val DEFAULT_PARTNER_TAP_RATIO = 1.35
     }
 
     data class Candidate(val char: String, val defaultSlot: String, val score: Double)
@@ -89,7 +92,7 @@ class LayoutManager(private val repo: FlowboardRepository) {
             if (candidates.isEmpty()) continue
 
             val keyMap = newLayout[keyId] ?: continue
-            val placed = mutableSetOf<String>()
+            val placedCandidates = mutableSetOf<Candidate>()
 
             // Find default-tap candidate and top scorer
             val defTapObj = candidates.find { it.defaultSlot == "tap" }
@@ -97,8 +100,14 @@ class LayoutManager(private val repo: FlowboardRepository) {
 
             var localCandidates = candidates
             // LAZY TAP: protect default tap if runner-up doesn't beat it by LAZY_TAP_RATIO
-            if (defTapObj != null && defTapObj != candidates[0] && defTapObj.score > 0) {
-                if (candidates[0].score <= defTapObj.score * LAZY_TAP_RATIO) {
+            if (defTapObj != null && defTapObj != candidates[0]) {
+                if (repo.lazyTapRatio >= 5.0) {
+                    // Lock mode (high ratio / 10x): 100% protect default tap slot
+                    topWinner = defTapObj
+                    localCandidates = candidates.filter { it != defTapObj }.toMutableList()
+                    localCandidates.add(0, defTapObj)
+                    charactersByHomeKey[keyId] = localCandidates
+                } else if (defTapObj.score > 0 && candidates[0].score <= defTapObj.score * repo.lazyTapRatio) {
                     topWinner = defTapObj
                     localCandidates = candidates.filter { it != defTapObj }.toMutableList()
                     localCandidates.add(0, defTapObj)
@@ -107,37 +116,37 @@ class LayoutManager(private val repo: FlowboardRepository) {
             }
 
             // Place tap winner
-            if (topWinner.score > 0 && (keyMap["tap"] ?: "").isEmpty()) {
+            if ((keyMap["tap"] ?: "").isEmpty()) {
                 keyMap["tap"] = topWinner.char
-                placed.add(topWinner.char)
+                placedCandidates.add(topWinner)
 
                 // If winner displaced the default tap char, place it in winner's old default slot
                 if (topWinner.defaultSlot != "tap" && topWinner.defaultSlot != "down") {
                     if (defTapObj != null && (keyMap[topWinner.defaultSlot] ?: "").isEmpty()) {
                         keyMap[topWinner.defaultSlot] = defTapObj.char
-                        placed.add(defTapObj.char)
+                        placedCandidates.add(defTapObj)
                     }
                 }
             }
 
             // Fill remaining candidates in their default slots
             for (c in localCandidates) {
-                if (!placed.contains(c.char) && c.defaultSlot != "down" &&
+                if (!placedCandidates.contains(c) && c.defaultSlot != "down" &&
                     (keyMap[c.defaultSlot] ?: "").isEmpty()
                 ) {
                     keyMap[c.defaultSlot] = c.char
-                    placed.add(c.char)
+                    placedCandidates.add(c)
                 }
             }
 
             // Fill any remaining chars into empty slots
             val fillSlots = listOf("tap", "up", "left", "right")
             for (c in localCandidates) {
-                if (!placed.contains(c.char) && c.defaultSlot != "down") {
+                if (!placedCandidates.contains(c) && c.defaultSlot != "down") {
                     for (slot in fillSlots) {
                         if ((keyMap[slot] ?: "").isEmpty()) {
                             keyMap[slot] = c.char
-                            placed.add(c.char)
+                            placedCandidates.add(c)
                             break
                         }
                     }
@@ -175,7 +184,18 @@ class LayoutManager(private val repo: FlowboardRepository) {
                 partnerTapScore = Double.MAX_VALUE  // Protect sticky char
             }
 
-            if (runnerUp.score > partnerTapScore * LAZY_TAP_RATIO) {
+            if (repo.partnerTapRatio >= 5.0) {
+                // Lock mode (high ratio / 10x): completely disable partner swap
+                continue
+            }
+
+            val effectiveThreshold = if (partnerTapScore > 0.0) {
+                partnerTapScore * repo.partnerTapRatio
+            } else {
+                5.0 * repo.partnerTapRatio
+            }
+
+            if (runnerUp.score > effectiveThreshold) {
                 // Domino Step 1: Clear runner-up from Key A
                 val keySlotsMap = newLayout[keyId] ?: continue
                 var runnerUpOldSlot: String? = null
