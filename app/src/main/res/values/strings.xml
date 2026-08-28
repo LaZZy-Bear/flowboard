@@ -217,6 +217,7 @@
     <string name="btn_feedback_desc">sathit.imdev@gmail.com</string>
     <string name="btn_licenses">Open-Source Licenses</string>
     <string name="btn_licenses_desc">Third-party libraries &amp; acknowledgements</string>
+    <string name="about_copyright">© 2026 Flowboard. All rights reserved.\nCrafted with ❤️ for effortless single-handed typing.</string>
     <string name="about_default_version">Version 1.0.0</string>
     <string name="section_about">ABOUT</string>
     <string name="section_developer_tuning">DEVELOPER &amp; ADVANCED TUNING</string>
