@@ -6,7 +6,6 @@ import com.flowboard.ime.data.models.MasterLayoutEntry
 import com.flowboard.ime.engine.LayoutManager
 import com.flowboard.ime.engine.ScoringEngine
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test

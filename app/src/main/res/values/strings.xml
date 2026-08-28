@@ -217,5 +217,35 @@
     <string name="btn_feedback_desc">sathit.imdev@gmail.com</string>
     <string name="btn_licenses">Open-Source Licenses</string>
     <string name="btn_licenses_desc">Third-party libraries &amp; acknowledgements</string>
-    <string name="about_copyright">© 2026 Flowboard. All rights reserved.\nCrafted with ❤️ for effortless single-handed typing.</string>
+    <string name="about_default_version">Version 1.0.0</string>
+    <string name="section_about">ABOUT</string>
+    <string name="section_developer_tuning">DEVELOPER &amp; ADVANCED TUNING</string>
+    <string name="advanced_tuner_nav_title">Advanced Engine Tuner</string>
+    <string name="advanced_tuner_nav_desc">Tweak tap ratios, master layout &amp; state weights</string>
+
+    <!-- Advanced Tuning Fragment -->
+    <string name="advanced_tuner_title">Advanced Engine Tuner (Developer Mode)</string>
+    <string name="advanced_tuner_desc">Tune core prediction ratios, character layout mapping, and state engine weights. All changes take effect immediately on the live keyboard.</string>
+    <string name="section_tap_partner_ratios">1. TAP &amp; PARTNER RATIOS</string>
+    <string name="lazy_tap_ratio_title">Lazy Tap Ratio (Home Key Protection)</string>
+    <string name="lazy_tap_ratio_desc">Multiplier required for a runner-up character on the same key to replace the default home tap character (1.0 to 10.0). Setting towards 10.0 essentially locks the home key and stops dynamic swapping.</string>
+    <string name="default_lazy_tap_ratio">1.15</string>
+    <string name="partner_tap_ratio_title">Partner Tap Ratio (Cross-Key Swap)</string>
+    <string name="partner_tap_ratio_desc">Multiplier required for a character on Key A to take the Tap slot of its paired Partner Key B (1.0 to 10.0). Setting to 10.0 completely prevents cross-key domino swapping.</string>
+    <string name="default_partner_tap_ratio">1.35</string>
+    <string name="partner_key_pairs_hint">📌 Partner Key Pairs: Key 1 ↔ 2 | Key 3 ↔ 6 | Key 4 ↔ 7 | Key 8 ↔ 9 (Key 5 Center Solo)</string>
+    <string name="presets_label">Presets:</string>
+    <string name="preset_stable">Stable</string>
+    <string name="preset_default">Default</string>
+    <string name="preset_aggressive">Aggressive</string>
+    <string name="preset_lock">Lock (10x)</string>
+    <string name="section_master_layout_customizer">2. MASTER LAYOUT CUSTOMIZER</string>
+    <string name="custom_master_layout_title">Custom 36-Character Mapping (JSON)</string>
+    <string name="custom_master_layout_desc">Assign characters (a–z, 0–9) to home keys (key_1 to key_9) and default slots (tap, up, left, right, down).</string>
+    <string name="reset">Reset</string>
+    <string name="section_state_weights_customizer">3. STATE ENGINE WEIGHTS CUSTOMIZER</string>
+    <string name="custom_state_weights_title">Custom 6-State Engine Weights (JSON)</string>
+    <string name="custom_state_weights_desc">Tune the 7 sub-engine weights (U, B, T, D, WB, WT, STC) across States 1, 2, 3, 4, 7, and 8.</string>
+    <string name="btn_apply_advanced_changes">Apply All Changes to Keyboard</string>
+    <string name="btn_reset_everything_defaults">Reset Everything to Factory Defaults</string>
 </resources>

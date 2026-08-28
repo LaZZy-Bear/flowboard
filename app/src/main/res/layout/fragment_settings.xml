@@ -491,7 +491,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="DEVELOPER &amp; ADVANCED TUNING"
+            android:text="@string/section_developer_tuning"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="12sp"
             android:textStyle="bold"
@@ -535,7 +535,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Advanced Engine Tuner"
+                        android:text="@string/advanced_tuner_nav_title"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -543,7 +543,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tweak tap ratios, master layout &amp; state weights"
+                        android:text="@string/advanced_tuner_nav_desc"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -562,7 +562,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="ABOUT"
+            android:text="@string/section_about"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="12sp"
             android:textStyle="bold" />

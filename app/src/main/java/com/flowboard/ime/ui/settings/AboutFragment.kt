@@ -1,13 +1,14 @@
 package com.flowboard.ime.ui.settings
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import com.flowboard.ime.MainActivity
 import com.flowboard.ime.R
@@ -44,7 +45,7 @@ class AboutFragment : Fragment() {
             }
             tvVersion?.text = getString(R.string.about_version_format, vName, vCode)
         } catch (_: Exception) {
-            tvVersion?.text = "Version 1.0.0 (Build 1)"
+            tvVersion?.text = getString(R.string.about_version_format, "1.0.0", 1)
         }
 
         // 5-Tap Developer Mode Activation
@@ -67,7 +68,7 @@ class AboutFragment : Fragment() {
                 val remaining = 5 - iconTapCount
                 Toast.makeText(requireContext(), "Tap $remaining more times to unlock Developer Tuning", Toast.LENGTH_SHORT).show()
             } else if (iconTapCount >= 5) {
-                prefs.edit().putBoolean("developer_options_unlocked", true).apply()
+                prefs.edit { putBoolean("developer_options_unlocked", true) }
                 Toast.makeText(requireContext(), "🎉 Developer Tuning Unlocked! Check Keyboard Settings.", Toast.LENGTH_LONG).show()
                 iconTapCount = 0
             }
@@ -80,7 +81,7 @@ class AboutFragment : Fragment() {
         view.findViewById<View>(R.id.btnGitHub)?.setOnClickListener {
             val url = "https://github.com/penLumm"
             try {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                val intent = Intent(Intent.ACTION_VIEW, url.toUri())
                 startActivity(intent)
             } catch (_: Exception) {
                 Toast.makeText(requireContext(), url, Toast.LENGTH_SHORT).show()
@@ -92,7 +93,7 @@ class AboutFragment : Fragment() {
             val email = "sathit.imdev@gmail.com"
             try {
                 val intent = Intent(Intent.ACTION_SENDTO).apply {
-                    data = Uri.parse("mailto:$email")
+                    data = "mailto:$email".toUri()
                     putExtra(Intent.EXTRA_SUBJECT, "Flowboard Keyboard Feedback")
                 }
                 startActivity(intent)

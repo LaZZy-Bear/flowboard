@@ -237,7 +237,6 @@ class MainActivity : AppCompatActivity() {
 
     fun setMainChromeVisible(visible: Boolean) {
         val appBar = findViewById<View>(R.id.appBarLayout)
-        val container = findViewById<View>(R.id.fragment_container)
 
         appBar?.visibility = if (visible) View.VISIBLE else View.GONE
         setBottomNavVisible(visible)

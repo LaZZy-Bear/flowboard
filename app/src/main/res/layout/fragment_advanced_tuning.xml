@@ -34,7 +34,7 @@
                     android:layout_height="wrap_content"
                     android:drawablePadding="10dp"
                     android:gravity="center_vertical"
-                    android:text="Advanced Engine Tuner (Developer Mode)"
+                    android:text="@string/advanced_tuner_title"
                     android:textColor="#E65100"
                     android:textSize="15sp"
                     android:textStyle="bold"
@@ -46,7 +46,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:lineSpacingExtra="3dp"
-                    android:text="Tune core prediction ratios, character layout mapping, and state engine weights. All changes take effect immediately on the live keyboard."
+                    android:text="@string/advanced_tuner_desc"
                     android:textColor="#795548"
                     android:textSize="13sp" />
             </LinearLayout>
@@ -57,7 +57,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="1. TAP &amp; PARTNER RATIOS"
+            android:text="@string/section_tap_partner_ratios"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -81,7 +81,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Lazy Tap Ratio (Home Key Protection)"
+                    android:text="@string/lazy_tap_ratio_title"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -90,7 +90,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Multiplier required for a runner-up character on the same key to replace the default home tap character (1.0 to 10.0). Setting towards 10.0 essentially locks the home key and stops dynamic swapping."
+                    android:text="@string/lazy_tap_ratio_desc"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
 
@@ -123,7 +123,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="center"
                             android:inputType="numberDecimal"
-                            android:text="1.15"
+                            android:text="@string/default_lazy_tap_ratio"
                             android:textSize="14sp" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
@@ -138,7 +138,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Partner Tap Ratio (Cross-Key Swap)"
+                    android:text="@string/partner_tap_ratio_title"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -147,7 +147,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Multiplier required for a character on Key A to take the Tap slot of its paired Partner Key B (1.0 to 10.0). Setting to 10.0 completely prevents cross-key domino swapping."
+                    android:text="@string/partner_tap_ratio_desc"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
 
@@ -180,7 +180,7 @@
                             android:layout_height="wrap_content"
                             android:gravity="center"
                             android:inputType="numberDecimal"
-                            android:text="1.35"
+                            android:text="@string/default_partner_tap_ratio"
                             android:textSize="14sp" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
@@ -191,7 +191,7 @@
                     android:layout_marginTop="10dp"
                     android:background="#F5F5F5"
                     android:padding="8dp"
-                    android:text="📌 Partner Key Pairs: Key 1 ↔ 2 | Key 3 ↔ 6 | Key 4 ↔ 7 | Key 8 ↔ 9 (Key 5 Center Solo)"
+                    android:text="@string/partner_key_pairs_hint"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="11sp" />
 
@@ -206,7 +206,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Presets:"
+                        android:text="@string/presets_label"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="12sp"
                         android:textStyle="bold" />
@@ -217,7 +217,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
-                        android:text="Stable"
+                        android:text="@string/preset_stable"
                         android:textSize="11sp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -226,7 +226,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
-                        android:text="Default"
+                        android:text="@string/preset_default"
                         android:textSize="11sp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -235,7 +235,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
-                        android:text="Aggressive"
+                        android:text="@string/preset_aggressive"
                         android:textSize="11sp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -244,7 +244,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="4dp"
-                        android:text="Lock (10x)"
+                        android:text="@string/preset_lock"
                         android:textSize="11sp" />
                 </LinearLayout>
 
@@ -256,7 +256,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="2. MASTER LAYOUT CUSTOMIZER"
+            android:text="@string/section_master_layout_customizer"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -279,7 +279,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Custom 36-Character Mapping (JSON)"
+                    android:text="@string/custom_master_layout_title"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -288,7 +288,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Assign characters (a–z, 0–9) to home keys (key_1 to key_9) and default slots (tap, up, left, right, down)."
+                    android:text="@string/custom_master_layout_desc"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
 
@@ -321,7 +321,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Copy"
+                        android:text="@string/copy"
                         android:textSize="12sp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -331,7 +331,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:layout_weight="1"
-                        android:text="Paste"
+                        android:text="@string/paste"
                         android:textSize="12sp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -341,7 +341,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:layout_weight="1"
-                        android:text="Reset"
+                        android:text="@string/reset"
                         android:textColor="#C62828"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -354,7 +354,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:text="3. STATE ENGINE WEIGHTS CUSTOMIZER"
+            android:text="@string/section_state_weights_customizer"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -377,7 +377,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Custom 6-State Engine Weights (JSON)"
+                    android:text="@string/custom_state_weights_title"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -386,7 +386,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Tune the 7 sub-engine weights (U, B, T, D, WB, WT, STC) across States 1, 2, 3, 4, 7, and 8."
+                    android:text="@string/custom_state_weights_desc"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
 
@@ -419,7 +419,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Copy"
+                        android:text="@string/copy"
                         android:textSize="12sp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -429,7 +429,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:layout_weight="1"
-                        android:text="Paste"
+                        android:text="@string/paste"
                         android:textSize="12sp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -439,7 +439,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:layout_weight="1"
-                        android:text="Reset"
+                        android:text="@string/reset"
                         android:textColor="#C62828"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -452,7 +452,7 @@
             android:id="@+id/btnApplyAdvancedChanges"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:text="Apply All Changes to Keyboard"
+            android:text="@string/btn_apply_advanced_changes"
             android:textSize="14sp"
             android:textStyle="bold"
             app:cornerRadius="16dp"
@@ -465,7 +465,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="32dp"
-            android:text="Reset Everything to Factory Defaults"
+            android:text="@string/btn_reset_everything_defaults"
             android:textColor="#C62828"
             android:textSize="13sp" />
 
