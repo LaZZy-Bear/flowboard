@@ -639,7 +639,7 @@ class LiveLearningManager(private val context: Context) {
             if (decoded != null && decoded.isNotEmpty()) decoded else null
         } catch (_: Throwable) {
             null
-        } ?: (saltBase64 ?: "flowboard_salt").toByteArray(Charsets.UTF_8)
+        } ?: saltBase64.toByteArray(Charsets.UTF_8)
         val pkgName = try {
             context.packageName ?: "com.flowboard.ime"
         } catch (_: Throwable) {
