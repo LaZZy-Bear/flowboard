@@ -242,7 +242,7 @@
     <string name="preset_lock">Lock (10x)</string>
     <string name="section_master_layout_customizer">2. MASTER LAYOUT CUSTOMIZER</string>
     <string name="custom_master_layout_title">Custom 9-Key Layout Mapping</string>
-    <string name="custom_master_layout_desc">Format: Key &lt;1-9&gt;: tap=&lt;char&gt;, up=&lt;char&gt;, left=&lt;char&gt;, right=&lt;char&gt;</string>
+    <string name="custom_master_layout_desc">Format: Key &lt;1&#8211;9&gt;: tap=&lt;char&gt;, up=&lt;char&gt;, left=&lt;char&gt;, right=&lt;char&gt;</string>
     <string name="reset">Reset</string>
     <string name="section_state_weights_customizer">3. STATE ENGINE WEIGHTS CUSTOMIZER</string>
     <string name="custom_state_weights_title">Custom 6-State Engine Weights</string>

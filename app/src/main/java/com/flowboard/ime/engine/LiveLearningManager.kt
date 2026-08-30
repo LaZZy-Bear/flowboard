@@ -1,7 +1,8 @@
 package com.flowboard.ime.engine
 
 import android.content.Context
-import android.util.AtomicFile
+import androidx.core.content.edit
+import androidx.core.util.AtomicFile
 import android.util.Base64
 import android.util.Log
 import com.flowboard.ime.data.FlowboardRepository
@@ -625,14 +626,20 @@ class LiveLearningManager(private val context: Context) {
         if (saltBase64.isNullOrEmpty()) {
             val salt = ByteArray(16)
             SecureRandom().nextBytes(salt)
-            saltBase64 = Base64.encodeToString(salt, Base64.NO_WRAP)
-            prefs.edit().putString("personalization_crypto_salt", saltBase64).commit()
+            val encoded = try {
+                Base64.encodeToString(salt, Base64.NO_WRAP)
+            } catch (_: Throwable) {
+                null
+            }
+            saltBase64 = if (!encoded.isNullOrEmpty()) encoded else salt.joinToString("") { "%02x".format(it) }
+            prefs.edit { putString("personalization_crypto_salt", saltBase64) }
         }
         val saltBytes = try {
-            Base64.decode(saltBase64, Base64.NO_WRAP)
-        } catch (_: Exception) {
-            saltBase64.toByteArray(Charsets.UTF_8)
-        }
+            val decoded = Base64.decode(saltBase64, Base64.NO_WRAP)
+            if (decoded != null && decoded.isNotEmpty()) decoded else null
+        } catch (_: Throwable) {
+            null
+        } ?: (saltBase64 ?: "flowboard_salt").toByteArray(Charsets.UTF_8)
         val pkgName = try {
             context.packageName ?: "com.flowboard.ime"
         } catch (_: Throwable) {

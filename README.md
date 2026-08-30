@@ -1,7 +1,7 @@
 # Flowboard for Android
 
 [![Android CI](https://github.com/LaZZy-Bear/flowboard/actions/workflows/android-ci.yml/badge.svg)](.github/workflows/android-ci.yml)
-[![Unit Tests](https://img.shields.io/badge/tests-74%20passed-success)](app/src/test/)
+[![Unit Tests](https://img.shields.io/badge/tests-74%20passed-success)](app/src/test)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20offline-orange)](SECURITY.md)
 [![Platform](https://img.shields.io/badge/platform-Android%207.0%2B-purple)](https://developer.android.com/)
