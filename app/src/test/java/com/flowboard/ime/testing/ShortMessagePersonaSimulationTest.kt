@@ -233,6 +233,7 @@ class ShortMessagePersonaSimulationTest {
         private val prefsData: MutableMap<String, Any> = mutableMapOf()
     ) : android.content.ContextWrapper(null) {
         override fun getFilesDir(): File = baseDir
+        override fun getPackageName(): String = "com.flowboard.ime"
         override fun getSharedPreferences(name: String?, mode: Int): android.content.SharedPreferences {
             return MockSharedPreferences(prefsData)
         }

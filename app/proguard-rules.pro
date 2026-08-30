@@ -31,11 +31,9 @@
 }
 
 # ------------------------------------------------------------------------------
-# 2. Android Security & Crypto (AES-256 GCM)
+# 2. App-Scoped AES Crypto & Java Crypto
 # ------------------------------------------------------------------------------
--keep class androidx.security.crypto.** { *; }
--dontwarn androidx.security.crypto.**
--dontwarn com.google.crypto.tink.**
+-dontwarn javax.crypto.**
 -dontwarn javax.annotation.**
 
 # ------------------------------------------------------------------------------

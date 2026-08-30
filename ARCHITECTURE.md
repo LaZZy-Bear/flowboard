@@ -6,7 +6,7 @@ This document serves as the comprehensive technical reference for software engin
 
 ## 1. System Architecture Overview
 
-Flowboard Android is an intelligent 9-key keyboard engineered on a **100% Offline Prediction Engine**, with zero external network connectivity, hardware-backed encryption, and rigorous security hardening.
+Flowboard Android is an intelligent 9-key keyboard engineered on a **100% Offline Prediction Engine**, with zero external network connectivity, App-Scoped AES-128 GCM encryption, and rigorous security hardening.
 
 ```mermaid
 graph TD
@@ -152,8 +152,8 @@ app/src/main/
   * **Output:** Switches active typing profile between standard typing and conversational chat (`profile_chat.json`), dynamically refreshing `bonusDict`.
 
 #### `LiveLearningManager.kt`
-* `writeProfileFile(file: File, content: String): Unit`
-  * **Output:** Writes encrypted payload to a temporary file `${file.name}.tmp` followed by an atomic filesystem rename, guaranteeing zero data corruption during unexpected process termination.
+* `saveProfileIfDirty(): Unit`
+  * **Output:** Encrypts profile data via App-Scoped AES-128 (AES/GCM/NoPadding) and writes atomically via `android.util.AtomicFile` (`startWrite()` / `finishWrite()` / `failWrite()`) with automatic `.bak` rollback, guaranteeing zero data corruption and zero data loss on force stop / swipe.
 
 ---
 
@@ -183,7 +183,7 @@ app/src/main/
 |---|---|---|---|
 | **`FlowboardRepository`** (Singleton) | Universal (Engine, UI, Service) | `StateFlow`, `@Volatile` fields | 🔴 **CRITICAL (System-Wide):** Manages shared cross-thread in-memory state. |
 | **`FlowboardIMEService.onFinishInputView()`** | Android IME Lifecycle | `LiveLearningManager.recordWordTyped()`, `saveProfileIfDirty()` | 🔴 **CRITICAL:** Controls single-session sentence learning and avoids word duplication. |
-| **`LiveLearningManager.writeProfileFile()`** | `saveProfileIfDirty()` | `EncryptedFile`, `.tmp` Atomic File Swap | 🔴 **CRITICAL:** Guarantees on-disk profile integrity and crash resilience. |
+| **`LiveLearningManager.saveProfileIfDirty()`** | `FlowboardIMEService` | `AtomicFile`, App-Scoped AES-128 | 🔴 **CRITICAL:** Guarantees on-disk profile integrity and crash resilience with `.bak` rollback. |
 | **`FlowboardIMEService.onDestroy()`** | Android OS Lifecycle | `clipboardManager.removePrimaryClipChangedListener()` | 🔴 **CRITICAL:** Prevents system-level memory leaks upon keyboard teardown. |
 | **`FlowboardIMEService.isLearningAllowedForCurrentField()`** | `onFinishInputView()`, `recordWordTyped()` | `IME_FLAG_NO_PERSONALIZED_LEARNING`, Password Check | 🟠 **HIGH (Privacy):** Enforces privacy boundaries in Incognito / Private Browsing. |
 
@@ -246,5 +246,5 @@ sequenceDiagram
 1. **100% Offline IME (Zero Network Permission):** No `android.permission.INTERNET` declared in Manifest.
 2. **IPC Isolation:** Internal Broadcast Receivers use `RECEIVER_NOT_EXPORTED` to block third-party app manipulation.
 3. **Incognito & Sensitive Data Immunity:** Respects `IME_FLAG_NO_PERSONALIZED_LEARNING` and `ClipDescription.EXTRA_IS_SENSITIVE`.
-4. **Hardware-Backed AES-256 GCM Atomic Encryption:** Encrypts local profile data under Android Keystore keys with atomic file swaps.
+4. **App-Scoped AES-128 GCM Atomic Encryption:** Encrypts local profile data under App-Scoped AES-128 keys with `android.util.AtomicFile` for zero-corruption persistence.
 5. **Zero Cloud Backup Leakage:** Explicitly excluded from Google Drive cloud backups via `data_extraction_rules.xml` and `backup_rules.xml`.

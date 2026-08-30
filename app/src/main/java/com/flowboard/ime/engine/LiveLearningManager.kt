@@ -1,16 +1,22 @@
 package com.flowboard.ime.engine
 
 import android.content.Context
+import android.util.AtomicFile
+import android.util.Base64
 import android.util.Log
-import androidx.security.crypto.EncryptedFile
-import androidx.security.crypto.MasterKey
 import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.PersonalProfile
 import com.flowboard.ime.data.models.TrieNode
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.io.FileOutputStream
+import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 @Serializable
 data class LiveProfileData(
@@ -32,9 +38,17 @@ data class LiveProfileData(
  */
 class LiveLearningManager(private val context: Context) {
 
+    private var hasLoadedSuccessfully: Boolean = false
+
     companion object {
         private const val TAG = "LiveLearningManager"
         private const val PROFILE_FILENAME = "flowboard_live_profile.json"
+
+        // App-Scoped AES Constants
+        private val MAGIC_HEADER = byteArrayOf(0x46, 0x4C, 0x4F, 0x42) // "FLOB"
+        private const val FORMAT_VERSION: Byte = 0x01
+        private const val GCM_IV_LENGTH = 12
+        private const val GCM_TAG_LENGTH_BITS = 128
 
         // Default Max Capacity Limits for Pruning
         private const val DEFAULT_MAX_WORD_FREQ_ENTRIES = 1000
@@ -75,25 +89,50 @@ class LiveLearningManager(private val context: Context) {
     fun loadProfile() {
         try {
             val file = File(context.filesDir, PROFILE_FILENAME)
-            if (!file.exists()) {
+            val bakFile = File(context.filesDir, "$PROFILE_FILENAME.bak")
+            if (!file.exists() && !bakFile.exists()) {
                 liveWordFreq.clear()
                 liveBigram.clear()
                 liveTrigram.clear()
                 liveLearnedOOV.clear()
                 isDirty.set(false)
+                hasLoadedSuccessfully = true
                 FlowboardRepository.personalProfile = PersonalProfile.EMPTY
                 FlowboardRepository.isPersonalizationEnabled = false
                 FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
                 Log.d(TAG, "No live profile file found on disk.")
                 return
             }
-            val text = readProfileFile(file)
+
+            val atomicFile = AtomicFile(file)
+            val bytes = try {
+                atomicFile.openRead().use { it.readBytes() }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to read base profile file, checking fallback: ${e.message}")
+                if (file.exists()) file.readBytes() else throw e
+            }
+
+            if (bytes.isEmpty()) {
+                liveWordFreq.clear()
+                liveBigram.clear()
+                liveTrigram.clear()
+                liveLearnedOOV.clear()
+                isDirty.set(false)
+                hasLoadedSuccessfully = true
+                FlowboardRepository.personalProfile = PersonalProfile.EMPTY
+                FlowboardRepository.isPersonalizationEnabled = false
+                FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
+                return
+            }
+
+            val text = decryptPayload(bytes)
             if (text.isEmpty()) {
                 liveWordFreq.clear()
                 liveBigram.clear()
                 liveTrigram.clear()
                 liveLearnedOOV.clear()
                 isDirty.set(false)
+                hasLoadedSuccessfully = true
                 FlowboardRepository.personalProfile = PersonalProfile.EMPTY
                 FlowboardRepository.isPersonalizationEnabled = false
                 FlowboardRepository.trieDictOOV = FlowboardRepository.baseTrieDictOOV
@@ -128,6 +167,8 @@ class LiveLearningManager(private val context: Context) {
 
             // OOV
             liveLearnedOOV.addAll(liveData.learnedOOV)
+
+            hasLoadedSuccessfully = true
 
             // Check if capacity pressure warrants aging decay on load
             if (isCapacityPressureHigh()) {
@@ -511,8 +552,11 @@ class LiveLearningManager(private val context: Context) {
         if (!isDirty.compareAndSet(true, false)) return
         try {
             val file = File(context.filesDir, PROFILE_FILENAME)
+            val atomicFile = AtomicFile(file)
             if (liveBigram.isEmpty() && liveTrigram.isEmpty() && liveWordFreq.isEmpty() && liveLearnedOOV.isEmpty()) {
-                if (file.exists()) file.delete()
+                if (hasLoadedSuccessfully) {
+                    atomicFile.delete()
+                }
                 return
             }
             val liveData = LiveProfileData(
@@ -523,8 +567,19 @@ class LiveLearningManager(private val context: Context) {
                 lastDecayTimestamp = lastDecayTimestamp
             )
             val jsonStr = json.encodeToString(liveData)
-            writeProfileFile(file, jsonStr)
-            Log.d(TAG, "Successfully persisted encrypted live profile to internal storage (${file.length()} bytes)")
+            val encryptedBytes = encryptPayload(jsonStr)
+            var fos: FileOutputStream? = null
+            try {
+                fos = atomicFile.startWrite()
+                fos.write(encryptedBytes)
+                atomicFile.finishWrite(fos)
+                Log.d(TAG, "Successfully persisted encrypted live profile via AtomicFile (${encryptedBytes.size} bytes)")
+            } catch (e: Throwable) {
+                if (fos != null) {
+                    atomicFile.failWrite(fos)
+                }
+                throw e
+            }
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to save live profile: ${e.message}")
             isDirty.set(true)
@@ -540,12 +595,12 @@ class LiveLearningManager(private val context: Context) {
         liveTrigram.clear()
         liveLearnedOOV.clear()
         isDirty.set(false)
+        hasLoadedSuccessfully = true
 
         try {
             val file = File(context.filesDir, PROFILE_FILENAME)
-            if (file.exists()) {
-                file.delete()
-            }
+            val atomicFile = AtomicFile(file)
+            atomicFile.delete()
             val tempFile = File(context.filesDir, "$PROFILE_FILENAME.tmp")
             if (tempFile.exists()) {
                 tempFile.delete()
@@ -560,63 +615,90 @@ class LiveLearningManager(private val context: Context) {
         Log.d(TAG, "Cleared live profile successfully in 0.001ms.")
     }
 
-    private fun getMasterKey(): MasterKey {
-        return MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
+    @Volatile
+    private var cachedSecretKey: SecretKeySpec? = null
+
+    private fun getOrCreateSecretKey(): SecretKeySpec {
+        cachedSecretKey?.let { return it }
+        val prefs = context.getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
+        var saltBase64 = prefs.getString("personalization_crypto_salt", null)
+        if (saltBase64.isNullOrEmpty()) {
+            val salt = ByteArray(16)
+            SecureRandom().nextBytes(salt)
+            saltBase64 = Base64.encodeToString(salt, Base64.NO_WRAP)
+            prefs.edit().putString("personalization_crypto_salt", saltBase64).commit()
+        }
+        val saltBytes = try {
+            Base64.decode(saltBase64, Base64.NO_WRAP)
+        } catch (_: Exception) {
+            saltBase64.toByteArray(Charsets.UTF_8)
+        }
+        val pkgName = try {
+            context.packageName ?: "com.flowboard.ime"
+        } catch (_: Throwable) {
+            "com.flowboard.ime"
+        }
+        val pkgBytes = pkgName.toByteArray(Charsets.UTF_8)
+        val combined = ByteArray(saltBytes.size + pkgBytes.size)
+        System.arraycopy(saltBytes, 0, combined, 0, saltBytes.size)
+        System.arraycopy(pkgBytes, 0, combined, saltBytes.size, pkgBytes.size)
+
+        val digest = MessageDigest.getInstance("SHA-256").digest(combined)
+        val key128 = digest.copyOf(16) // 128-bit AES Key
+        val secretKey = SecretKeySpec(key128, "AES")
+        cachedSecretKey = secretKey
+        return secretKey
     }
 
-    private fun readProfileFile(file: File): String {
-        return try {
-            val masterKey = getMasterKey()
-            val encryptedFile = EncryptedFile.Builder(
-                context,
-                file,
-                masterKey,
-                EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
-            ).build()
-            encryptedFile.openFileInput().use { it.bufferedReader().readText() }
-        } catch (e: Throwable) {
-            // Graceful fallback: plain-text migration or JVM testing environment
-            Log.d(TAG, "Encrypted read fallback to plain text: ${e.message}")
-            file.readText()
-        }
+    private fun encryptPayload(content: String): ByteArray {
+        val key = getOrCreateSecretKey()
+        val iv = ByteArray(GCM_IV_LENGTH)
+        SecureRandom().nextBytes(iv)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+        val cipherText = cipher.doFinal(content.toByteArray(Charsets.UTF_8))
+
+        val output = ByteArray(MAGIC_HEADER.size + 1 + GCM_IV_LENGTH + cipherText.size)
+        System.arraycopy(MAGIC_HEADER, 0, output, 0, MAGIC_HEADER.size)
+        output[MAGIC_HEADER.size] = FORMAT_VERSION
+        System.arraycopy(iv, 0, output, MAGIC_HEADER.size + 1, GCM_IV_LENGTH)
+        System.arraycopy(cipherText, 0, output, MAGIC_HEADER.size + 1 + GCM_IV_LENGTH, cipherText.size)
+        return output
     }
 
-    private fun writeProfileFile(file: File, content: String) {
-        val tmpFile = File(file.parentFile, "${file.name}.tmp")
-        try {
-            val masterKey = getMasterKey()
-            if (tmpFile.exists()) tmpFile.delete()
-            val encryptedFile = EncryptedFile.Builder(
-                context,
-                tmpFile,
-                masterKey,
-                EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
-            ).build()
-            encryptedFile.openFileOutput().use { outputStream ->
-                outputStream.write(content.toByteArray(Charsets.UTF_8))
-            }
-            if (file.exists()) file.delete()
-            if (!tmpFile.renameTo(file)) {
-                tmpFile.copyTo(file, overwrite = true)
-                tmpFile.delete()
-            }
-        } catch (e: Throwable) {
-            // Graceful fallback for JVM unit testing environments where AndroidKeyStore is absent
-            Log.d(TAG, "Encrypted write fallback to plain write: ${e.message}")
-            try {
-                if (tmpFile.exists()) tmpFile.delete()
-                tmpFile.writeText(content)
-                if (file.exists()) file.delete()
-                if (!tmpFile.renameTo(file)) {
-                    tmpFile.copyTo(file, overwrite = true)
-                    tmpFile.delete()
-                }
-            } catch (e2: Throwable) {
-                Log.e(TAG, "Failed to write profile file: ${e2.message}")
-            }
+    private fun decryptPayload(bytes: ByteArray): String {
+        if (bytes.isEmpty()) return ""
+
+        val headerLen = MAGIC_HEADER.size + 1 + GCM_IV_LENGTH
+        val isMagicMatch = bytes.size >= headerLen &&
+                bytes[0] == MAGIC_HEADER[0] &&
+                bytes[1] == MAGIC_HEADER[1] &&
+                bytes[2] == MAGIC_HEADER[2] &&
+                bytes[3] == MAGIC_HEADER[3] &&
+                bytes[4] == FORMAT_VERSION
+
+        if (isMagicMatch) {
+            val key = getOrCreateSecretKey()
+            val iv = ByteArray(GCM_IV_LENGTH)
+            System.arraycopy(bytes, MAGIC_HEADER.size + 1, iv, 0, GCM_IV_LENGTH)
+            val cipherTextLen = bytes.size - headerLen
+            val cipherText = ByteArray(cipherTextLen)
+            System.arraycopy(bytes, headerLen, cipherText, 0, cipherTextLen)
+
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+            val decrypted = cipher.doFinal(cipherText)
+            return String(decrypted, Charsets.UTF_8)
         }
+
+        // Migration / Fallback: Plain JSON (e.g. starting with '{' or '[')
+        val firstChar = bytes.firstOrNull()?.toInt()?.toChar()
+        if (firstChar == '{' || firstChar == '[' || firstChar == ' ' || firstChar == '\n' || firstChar == '\r') {
+            Log.d(TAG, "Migrating legacy plain JSON profile to App-Scoped AES format")
+            return String(bytes, Charsets.UTF_8)
+        }
+
+        throw IllegalArgumentException("Unrecognized or corrupted live profile format (size=${bytes.size})")
     }
 
     /**

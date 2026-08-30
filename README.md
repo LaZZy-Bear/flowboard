@@ -41,7 +41,7 @@
 * **Smart Autocomplete & Next-Word Prediction:** Combines unigram, bigram, trigram, and sentence topic clusters (STC) for natural word suggestions.
 * **On-Device Live Learning:** Learns new vocabulary, slang, emails, and acronyms in real time without external servers.
 * **100% Offline & Private:** Zero internet permissions requested (`android.permission.INTERNET` is omitted). Your keystrokes never leave your phone.
-* **Hardware-Backed Encryption:** Learned vocabulary and user profiles are stored locally with AES-256 GCM using Android Keystore.
+* **App-Scoped AES Encryption & Atomic Storage:** Learned vocabulary and user profiles are stored locally using App-Scoped AES-128 GCM encryption and managed atomically via `AtomicFile` for corruption-proof persistence.
 * **Floating & Docked Modes:** Resize, drag, or dock the keyboard to the left or right side for easy thumb reach.
 * **Clipboard History & Shortcuts:** Built-in clipboard manager (up to 30 items) with quick-paste pins and customizable text snippets for keys 1–9.
 * **Theme Support:** Includes System Default (Day/Night auto-switch), Clean Light, Pitch Dark, Ocean Blue, Mint Teal, Sunset Coral, and Sakura Bloom.
@@ -60,7 +60,7 @@ graph TD
     E --> F[LayoutManager: 3-Way Domino Swap]
     F --> G[KeyboardView: Render 3x3 Grid]
     C --> H[LiveLearningManager: OOV Trie & Decay]
-    H --> I[(Encrypted Local Storage: AES-256 GCM)]
+    H --> I[(Encrypted Local Storage: App-Scoped AES-128 & AtomicFile)]
 ```
 
 Flowboard evaluates next-letter probabilities across 6 distinct input states:

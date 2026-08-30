@@ -106,8 +106,10 @@ class AssetLoader(private val context: Context) {
         val personalProfileJob = async(Dispatchers.IO) { loadPersonalProfile() }
 
         val oovTrie = trieDictOOVJob.await()
-        repo.trieDictOOV = oovTrie
         repo.baseTrieDictOOV = oovTrie  // Keep immutable base for personalization OOV injection
+        if (repo.personalProfile.isEmpty) {
+            repo.trieDictOOV = oovTrie
+        }
 
         repo.clusteredTrigram = clusteredTrigramJob.await()
         repo.sentenceTopicClusters = stcJob.await()

@@ -14,7 +14,7 @@ Flowboard is an Input Method Editor (IME) designed with privacy as a foundationa
 
 ## Local Data Protection
 
-* **Encrypted Storage:** User personalization profiles and learned vocabulary are stored locally using AES-256 GCM encryption via Android Keystore.
+* **Encrypted Storage:** User personalization profiles and learned vocabulary are stored locally using App-Scoped AES-128 GCM encryption and managed atomically via `android.util.AtomicFile` for corruption-proof, sub-millisecond on-device persistence.
 * **Sensitive Field Protection:** Dictionary learning and word predictions are automatically disabled in password fields, PIN inputs, and Incognito/private browsing tabs (`EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING`).
 * **Cloud Backup Exclusion:** User dictionaries and typing profiles are excluded from automated Android cloud backups.
 

@@ -925,11 +925,99 @@ class PersonalizationLiveTest {
         assertTrue("Frequent word count must remain >= 1", (repo.personalProfile.wordFreq["myfavoritekeyword"] ?: 0) >= 1)
     }
 
+    @Test
+    fun testAtomicFileCrashRecoveryWithBackupFile() {
+        val filesDir = tempFolder.newFolder("files_atomic_recovery_test")
+        val mockContext = MockContext(filesDir)
+        val liveMgr1 = LiveLearningManager(mockContext)
+
+        // 1. Learn words and save
+        liveMgr1.loadProfile()
+        liveMgr1.recordWordTyped("securetransaction")
+        liveMgr1.recordWordTyped("finance@company.com")
+        liveMgr1.saveProfileIfDirty()
+
+        val mainFile = java.io.File(filesDir, "flowboard_live_profile.json")
+        val bakFile = java.io.File(filesDir, "flowboard_live_profile.json.bak")
+        assertTrue("Main profile file must exist", mainFile.exists())
+
+        // 2. Simulate sudden kill / crash during write: copy valid file to .bak and corrupt/truncate main file
+        mainFile.copyTo(bakFile, overwrite = true)
+        mainFile.delete() // Simulate broken main file where only .bak survived
+
+        // 3. Fresh instance loads profile
+        repo.personalProfile = com.flowboard.ime.data.models.PersonalProfile.EMPTY
+        val liveMgr2 = LiveLearningManager(mockContext)
+        liveMgr2.loadProfile()
+
+        assertTrue("Learned word must be recovered from .bak file via AtomicFile",
+            repo.personalProfile.wordFreq.containsKey("securetransaction"))
+        assertTrue("Learned email must be recovered from .bak file via AtomicFile",
+            repo.personalProfile.learnedOOV.contains("finance@company.com"))
+    }
+
+    @Test
+    fun testLegacyPlainJsonMigration() {
+        val filesDir = tempFolder.newFolder("files_migration_test")
+        val mockContext = MockContext(filesDir)
+        val mainFile = java.io.File(filesDir, "flowboard_live_profile.json")
+
+        // 1. Write legacy plain JSON directly to file
+        val legacyJson = """
+            {
+                "bigram": { "quick": { "brown": 2 } },
+                "trigram": { "quick_brown": { "fox": 1 } },
+                "wordFreq": { "quick": 2, "brown": 2, "fox": 1, "legacyword": 3 },
+                "learnedOOV": ["legacyword"],
+                "lastDecayTimestamp": 0
+            }
+        """.trimIndent()
+        mainFile.writeText(legacyJson)
+
+        // 2. Load with LiveLearningManager
+        val liveMgr = LiveLearningManager(mockContext)
+        liveMgr.loadProfile()
+
+        assertTrue("Legacy plain JSON word must be loaded", repo.personalProfile.wordFreq.containsKey("legacyword"))
+        assertTrue("Legacy plain JSON bigram must be loaded", repo.personalProfile.bigram.containsKey("quick"))
+
+        // 3. Mark dirty and save — should automatically encrypt with FLOB magic header
+        liveMgr.recordWordTyped("newcustomword")
+        liveMgr.saveProfileIfDirty()
+
+        val savedBytes = mainFile.readBytes()
+        assertTrue("Saved file must contain FLOB magic header",
+            savedBytes.size >= 5 && savedBytes[0] == 0x46.toByte() && savedBytes[1] == 0x4C.toByte() && savedBytes[2] == 0x4F.toByte() && savedBytes[3] == 0x42.toByte())
+
+        // 4. Reload from encrypted format
+        repo.personalProfile = com.flowboard.ime.data.models.PersonalProfile.EMPTY
+        val reloadMgr = LiveLearningManager(mockContext)
+        reloadMgr.loadProfile()
+        assertTrue("Reloaded word from encrypted file must exist", repo.personalProfile.wordFreq.containsKey("legacyword"))
+        assertTrue("Newly added word must exist", repo.personalProfile.wordFreq.containsKey("newcustomword"))
+    }
+
+    @Test
+    fun testCorruptedFileDoesNotWipeOrCrash() {
+        val filesDir = tempFolder.newFolder("files_corrupt_test")
+        val mockContext = MockContext(filesDir)
+        val mainFile = java.io.File(filesDir, "flowboard_live_profile.json")
+
+        // Write arbitrary corrupt garbage
+        mainFile.writeBytes(byteArrayOf(0x00, 0x01, 0x02, 0x03, 0xFF.toByte(), 0xFE.toByte()))
+
+        val liveMgr = LiveLearningManager(mockContext)
+        liveMgr.loadProfile() // Must not throw or crash
+
+        assertTrue("Corrupted file must not delete the on-disk file", mainFile.exists())
+    }
+
     private class MockContext(
         private val baseDir: java.io.File,
         private val prefsData: MutableMap<String, Any> = mutableMapOf()
     ) : android.content.ContextWrapper(null) {
         override fun getFilesDir(): java.io.File = baseDir
+        override fun getPackageName(): String = "com.flowboard.ime"
 
         override fun getSharedPreferences(name: String?, mode: Int): android.content.SharedPreferences {
             return MockSharedPreferences(prefsData)

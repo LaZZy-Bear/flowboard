@@ -182,7 +182,7 @@
     <string name="onboarding_personalization_desc">Flowboard dynamically adapts its layout to your typing habits for faster, smarter 1-tap word suggestions.</string>
     <string name="onboarding_enable_personalization_desc">Recommended • Real-time adaptive letter placement and next-word ranking</string>
     <string name="onboarding_privacy_title">100% On-Device &amp; Private</string>
-    <string name="onboarding_privacy_desc">Your typing data never leaves your device. All learned vocabulary is protected with hardware-backed AES-256 GCM encryption and never backed up to the cloud.</string>
+    <string name="onboarding_privacy_desc">Your typing data never leaves your device. All learned vocabulary is protected with App-Scoped AES-128 GCM encryption and never backed up to the cloud.</string>
     <string name="btn_back">Back</string>
     <string name="btn_continue">Continue</string>
     <string name="btn_finish_setup">Finish Setup &amp; Start Typing</string>
@@ -206,8 +206,8 @@
     <string name="section_security_privacy">SECURITY &amp; PRIVACY GUARANTEE</string>
     <string name="security_offline_title">100% Offline Architecture</string>
     <string name="security_offline_desc">Zero network permissions requested. No data ever leaves your device.</string>
-    <string name="security_encryption_title">Hardware-Backed AES-256 GCM</string>
-    <string name="security_encryption_desc">All learned vocabulary is encrypted on-disk via Android Keystore.</string>
+    <string name="security_encryption_title">App-Scoped AES-128 GCM</string>
+    <string name="security_encryption_desc">All learned vocabulary is encrypted on-disk via App-Scoped AES-128 and AtomicFile.</string>
     <string name="security_no_cloud_title">Zero Cloud Sync &amp; Backup</string>
     <string name="security_no_cloud_desc">Excluded from Google Drive cloud backups to protect your privacy.</string>
     <string name="section_links_support">LINKS &amp; SUPPORT</string>

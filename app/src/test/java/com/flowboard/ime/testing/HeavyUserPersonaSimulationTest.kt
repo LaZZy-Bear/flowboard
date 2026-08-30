@@ -17,7 +17,7 @@ import java.io.File
  * Evaluates:
  * - High-volume technical & gaming vocabulary learning
  * - Dynamic capacity cap analysis (1,000 vs 2,000 vs 5,000)
- * - Memory footprint and JSON encryption payload size
+ * - Memory footprint and App-Scoped AES encryption payload size
  * - Long-term Aging Decay under continuous high-throughput typing
  */
 class HeavyUserPersonaSimulationTest {
@@ -252,6 +252,7 @@ class HeavyUserPersonaSimulationTest {
         private val prefsData: MutableMap<String, Any> = mutableMapOf()
     ) : android.content.ContextWrapper(null) {
         override fun getFilesDir(): File = baseDir
+        override fun getPackageName(): String = "com.flowboard.ime"
         override fun getSharedPreferences(name: String?, mode: Int): android.content.SharedPreferences {
             return MockSharedPreferences(prefsData)
         }

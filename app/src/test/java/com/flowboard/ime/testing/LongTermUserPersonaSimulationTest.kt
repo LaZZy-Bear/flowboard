@@ -19,7 +19,7 @@ import java.io.File
  * - Tracks speed of OOV word promotion to Tap slot
  * - Tests Exponential Aging Decay on frequent words vs one-off typos
  * - Verifies Zero-Degradation on standard English vocabulary
- * - Stress-tests AES-256 GCM encrypted persistence across multiple save/load cycles
+ * - Stress-tests App-Scoped AES-128 GCM encrypted persistence across multiple save/load cycles
  */
 class LongTermUserPersonaSimulationTest {
 
@@ -290,6 +290,7 @@ class LongTermUserPersonaSimulationTest {
         private val prefsData: MutableMap<String, Any> = mutableMapOf()
     ) : android.content.ContextWrapper(null) {
         override fun getFilesDir(): File = baseDir
+        override fun getPackageName(): String = "com.flowboard.ime"
 
         override fun getSharedPreferences(name: String?, mode: Int): android.content.SharedPreferences {
             return MockSharedPreferences(prefsData)
