@@ -79,7 +79,7 @@ class AboutFragment : Fragment() {
 
         // GitHub Link
         view.findViewById<View>(R.id.btnGitHub)?.setOnClickListener {
-            val url = "https://github.com/penLumm"
+            val url = "https://github.com/LaZZy-Bear/flowboard"
             try {
                 val intent = Intent(Intent.ACTION_VIEW, url.toUri())
                 startActivity(intent)
@@ -117,8 +117,7 @@ class AboutFragment : Fragment() {
         val licenses = """
             • Kotlin Standard Library & Coroutines (Apache 2.0)
             • Kotlinx Serialization (Apache 2.0)
-            • AndroidX Core, Fragment & Lifecycle (Apache 2.0)
-            • AndroidX Security Crypto (Apache 2.0)
+            • AndroidX Core, AppCompat & Lifecycle (Apache 2.0)
             • Google Material Components for Android (Apache 2.0)
         """.trimIndent()
 

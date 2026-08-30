@@ -212,7 +212,7 @@
     <string name="security_no_cloud_desc">Excluded from Google Drive cloud backups to protect your privacy.</string>
     <string name="section_links_support">LINKS &amp; SUPPORT</string>
     <string name="btn_github">GitHub Project</string>
-    <string name="btn_github_desc">https://github.com/penLumm</string>
+    <string name="btn_github_desc">https://github.com/LaZZy-Bear/flowboard</string>
     <string name="btn_feedback">Feedback &amp; Support</string>
     <string name="btn_feedback_desc">sathit.imdev@gmail.com</string>
     <string name="btn_licenses">Open-Source Licenses</string>

@@ -25,5 +25,5 @@ Flowboard is an Input Method Editor (IME) designed with privacy as a foundationa
 If you find a security issue in Flowboard, please report it responsibly:
 
 1. Do not open a public GitHub issue.
-2. Submit a private advisory via [GitHub Security Advisories](https://github.com/) or email the maintainers directly.
+2. Submit a private advisory via [GitHub Security Advisories](https://github.com/LaZZy-Bear/flowboard/security/advisories) or email the maintainers directly.
 3. We will review and acknowledge reports within **48 hours**.
