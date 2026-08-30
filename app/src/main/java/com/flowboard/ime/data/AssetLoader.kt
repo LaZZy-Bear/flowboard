@@ -24,7 +24,7 @@ import java.io.InputStream
 /**
  * Loads all Flowboard data assets from the Android asset filesystem.
  *
- * English-only (Prototype 22). Three-phase loading:
+ * Three-phase asynchronous loading pipeline:
  * - Phase A (Critical): unigram, master_layout, symbol pages → markReady()
  * - Phase B (Normal):   bigram, trigram, trie_dict, word_list, clustered_bigram, unigram_start, profile_chat
  * - Phase C (Deferred): trie_dict_oov, clustered_trigram, sentence_topic_clusters, my_personal_profile → markFullyLoaded()

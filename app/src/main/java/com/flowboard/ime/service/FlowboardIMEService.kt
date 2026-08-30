@@ -2737,7 +2737,7 @@ class FlowboardIMEService : InputMethodService() {
 
         val ic = currentInputConnection ?: return
 
-        // 1. Check if user has selected / highlighted text (คลุมดำ)
+        // 1. Check if user has selected / highlighted text
         val selectedText = try {
             ic.getSelectedText(0)
         } catch (_: Exception) {

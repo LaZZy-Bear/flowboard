@@ -241,12 +241,12 @@
     <string name="preset_aggressive">Aggressive</string>
     <string name="preset_lock">Lock (10x)</string>
     <string name="section_master_layout_customizer">2. MASTER LAYOUT CUSTOMIZER</string>
-    <string name="custom_master_layout_title">Custom 36-Character Mapping (JSON)</string>
-    <string name="custom_master_layout_desc">Assign characters (a–z, 0–9) to home keys (key_1 to key_9) and default slots (tap, up, left, right, down).</string>
+    <string name="custom_master_layout_title">Custom 9-Key Layout Mapping</string>
+    <string name="custom_master_layout_desc">Format: Key &lt;1-9&gt;: tap=&lt;char&gt;, up=&lt;char&gt;, left=&lt;char&gt;, right=&lt;char&gt;</string>
     <string name="reset">Reset</string>
     <string name="section_state_weights_customizer">3. STATE ENGINE WEIGHTS CUSTOMIZER</string>
-    <string name="custom_state_weights_title">Custom 6-State Engine Weights (JSON)</string>
-    <string name="custom_state_weights_desc">Tune the 7 sub-engine weights (U, B, T, D, WB, WT, STC) across States 1, 2, 3, 4, 7, and 8.</string>
+    <string name="custom_state_weights_title">Custom 6-State Engine Weights</string>
+    <string name="custom_state_weights_desc">Format: State &lt;num&gt;: U=&lt;val&gt;, B=&lt;val&gt;, T=&lt;val&gt;, D=&lt;val&gt;, WB=&lt;val&gt;, WT=&lt;val&gt;, STC=&lt;val&gt;</string>
     <string name="btn_apply_advanced_changes">Apply All Changes to Keyboard</string>
     <string name="btn_reset_everything_defaults">Reset Everything to Factory Defaults</string>
 </resources>

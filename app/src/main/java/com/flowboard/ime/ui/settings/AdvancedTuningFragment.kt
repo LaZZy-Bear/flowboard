@@ -21,10 +21,12 @@ import com.flowboard.ime.data.models.EngineWeights
 import com.flowboard.ime.data.models.MasterLayoutEntry
 import com.flowboard.ime.engine.LayoutManager
 import com.flowboard.ime.engine.ScoringEngine
+import com.flowboard.ime.util.AdvancedTuningFormatter
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.Locale
 
@@ -110,10 +112,15 @@ class AdvancedTuningFragment : Fragment() {
             Toast.makeText(requireContext(), "Lock Preset Applied (10.0x / 10.0x - Swapping Disabled)", Toast.LENGTH_SHORT).show()
         }
 
-        // 3. Initialize Master Layout JSON
+        // 3. Initialize Master Layout
         val savedLayoutJson = prefs.getString("custom_master_layout_json", null)
         if (!savedLayoutJson.isNullOrBlank()) {
-            etMasterLayout.setText(formatJsonString(savedLayoutJson))
+            val parsed = AdvancedTuningFormatter.easyTextToLayout(savedLayoutJson, prettyJson)
+            if (parsed.isNotEmpty()) {
+                etMasterLayout.setText(AdvancedTuningFormatter.layoutToEasyText(parsed))
+            } else {
+                etMasterLayout.setText(savedLayoutJson)
+            }
         } else {
             val baseLayout = if (FlowboardRepository.masterLayout.isNotEmpty()) {
                 FlowboardRepository.masterLayout
@@ -129,25 +136,21 @@ class AdvancedTuningFragment : Fragment() {
                     emptyMap()
                 }
             }
-            try {
-                etMasterLayout.setText(prettyJson.encodeToString(baseLayout))
-            } catch (_: Exception) {
-                etMasterLayout.setText("{}")
-            }
+            etMasterLayout.setText(AdvancedTuningFormatter.layoutToEasyText(baseLayout))
         }
 
-        // 4. Initialize State Weights JSON
+        // 4. Initialize State Weights
         val savedWeightsJson = prefs.getString("custom_state_weights_json", null)
         if (!savedWeightsJson.isNullOrBlank()) {
-            etStateWeights.setText(formatJsonString(savedWeightsJson))
+            val parsed = AdvancedTuningFormatter.easyTextToWeights(savedWeightsJson, prettyJson)
+            if (parsed.isNotEmpty()) {
+                etStateWeights.setText(AdvancedTuningFormatter.weightsToEasyText(parsed))
+            } else {
+                etStateWeights.setText(savedWeightsJson)
+            }
         } else {
             val baseWeights = FlowboardRepository.customStateWeights ?: ScoringEngine.getDefaultStateWeights()
-            val stringKeyWeights = baseWeights.mapKeys { it.key.toString() }
-            try {
-                etStateWeights.setText(prettyJson.encodeToString(stringKeyWeights))
-            } catch (_: Exception) {
-                etStateWeights.setText("{}")
-            }
+            etStateWeights.setText(AdvancedTuningFormatter.weightsToEasyText(baseWeights))
         }
 
         // 5. Layout Action Buttons (Copy, Paste with Auto-format, Reset)
@@ -158,9 +161,14 @@ class AdvancedTuningFragment : Fragment() {
         view.findViewById<View>(R.id.btnPasteLayoutJson)?.setOnClickListener {
             val pasteText = getFromClipboard()
             if (!pasteText.isNullOrBlank()) {
-                val formatted = formatMasterLayoutJson(pasteText)
-                etMasterLayout.setText(formatted)
-                Toast.makeText(requireContext(), "Pasted & auto-formatted from clipboard", Toast.LENGTH_SHORT).show()
+                val parsed = AdvancedTuningFormatter.easyTextToLayout(pasteText, prettyJson)
+                if (parsed.isNotEmpty()) {
+                    etMasterLayout.setText(AdvancedTuningFormatter.layoutToEasyText(parsed))
+                    Toast.makeText(requireContext(), "Pasted & formatted 9-Key layout", Toast.LENGTH_SHORT).show()
+                } else {
+                    etMasterLayout.setText(pasteText)
+                    Toast.makeText(requireContext(), "Pasted from clipboard", Toast.LENGTH_SHORT).show()
+                }
             } else {
                 Toast.makeText(requireContext(), "Clipboard is empty", Toast.LENGTH_SHORT).show()
             }
@@ -179,7 +187,7 @@ class AdvancedTuningFragment : Fragment() {
                 }
             }
             if (defaultLayout.isNotEmpty()) {
-                etMasterLayout.setText(prettyJson.encodeToString(defaultLayout))
+                etMasterLayout.setText(AdvancedTuningFormatter.layoutToEasyText(defaultLayout))
                 Toast.makeText(requireContext(), "Layout reset to factory defaults", Toast.LENGTH_SHORT).show()
             }
         }
@@ -192,17 +200,22 @@ class AdvancedTuningFragment : Fragment() {
         view.findViewById<View>(R.id.btnPasteWeightsJson)?.setOnClickListener {
             val pasteText = getFromClipboard()
             if (!pasteText.isNullOrBlank()) {
-                val formatted = formatJsonString(pasteText)
-                etStateWeights.setText(formatted)
-                Toast.makeText(requireContext(), "Pasted & auto-formatted from clipboard", Toast.LENGTH_SHORT).show()
+                val parsed = AdvancedTuningFormatter.easyTextToWeights(pasteText, prettyJson)
+                if (parsed.isNotEmpty()) {
+                    etStateWeights.setText(AdvancedTuningFormatter.weightsToEasyText(parsed))
+                    Toast.makeText(requireContext(), "Pasted & formatted 6-State weights", Toast.LENGTH_SHORT).show()
+                } else {
+                    etStateWeights.setText(pasteText)
+                    Toast.makeText(requireContext(), "Pasted from clipboard", Toast.LENGTH_SHORT).show()
+                }
             } else {
                 Toast.makeText(requireContext(), "Clipboard is empty", Toast.LENGTH_SHORT).show()
             }
         }
 
         view.findViewById<View>(R.id.btnResetWeightsJson)?.setOnClickListener {
-            val defaultWeights = ScoringEngine.getDefaultStateWeights().mapKeys { it.key.toString() }
-            etStateWeights.setText(prettyJson.encodeToString(defaultWeights))
+            val defaultWeights = ScoringEngine.getDefaultStateWeights()
+            etStateWeights.setText(AdvancedTuningFormatter.weightsToEasyText(defaultWeights))
             Toast.makeText(requireContext(), "Weights reset to factory defaults", Toast.LENGTH_SHORT).show()
         }
 
@@ -321,41 +334,6 @@ class AdvancedTuningFragment : Fragment() {
         return null
     }
 
-    private fun sanitizeSingleCharKey(rawKey: String): String {
-        if (rawKey.isEmpty()) return ""
-        val codePoints = rawKey.codePoints().toArray()
-        return if (codePoints.isNotEmpty()) {
-            String(codePoints, 0, 1)
-        } else {
-            rawKey.take(1)
-        }
-    }
-
-    private fun formatMasterLayoutJson(raw: String): String {
-        return try {
-            val parsed = prettyJson.decodeFromString<Map<String, MasterLayoutEntry>>(raw)
-            val sanitized = mutableMapOf<String, MasterLayoutEntry>()
-            for ((rawChar, entry) in parsed) {
-                val singleChar = sanitizeSingleCharKey(rawChar.trim())
-                if (singleChar.isNotEmpty() && !sanitized.containsKey(singleChar)) {
-                    sanitized[singleChar] = entry
-                }
-            }
-            prettyJson.encodeToString(sanitized)
-        } catch (_: Exception) {
-            formatJsonString(raw)
-        }
-    }
-
-    private fun formatJsonString(raw: String): String {
-        return try {
-            val element = prettyJson.parseToJsonElement(raw)
-            prettyJson.encodeToString(element)
-        } catch (_: Exception) {
-            raw
-        }
-    }
-
     private fun applyAllChanges(mainActivity: MainActivity) {
         val lazyVal = (etLazy.text.toString().toFloatOrNull() ?: 1.15f).coerceIn(1.0f, 10.0f)
         val partnerVal = (etPartner.text.toString().toFloatOrNull() ?: 1.35f).coerceIn(1.0f, 10.0f)
@@ -363,83 +341,69 @@ class AdvancedTuningFragment : Fragment() {
         val layoutRaw = etMasterLayout.text.toString().trim()
         val weightsRaw = etStateWeights.text.toString().trim()
 
-        // 1. Deep Validate Master Layout JSON
-        val formattedLayout = if (layoutRaw.isNotEmpty() && layoutRaw != "{}") {
-            try {
-                val parsedLayout = prettyJson.decodeFromString<Map<String, MasterLayoutEntry>>(layoutRaw)
-                if (parsedLayout.isEmpty()) {
-                    Toast.makeText(requireContext(), "Layout JSON cannot be empty", Toast.LENGTH_SHORT).show()
-                    return
-                }
-
-                // Sanitize multi-character keys to single character (e.g. "ab" -> "a", "hello" -> "h")
-                val sanitizedLayout = mutableMapOf<String, MasterLayoutEntry>()
-                for ((rawChar, entry) in parsedLayout) {
-                    val singleChar = sanitizeSingleCharKey(rawChar.trim())
-                    if (singleChar.isEmpty()) {
-                        Toast.makeText(requireContext(), "Layout contains empty character key", Toast.LENGTH_LONG).show()
-                        return
-                    }
-                    if (!validHomeKeyRegex.matches(entry.homeKey)) {
-                        Toast.makeText(requireContext(), "Invalid homeKey '${entry.homeKey}' for char '$singleChar'. Must be key_1 to key_9.", Toast.LENGTH_LONG).show()
-                        return
-                    }
-                    if (!validSlots.contains(entry.defaultSlot)) {
-                        Toast.makeText(requireContext(), "Invalid defaultSlot '${entry.defaultSlot}' for char '$singleChar'. Must be tap, up, left, right, or down.", Toast.LENGTH_LONG).show()
-                        return
-                    }
-                    if (!sanitizedLayout.containsKey(singleChar)) {
-                        sanitizedLayout[singleChar] = entry
-                    }
-                }
-                val formatted = prettyJson.encodeToString(sanitizedLayout)
-                etMasterLayout.setText(formatted)
-                formatted
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Invalid Master Layout JSON syntax: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+        // 1. Validate and Parse Master Layout (Supports Easy Text & JSON)
+        var jsonLayoutToSave: String? = null
+        if (layoutRaw.isNotEmpty()) {
+            val parsedLayout = AdvancedTuningFormatter.easyTextToLayout(layoutRaw, prettyJson)
+            if (parsedLayout.isEmpty()) {
+                Toast.makeText(requireContext(), "Layout cannot be empty. Format: Key 1: tap=j, up=l, left=_, right=#", Toast.LENGTH_LONG).show()
                 return
             }
-        } else {
-            layoutRaw
+
+            for ((char, entry) in parsedLayout) {
+                if (!validHomeKeyRegex.matches(entry.homeKey)) {
+                    Toast.makeText(requireContext(), "Invalid key '${entry.homeKey}' for char '$char'. Must be key_1 to key_9.", Toast.LENGTH_LONG).show()
+                    return
+                }
+                if (!validSlots.contains(entry.defaultSlot)) {
+                    Toast.makeText(requireContext(), "Invalid slot '${entry.defaultSlot}' for char '$char'. Must be tap, up, left, right, or down.", Toast.LENGTH_LONG).show()
+                    return
+                }
+            }
+
+            etMasterLayout.setText(AdvancedTuningFormatter.layoutToEasyText(parsedLayout))
+            jsonLayoutToSave = prettyJson.encodeToString(parsedLayout)
         }
 
-        // 2. Deep Validate State Weights JSON
-        val formattedWeights = if (weightsRaw.isNotEmpty() && weightsRaw != "{}") {
-            try {
-                val parsedWeights = prettyJson.decodeFromString<Map<String, EngineWeights>>(weightsRaw)
-                if (parsedWeights.isEmpty()) {
-                    Toast.makeText(requireContext(), "Weights JSON cannot be empty", Toast.LENGTH_SHORT).show()
-                    return
-                }
-
-                for ((stateStr, weights) in parsedWeights) {
-                    val stateNum = stateStr.toIntOrNull()
-                    if (stateNum == null || stateNum < 1 || stateNum > 10) {
-                        Toast.makeText(requireContext(), "Invalid state number '$stateStr'. Must be 1, 2, 3, 4, 7, or 8.", Toast.LENGTH_LONG).show()
-                        return
-                    }
-                    if (weights.U < 0 || weights.B < 0 || weights.T < 0 || weights.D < 0 || weights.WB < 0 || weights.WT < 0 || weights.STC < 0) {
-                        Toast.makeText(requireContext(), "Weights for State $stateNum cannot contain negative values.", Toast.LENGTH_LONG).show()
-                        return
-                    }
-                }
-                val formatted = prettyJson.encodeToString(parsedWeights)
-                etStateWeights.setText(formatted)
-                formatted
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Invalid State Weights JSON syntax: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+        // 2. Validate and Parse State Weights (Supports Easy Text & JSON)
+        var jsonWeightsToSave: String? = null
+        if (weightsRaw.isNotEmpty()) {
+            val parsedWeights = AdvancedTuningFormatter.easyTextToWeights(weightsRaw, prettyJson)
+            if (parsedWeights.isEmpty()) {
+                Toast.makeText(requireContext(), "Weights cannot be empty. Format: State 1: U=25, B=23, T=41, D=33, WB=35, WT=69, STC=0", Toast.LENGTH_LONG).show()
                 return
             }
-        } else {
-            weightsRaw
+
+            for ((stateNum, weights) in parsedWeights) {
+                if (stateNum < 1 || stateNum > 10) {
+                    Toast.makeText(requireContext(), "Invalid state number '$stateNum'. Must be 1, 2, 3, 4, 7, or 8.", Toast.LENGTH_LONG).show()
+                    return
+                }
+                if (weights.U < 0 || weights.B < 0 || weights.T < 0 || weights.D < 0 || weights.WB < 0 || weights.WT < 0 || weights.STC < 0) {
+                    Toast.makeText(requireContext(), "Weights for State $stateNum cannot contain negative values.", Toast.LENGTH_LONG).show()
+                    return
+                }
+            }
+
+            etStateWeights.setText(AdvancedTuningFormatter.weightsToEasyText(parsedWeights))
+            val stringKeyWeights = parsedWeights.mapKeys { it.key.toString() }
+            jsonWeightsToSave = prettyJson.encodeToString(stringKeyWeights)
         }
 
         val prefs = requireContext().getSharedPreferences("flowboard_settings", Context.MODE_PRIVATE)
         prefs.edit {
             putFloat("lazy_tap_ratio", lazyVal)
             putFloat("partner_tap_ratio", partnerVal)
-            putString("custom_master_layout_json", formattedLayout)
-            putString("custom_state_weights_json", formattedWeights)
+            if (jsonLayoutToSave != null) {
+                putString("custom_master_layout_json", jsonLayoutToSave)
+            } else {
+                remove("custom_master_layout_json")
+            }
+            if (jsonWeightsToSave != null) {
+                putString("custom_state_weights_json", jsonWeightsToSave)
+            } else {
+                remove("custom_state_weights_json")
+            }
         }
 
         // Reload into Repository in-memory
@@ -480,11 +444,11 @@ class AdvancedTuningFragment : Fragment() {
             }
         }
         if (defaultLayout.isNotEmpty()) {
-            etMasterLayout.setText(prettyJson.encodeToString(defaultLayout))
+            etMasterLayout.setText(AdvancedTuningFormatter.layoutToEasyText(defaultLayout))
         }
 
-        val defaultWeights = ScoringEngine.getDefaultStateWeights().mapKeys { it.key.toString() }
-        etStateWeights.setText(prettyJson.encodeToString(defaultWeights))
+        val defaultWeights = ScoringEngine.getDefaultStateWeights()
+        etStateWeights.setText(AdvancedTuningFormatter.weightsToEasyText(defaultWeights))
 
         // Reload into Repository
         FlowboardRepository.reloadAdvancedTuning(requireContext())

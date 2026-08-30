@@ -19,7 +19,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 
 /**
- * Test data factory for loading English-only P22 data from the asset filesystem.
+ * Test data factory for loading Flowboard dictionary and n-gram assets.
  * Used in unit tests — no Android context required.
  */
 object TestDataFactory {
@@ -47,6 +47,7 @@ object TestDataFactory {
         repo.unigram = loadStringList(File(enDir, "unigram.json"))
         repo.unigramStart = loadStringList(File(enDir, "unigram_start.json"))
         repo.masterLayout = loadMasterLayout(File(enDir, "master_layout.json"))
+        repo.defaultMasterLayout = repo.masterLayout
         repo.bigram = loadStringListMap(File(enDir, "bigram.json"))
         repo.trigram = loadStringListMap(File(enDir, "trigram.json"))
         repo.trieDict = loadCompressedTrie(File(enDir, "trie_dict_compressed.json"))

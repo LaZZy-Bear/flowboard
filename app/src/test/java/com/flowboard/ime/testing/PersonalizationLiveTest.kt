@@ -594,7 +594,7 @@ class PersonalizationLiveTest {
 
         val wordPredictionEngine = com.flowboard.ime.engine.WordPredictionEngine(repo)
 
-        // 2. Test Character Score Boosting (Requirement 1: ดันคะแนนตัว)
+        // 2. Test Character Score Boosting (Requirement 1: Boost character prediction scores)
         // a. Typing "somchai" -> next char is '.'
         var scores = scoringEngine.calculateScores("somchai")
         assertTrue("Score for '.' must be boosted", (scores["."] ?: 0.0) > 0.0)
@@ -618,7 +618,7 @@ class PersonalizationLiveTest {
         scores = scoringEngine.calculateScores("somchai.dev@gmail")
         assertTrue("Score for '.' must be boosted", (scores["."] ?: 0.0) > 0.0)
 
-        // 3. Test Prediction Bar Recommendation (Requirement 2: ไม่แซงคำสั้น 1 ตัวอักษร แนะนำปกติเมื่อพิมพ์ >= 3 ตัวหรือมี @)
+        // 3. Test Prediction Bar Recommendation (Requirement 2: Do not overtake 1-char prefixes; recommend normally when prefix >= 3 chars or contains '@')
         // From 1-character prefix ("s"): should NOT prematurely force full email over top 1-char word completions
         val predictions1Char = wordPredictionEngine.getPredictions("s")
         assertNotEquals("Prediction bar should not force email at top for 1-char prefix 's'", testEmail, predictions1Char.firstOrNull())

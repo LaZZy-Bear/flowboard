@@ -22,7 +22,7 @@ data class LiveProfileData(
 )
 
 /**
- * Live Learning Manager — Prototype 22 V22.2.0 Real-time Learning Engine.
+ * Live Learning Manager — Real-time On-Device Learning Engine.
  *
  * Captures user-typed words in RAM while typing.
  * Dynamically injects OOV words into the active OOV Trie in real-time.
@@ -150,7 +150,6 @@ class LiveLearningManager(private val context: Context) {
 
     /**
      * Record a newly typed word sequence when spacebar is pressed or word is committed.
-     * Exact algorithm from P22 personalize.js `recordWordTyped()`.
      */
     fun recordWordTyped(fullText: String) {
         if (!isPersonalizationEnabled()) return

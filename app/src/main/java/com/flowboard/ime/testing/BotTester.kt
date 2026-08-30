@@ -5,12 +5,12 @@ import com.flowboard.ime.engine.LayoutManager
 import com.flowboard.ime.engine.ScoringEngine
 
 /**
- * Automated Bot Tester for the English-only Flowboard engine — Prototype 22 V22.2.0.
+ * Automated Bot Tester for the Flowboard predictive engine.
  *
  * Simulates user typing character by character through the scoring and
  * layout engines, measuring tap rate, swipe rate, and miss rate.
  *
- * Fully matches P22 JS bot.js 1:1 including:
+ * Features:
  *   - Sticky Key simulation
  *   - OOV word extraction (words not in wordList appearing 2+ times)
  *   - Swipe word tracking & top swipe words per letter (a-z)
@@ -128,7 +128,7 @@ class BotTester(
                     if (evalMode == EvalMode.FULL) {
                         stats.totalChars++
                         stats.taps++
-                        val spaceKey = "Spacebar (กดเว้นวรรค)"
+                        val spaceKey = "Spacebar"
                         val spaceEntry = stats.engineStats.getOrPut(spaceKey) { EngineStatEntry() }
                         spaceEntry.total++
                         spaceEntry.taps++

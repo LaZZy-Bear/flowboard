@@ -4,10 +4,10 @@ import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.PersonalProfile
 
 /**
- * Personalization Engine — Prototype 22 (Static Profile Mode)
+ * Personalization Engine — Dynamic Profile & Adaptive Scoring
  *
- * Ported from js/personalize.js. Applies an additive personalization bonus
- * on top of the base scoring engine's normalized scores.
+ * Applies an additive personalization bonus on top of the base
+ * scoring engine's normalized scores.
  *
  * Zero baseline degradation guarantee:
  *   - All bonuses are purely additive and applied AFTER the base engine finishes.

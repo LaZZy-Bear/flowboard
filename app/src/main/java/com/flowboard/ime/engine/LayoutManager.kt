@@ -4,29 +4,25 @@ import com.flowboard.ime.data.FlowboardRepository
 import com.flowboard.ime.data.models.KeySlots
 
 /**
- * Layout Manager — Prototype 22 (3-Way Domino Strategy)
+ * Layout Manager — 3-Way Domino Partner Strategy
  *
- * Ported from js/layout.js. Assigns characters to 9-key layout slots
- * using the 3-Way Domino partner swap algorithm.
+ * Assigns characters to 9-key layout slots using dynamic scoring and
+ * the 3-Way Domino partner swap algorithm.
  *
  * Algorithm:
  *   1. buildBaseLayout: Place each character at its home key, top-scoring char wins tap slot.
- *      LAZY_TAP_RATIO = 1.15: default tap char holds tap unless runner-up is 15% better.
+ *      LAZY_TAP_RATIO: default tap char holds tap unless runner-up is sufficiently better.
  *   2. partnerSwapEN (Domino 3-way):
- *      - If runner-up on Key A beats partner Key B's current tap by >15%:
+ *      - If runner-up on Key A beats partner Key B's current tap by > partnerTapRatio:
  *        a. Runner-up moves to Key B's tap
  *        b. Key B's evicted tap moves to Key B's weakest swipe slot
  *        c. Key B's weakest slot's evicted char moves back to Key A's vacated slot
  *   3. fillUnrenderedChars: Sweep any unassigned chars into empty slots (home → partner → any key)
- *
- * Thai-specific methods removed:
- *   - assignLayoutTH() (7-step Thai layout)
- *   - assignMissingLayout() (Thai alt/missing character layer)
  */
 class LayoutManager(private val repo: FlowboardRepository) {
 
     companion object {
-        /** Partner Key Pairing — ported from P22 PARTNER_KEY constant. */
+        /** Partner Key Pairing for 3-way domino swaps. */
         val PARTNER_KEY = mapOf(
             "key_1" to "key_2", "key_2" to "key_1",  // top-left ↔ top-center
             "key_3" to "key_6", "key_6" to "key_3",  // top-right ↔ mid-right
@@ -255,7 +251,6 @@ class LayoutManager(private val repo: FlowboardRepository) {
     /**
      * Sweeps all characters that aren't placed yet and fills them into empty slots.
      * Guarantees all 36 characters appear somewhere (36 chars, 36 slots = exact fit).
-     * Ported from P22 fillUnrenderedChars() in layout.js.
      */
     private fun fillUnrenderedChars(
         newLayout: MutableMap<String, MutableMap<String, String>>,

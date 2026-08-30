@@ -21,7 +21,7 @@ import com.flowboard.ime.data.models.KeySlots
 /**
  * Custom view that renders a single key in the 9-key grid.
  *
- * Visual design matching the Flowboard Pro prototype:
+ * Visual design for the Flowboard 3x3 key layout:
  * - Zone-colored gradient background (top→key_bg)
  * - Raised key shadow (2dp bottom offset)
  * - 5-position character labels (center, top, left, right, bottom)
@@ -253,14 +253,7 @@ class KeyView @JvmOverloads constructor(
         if (keySlots.tap.isNotEmpty()) {
             tapTextPaint.textSize = tapTextSize
             tapTextPaint.color = colorTextTap
-            var textY = centerY - (tapTextPaint.descent() + tapTextPaint.ascent()) / 2f
-            
-            // Shift tall Thai characters downwards slightly to prevent overlapping with top text
-            val isTallChar = keySlots.tap.any { it in TALL_THAI_CHARS }
-            if (isTallChar) {
-                textY += 4f * dp
-            }
-            
+            val textY = centerY - (tapTextPaint.descent() + tapTextPaint.ascent()) / 2f
             canvas.drawText(keySlots.tap, centerX, textY, tapTextPaint)
         }
 
@@ -333,9 +326,5 @@ class KeyView @JvmOverloads constructor(
 
         // Reset text align
         swipeTextPaint.textAlign = Paint.Align.CENTER
-    }
-
-    companion object {
-        private val TALL_THAI_CHARS = setOf('ไ', 'ใ', 'โ', 'ป', 'ฝ', 'ฟ', 'ฬ')
     }
 }

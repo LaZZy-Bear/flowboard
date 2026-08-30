@@ -3,7 +3,7 @@ package com.flowboard.ime.data.models
 import kotlinx.serialization.Serializable
 
 /**
- * Weight distribution for the 7 sub-engines in the P22 scoring system.
+ * Weight distribution for the 7 sub-engines in the Flowboard scoring system.
  * Each state has different weight values to prioritize different prediction strategies.
  *
  * @property U   Unigram weight (base character frequency)

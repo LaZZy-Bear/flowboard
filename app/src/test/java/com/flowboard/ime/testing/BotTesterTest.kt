@@ -39,13 +39,13 @@ class BotTesterTest {
     fun testBotPerformance() {
         // Run LETTERS ONLY evaluation mode
         val statsLetters = botTester.runTest(testSentences, evalMode = BotTester.EvalMode.LETTERS)
-        printReport("FLOWBOARD P22 REPORT (LETTERS ONLY)", statsLetters)
+        printReport("FLOWBOARD BENCHMARK REPORT (LETTERS ONLY)", statsLetters)
 
         println("\n" + "=".repeat(45) + "\n")
 
         // Run FULL INPUT evaluation mode
         val statsFull = botTester.runTest(testSentences, evalMode = BotTester.EvalMode.FULL)
-        printReport("FLOWBOARD P22 REPORT (FULL INPUT)", statsFull)
+        printReport("FLOWBOARD BENCHMARK REPORT (FULL INPUT)", statsFull)
     }
 
     private fun printReport(header: String, stats: BotTester.BotStats) {

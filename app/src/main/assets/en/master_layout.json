@@ -12,7 +12,7 @@
     "defaultSlot": "tap"
   },
   "?": {
-    "homeKey": "key_3",
+    "homeKey": "key_4",
     "defaultSlot": "left"
   },
   "e": {
@@ -28,8 +28,8 @@
     "defaultSlot": "right"
   },
   "!": {
-    "homeKey": "key_8",
-    "defaultSlot": "left"
+    "homeKey": "key_6",
+    "defaultSlot": "up"
   },
   "i": {
     "homeKey": "key_3",
@@ -40,12 +40,12 @@
     "defaultSlot": "tap"
   },
   "j": {
-    "homeKey": "key_2",
-    "defaultSlot": "left"
+    "homeKey": "key_1",
+    "defaultSlot": "tap"
   },
   "&": {
-    "homeKey": "key_4",
-    "defaultSlot": "left"
+    "homeKey": "key_5",
+    "defaultSlot": "up"
   },
   "o": {
     "homeKey": "key_4",
@@ -53,31 +53,31 @@
   },
   "k": {
     "homeKey": "key_9",
-    "defaultSlot": "right"
-  },
-  "l": {
-    "homeKey": "key_9",
     "defaultSlot": "tap"
   },
-  "@": {
+  "l": {
     "homeKey": "key_1",
-    "defaultSlot": "right"
+    "defaultSlot": "up"
+  },
+  "@": {
+    "homeKey": "key_8",
+    "defaultSlot": "left"
   },
   "n": {
     "homeKey": "key_5",
     "defaultSlot": "left"
   },
   "m": {
-    "homeKey": "key_1",
-    "defaultSlot": "up"
+    "homeKey": "key_9",
+    "defaultSlot": "right"
   },
   "u": {
     "homeKey": "key_8",
     "defaultSlot": "right"
   },
   "v": {
-    "homeKey": "key_1",
-    "defaultSlot": "tap"
+    "homeKey": "key_9",
+    "defaultSlot": "left"
   },
   "r": {
     "homeKey": "key_6",
@@ -104,8 +104,8 @@
     "defaultSlot": "up"
   },
   "x": {
-    "homeKey": "key_6",
-    "defaultSlot": "up"
+    "homeKey": "key_3",
+    "defaultSlot": "left"
   },
   "_": {
     "homeKey": "key_1",
@@ -116,8 +116,8 @@
     "defaultSlot": "right"
   },
   "y": {
-    "homeKey": "key_9",
-    "defaultSlot": "left"
+    "homeKey": "key_8",
+    "defaultSlot": "up"
   },
   "z": {
     "homeKey": "key_2",
@@ -136,11 +136,11 @@
     "defaultSlot": "right"
   },
   "#": {
-    "homeKey": "key_8",
-    "defaultSlot": "up"
+    "homeKey": "key_1",
+    "defaultSlot": "right"
   },
   "\"": {
-    "homeKey": "key_5",
-    "defaultSlot": "up"
+    "homeKey": "key_2",
+    "defaultSlot": "left"
   }
 }

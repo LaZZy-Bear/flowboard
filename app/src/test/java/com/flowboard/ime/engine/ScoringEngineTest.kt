@@ -10,7 +10,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit tests for the P22 ScoringEngine (English-only).
+ * Unit tests for the Flowboard ScoringEngine.
  * Tests state selection logic for all 6 states and basic scoring behavior.
  *
  * States:

@@ -13,8 +13,7 @@ import com.flowboard.ime.data.models.KeySlots
  * - Row 1 (keys 4-6): MID zone (green tint) — common consonants
  * - Row 2 (keys 7-9): BOT zone (orange tint) — vowels and others
  *
- * Keys are rectangular (wider than tall) matching the prototype's
- * aspect ratio. Height is fixed at 75dp per key.
+ * Keys are rectangular with a 3x3 layout. Height is adjustable per key.
  */
 class KeyboardView @JvmOverloads constructor(
     context: Context,

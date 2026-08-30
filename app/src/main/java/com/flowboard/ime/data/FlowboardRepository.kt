@@ -15,8 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * Singleton repository that holds all loaded data in RAM.
  * Acts as the single source of truth for the Scoring Engine, Layout Manager,
  * and all other components.
- *
- * English-only (Prototype 22 engine). Multi-language support removed.
+ * Main data repository for Flowboard dictionary, n-grams, and state.
  */
 object FlowboardRepository {
 
@@ -60,19 +59,9 @@ object FlowboardRepository {
         val customLayoutJson = prefs.getString("custom_master_layout_json", null)?.trim()
         if (!customLayoutJson.isNullOrBlank() && customLayoutJson != "{}") {
             try {
-                val parsed = json.decodeFromString<Map<String, MasterLayoutEntry>>(customLayoutJson)
-                if (parsed.isNotEmpty()) {
-                    val sanitized = mutableMapOf<String, MasterLayoutEntry>()
-                    for ((rawChar, entry) in parsed) {
-                        val codePoints = rawChar.trim().codePoints().toArray()
-                        val singleChar = if (codePoints.isNotEmpty()) String(codePoints, 0, 1) else rawChar.trim().take(1)
-                        if (singleChar.isNotEmpty() && !sanitized.containsKey(singleChar)) {
-                            sanitized[singleChar] = entry
-                        }
-                    }
-                    if (sanitized.isNotEmpty()) {
-                        masterLayout = sanitized
-                    }
+                val sanitized = com.flowboard.ime.util.AdvancedTuningFormatter.easyTextToLayout(customLayoutJson, json)
+                if (sanitized.isNotEmpty()) {
+                    masterLayout = sanitized
                 }
             } catch (e: Exception) {
                 android.util.Log.e("FlowboardRepo", "Error decoding custom master layout", e)
@@ -85,11 +74,7 @@ object FlowboardRepository {
         val customWeightsJson = prefs.getString("custom_state_weights_json", null)?.trim()
         if (!customWeightsJson.isNullOrBlank() && customWeightsJson != "{}") {
             try {
-                val parsed = json.decodeFromString<Map<String, com.flowboard.ime.data.models.EngineWeights>>(customWeightsJson)
-                val intKeyMap = parsed.mapNotNull { entry ->
-                    val k = entry.key.toIntOrNull()
-                    if (k != null) k to entry.value else null
-                }.toMap()
+                val intKeyMap = com.flowboard.ime.util.AdvancedTuningFormatter.easyTextToWeights(customWeightsJson, json)
                 if (intKeyMap.isNotEmpty()) {
                     customStateWeights = intKeyMap
                 }
@@ -176,6 +161,11 @@ object FlowboardRepository {
 
         activeProfile = Profile.DEFAULT
         bonusDict = emptyMap()
+
+        defaultMasterLayout = emptyMap()
+        lazyTapRatio = com.flowboard.ime.engine.LayoutManager.DEFAULT_LAZY_TAP_RATIO
+        partnerTapRatio = com.flowboard.ime.engine.LayoutManager.DEFAULT_PARTNER_TAP_RATIO
+        customStateWeights = null
 
         lastActionKeyId = null
         lastActionSlot = null

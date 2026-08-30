@@ -7,10 +7,10 @@ import com.flowboard.ime.data.models.TrieNode
 import com.flowboard.ime.data.models.WordBigramEntry
 
 /**
- * Scoring Engine — Prototype 22 (English Core)
+ * Scoring Engine — Flowboard Core Prediction Engine
  *
- * Ported from js/scoring.js. Computes per-character probability scores using a
- * 7-layer weighted N-gram system with 6 context states:
+ * Computes per-character probability scores using a 7-layer
+ * weighted N-gram system across 6 context states:
  *
  * States:
  *   1 — Start / empty input
@@ -32,16 +32,14 @@ import com.flowboard.ime.data.models.WordBigramEntry
 class ScoringEngine(private val repo: FlowboardRepository) {
 
     companion object {
-        /**
-         * ENGINE_WEIGHTS — directly from P22 scoring.js ENGINE_WEIGHTS constant.
-         */
+        /** Default context state weights. */
         private val STATE_WEIGHTS = mapOf(
-            1 to EngineWeights(U = 13, B = 32, T = 41, D = 33, WB = 31,  WT = 64,  STC = 0),
-            2 to EngineWeights(U = 0,  B = 18, T = 88, D = 23, WB = 100, WT = 100, STC = 67),
-            3 to EngineWeights(U = 0,  B = 0,  T = 27, D = 27, WB = 100, WT = 100, STC = 32),
-            4 to EngineWeights(U = 0,  B = 4,  T = 9,  D = 89, WB = 83,  WT = 93,  STC = 36),
-            7 to EngineWeights(U = 20, B = 22, T = 0,  D = 31, WB = 59,  WT = 100, STC = 100),
-            8 to EngineWeights(U = 0,  B = 2,  T = 33, D = 66, WB = 7,   WT = 84,  STC = 0)
+            1 to EngineWeights(U = 25, B = 23, T = 41, D = 33, WB = 35,  WT = 69,  STC = 0,   status = "State 1 (Start)"),
+            2 to EngineWeights(U = 0,  B = 7,  T = 88, D = 23, WB = 100, WT = 100, STC = 67,  status = "State 2"),
+            3 to EngineWeights(U = 0,  B = 2,  T = 27, D = 38, WB = 100, WT = 100, STC = 32,  status = "State 3"),
+            4 to EngineWeights(U = 4,  B = 7,  T = 7,  D = 94, WB = 90,  WT = 100, STC = 56,  status = "State 4"),
+            7 to EngineWeights(U = 28, B = 13, T = 0,  D = 31, WB = 50,  WT = 100, STC = 100, status = "State 7 (Standard Spacebar)"),
+            8 to EngineWeights(U = 17, B = 0,  T = 74, D = 66, WB = 10,  WT = 97,  STC = 0,   status = "State 8 (Connector Spacebar)")
         )
 
         fun getDefaultStateWeights(): Map<Int, EngineWeights> = STATE_WEIGHTS
@@ -281,7 +279,6 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     /**
      * Dictionary/Trie score with Depth Proximity Factor, Word Popularity Ranking,
      * Top-2 Branch Synergy, and OOV trie fallback/merging.
-     * Ported from P22 V22.3.0 getDictScores() and evaluateBranch() in scoring.js.
      */
     private fun getDictScores(prefix: String): Map<String, Double> {
         if (prefix.isEmpty()) {
@@ -434,7 +431,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
     /**
      * Word Bigram: predict next word's character based on current activePrefix.
-     * Uses clusteredBigram (1-word history). Multi-position prefix tracking ported from P22 V22.2.0.
+     * Uses clusteredBigram (1-word history) with multi-position prefix tracking.
      */
     private fun getWordBigramScores(wordsArray: List<String>, activePrefix: String): Map<String, Double> {
         if (wordsArray.isEmpty()) return emptyMap()
@@ -450,7 +447,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
     /**
      * Word Trigram: predict next word's character based on current activePrefix.
-     * Uses clusteredTrigram (2-word history). Multi-position prefix tracking ported from P22 V22.2.0.
+     * Uses clusteredTrigram (2-word history) with multi-position prefix tracking.
      */
     private fun getWordTrigramScores(wordsArray: List<String>, activePrefix: String): Map<String, Double> {
         if (wordsArray.size < 2) return emptyMap()
@@ -470,7 +467,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
     /**
      * Sentence Topic Cluster: domain co-occurrence scores, active in State 8 and typing states.
-     * Multi-position prefix tracking ported from P22 getSTCScores() in scoring.js.
+     * Uses multi-position prefix tracking after connector words.
      */
     private fun getSTCScores(activeWordsArray: List<String>, activePrefix: String): Map<String, Double> {
         val raw = HashMap<String, Double>()
@@ -597,7 +594,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     /**
      * Returns true if typing [charToTest] again (doubling) is a valid Trie path.
      *
-     * Rules (ported from P22 isDoubleCharValid):
+     * Rules:
      * - No sticky on empty prefix
      * - No sticky on first character of a word (activePrefix.length == 1)
      * - No triple repetition (aab → 'a' is not valid)
@@ -608,7 +605,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
         val safeChar = charToTest.lowercase()
 
-        // ⚡ Fast Exit 1: ถ้าเป็นตัวอักษรต้องห้ามเบิ้ล (i, v, j, q, x, u) และไม่มีข้อมูลใน Personalization -> return false ทันที (O(1))
+        // ⚡ Fast Exit 1: If char is restricted from double-tap (i, v, j, q, x, u) and personalization is empty -> return false immediately (O(1))
         if (RESTRICTED_DOUBLE_CHARS.contains(safeChar)) {
             val hasPersonal = repo.personalProfile.learnedOOV.isNotEmpty() || repo.personalProfile.wordFreq.isNotEmpty()
             if (!hasPersonal) return false
@@ -617,7 +614,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         val engineText = text.lowercase()
         if (engineText.endsWith(" ") || engineText.isEmpty()) return false
 
-        // ⚡ Fast Exit 2: ตัดคำเฉพาะคำสุดท้ายด้วย lastIndexOf แทน regex split เพื่อประสิทธิภาพสูงสุด
+        // ⚡ Fast Exit 2: Extract active word prefix using lastIndexOf(' ') instead of regex split for maximum performance
         val lastSpace = engineText.lastIndexOf(' ')
         val activePrefix = if (lastSpace == -1) engineText else engineText.substring(lastSpace + 1)
 
