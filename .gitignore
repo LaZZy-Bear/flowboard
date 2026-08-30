@@ -72,3 +72,7 @@ google-services.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Agent & AI Tooling
+.agents/
+
