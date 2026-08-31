@@ -133,8 +133,8 @@ object AdvancedTuningFormatter {
      * Converts Engine Weights map into clean, human-readable text (6 lines).
      *
      * Example:
-     * State 1: U=25, B=23, T=41, D=33, WB=35, WT=69, STC=0
-     * State 2: U=0, B=7, T=88, D=23, WB=100, WT=100, STC=67
+     * State 1: U=25, B=23, T=41, D=33, WB=38, WT=77, STC=0
+     * State 2: U=0, B=7, T=76, D=10, WB=93, WT=100, STC=67
      * ...
      */
     fun weightsToEasyText(weights: Map<Int, EngineWeights>): String {

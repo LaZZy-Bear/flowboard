@@ -370,7 +370,7 @@ class AdvancedTuningFragment : Fragment() {
         if (weightsRaw.isNotEmpty()) {
             val parsedWeights = AdvancedTuningFormatter.easyTextToWeights(weightsRaw, prettyJson)
             if (parsedWeights.isEmpty()) {
-                Toast.makeText(requireContext(), "Weights cannot be empty. Format: State 1: U=25, B=23, T=41, D=33, WB=35, WT=69, STC=0", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), "Weights cannot be empty. Format: State 1: U=25, B=23, T=41, D=33, WB=38, WT=77, STC=0", Toast.LENGTH_LONG).show()
                 return
             }
 

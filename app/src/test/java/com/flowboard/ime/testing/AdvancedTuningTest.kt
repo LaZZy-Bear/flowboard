@@ -297,18 +297,19 @@ class AdvancedTuningTest {
             Key 1: tap=j, up=l, left=_, right=#
             Key 2: tap=z, up=a, left=", right=t
             Key 3: tap=p, up=i, left=x, right=f
-            Key 4: tap=q, up=o, left=?, right=s
+            Key 4: tap=q, up=o, left=,, right=s
             Key 5: tap=b, up=&, left=n, right=h
-            Key 6: tap=g, up=!, left=r, right='
-            Key 7: tap=d, up=,, left=e, right=-
+            Key 6: tap=g, up=?, left=r, right='
+            Key 7: tap=d, up=!, left=e, right=-
             Key 8: tap=c, up=y, left=@, right=u
-            Key 9: tap=k, up=w, left=v, right=m
+            Key 9: tap=v, up=w, left=k, right=m
         """.trimIndent()
 
         val parsed = com.flowboard.ime.util.AdvancedTuningFormatter.easyTextToLayout(sampleEasyText, json)
         assertEquals("Should parse 36 characters", 36, parsed.size)
         assertEquals("Key 1 tap should be j", MasterLayoutEntry("key_1", "tap"), parsed["j"])
-        assertEquals("Key 7 up should be comma", MasterLayoutEntry("key_7", "up"), parsed[","])
+        assertEquals("Key 7 up should be exclamation", MasterLayoutEntry("key_7", "up"), parsed["!"])
+        assertEquals("Key 4 left should be comma", MasterLayoutEntry("key_4", "left"), parsed[","])
 
         val formatted = com.flowboard.ime.util.AdvancedTuningFormatter.layoutToEasyText(parsed)
         val roundTrip = com.flowboard.ime.util.AdvancedTuningFormatter.easyTextToLayout(formatted, json)
@@ -319,12 +320,12 @@ class AdvancedTuningTest {
     fun testEasyTextWeightsFormatterAndParser() {
         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
         val sampleWeightsText = """
-            State 1: U=25, B=23, T=41, D=33, WB=35, WT=69, STC=0
-            State 2: U=0, B=7, T=88, D=23, WB=100, WT=100, STC=67
-            State 3: U=0, B=2, T=27, D=38, WB=100, WT=100, STC=32
-            State 4: U=4, B=7, T=7, D=94, WB=90, WT=100, STC=56
-            State 7: U=28, B=13, T=0, D=31, WB=50, WT=100, STC=100
-            State 8: U=17, B=0, T=74, D=66, WB=10, WT=97, STC=0
+            State 1: U=25, B=23, T=41, D=33, WB=38, WT=77, STC=0
+            State 2: U=0, B=7, T=76, D=10, WB=93, WT=100, STC=67
+            State 3: U=0, B=10, T=25, D=38, WB=91, WT=100, STC=32
+            State 4: U=4, B=7, T=8, D=95, WB=90, WT=100, STC=56
+            State 7: U=28, B=13, T=0, D=31, WB=47, WT=100, STC=100
+            State 8: U=17, B=0, T=74, D=66, WB=12, WT=99, STC=0
         """.trimIndent()
 
         val parsed = com.flowboard.ime.util.AdvancedTuningFormatter.easyTextToWeights(sampleWeightsText, json)
@@ -353,13 +354,13 @@ class AdvancedTuningTest {
     fun testPositionalWeightsParsing() {
         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
         val positionalText = """
-            State 1: 25, 23, 41, 33, 35, 69, 0
-            State 2: 0, 7, 88, 23, 100, 100, 67
+            State 1: 25, 23, 41, 33, 38, 77, 0
+            State 2: 0, 7, 76, 10, 93, 100, 67
         """.trimIndent()
 
         val parsed = com.flowboard.ime.util.AdvancedTuningFormatter.easyTextToWeights(positionalText, json)
         assertEquals("State 1 U should be 25", 25, parsed[1]?.U)
-        assertEquals("State 1 WT should be 69", 69, parsed[1]?.WT)
-        assertEquals("State 2 T should be 88", 88, parsed[2]?.T)
+        assertEquals("State 1 WT should be 77", 77, parsed[1]?.WT)
+        assertEquals("State 2 T should be 76", 76, parsed[2]?.T)
     }
 }

@@ -34,12 +34,12 @@ class ScoringEngine(private val repo: FlowboardRepository) {
     companion object {
         /** Default context state weights. */
         private val STATE_WEIGHTS = mapOf(
-            1 to EngineWeights(U = 25, B = 23, T = 41, D = 33, WB = 35,  WT = 69,  STC = 0,   status = "State 1 (Start)"),
-            2 to EngineWeights(U = 0,  B = 7,  T = 88, D = 23, WB = 100, WT = 100, STC = 67,  status = "State 2"),
-            3 to EngineWeights(U = 0,  B = 2,  T = 27, D = 38, WB = 100, WT = 100, STC = 32,  status = "State 3"),
-            4 to EngineWeights(U = 4,  B = 7,  T = 7,  D = 94, WB = 90,  WT = 100, STC = 56,  status = "State 4"),
-            7 to EngineWeights(U = 28, B = 13, T = 0,  D = 31, WB = 50,  WT = 100, STC = 100, status = "State 7 (Standard Spacebar)"),
-            8 to EngineWeights(U = 17, B = 0,  T = 74, D = 66, WB = 10,  WT = 97,  STC = 0,   status = "State 8 (Connector Spacebar)")
+            1 to EngineWeights(U = 25, B = 23, T = 41, D = 33, WB = 38, WT = 77,  STC = 0,   status = "State 1 (Start)"),
+            2 to EngineWeights(U = 0,  B = 7,  T = 76, D = 10, WB = 93, WT = 100, STC = 67,  status = "State 2"),
+            3 to EngineWeights(U = 0,  B = 10, T = 25, D = 38, WB = 91, WT = 100, STC = 32,  status = "State 3"),
+            4 to EngineWeights(U = 4,  B = 7,  T = 8,  D = 95, WB = 90, WT = 100, STC = 56,  status = "State 4"),
+            7 to EngineWeights(U = 28, B = 13, T = 0,  D = 31, WB = 47, WT = 100, STC = 100, status = "State 7 (Standard Spacebar)"),
+            8 to EngineWeights(U = 17, B = 0,  T = 74, D = 66, WB = 12, WT = 99,  STC = 0,   status = "State 8 (Connector Spacebar)")
         )
 
         fun getDefaultStateWeights(): Map<Int, EngineWeights> = STATE_WEIGHTS
