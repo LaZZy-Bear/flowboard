@@ -2,7 +2,6 @@ package com.flowboard.ime.util
 
 import com.flowboard.ime.data.models.EngineWeights
 import com.flowboard.ime.data.models.MasterLayoutEntry
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 /**

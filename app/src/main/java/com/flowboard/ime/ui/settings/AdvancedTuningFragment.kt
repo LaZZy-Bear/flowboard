@@ -17,8 +17,6 @@ import androidx.fragment.app.Fragment
 import com.flowboard.ime.MainActivity
 import com.flowboard.ime.R
 import com.flowboard.ime.data.FlowboardRepository
-import com.flowboard.ime.data.models.EngineWeights
-import com.flowboard.ime.data.models.MasterLayoutEntry
 import com.flowboard.ime.engine.LayoutManager
 import com.flowboard.ime.engine.ScoringEngine
 import com.flowboard.ime.util.AdvancedTuningFormatter
@@ -26,7 +24,6 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.google.android.material.textfield.TextInputEditText
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.Locale
 
