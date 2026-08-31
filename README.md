@@ -8,9 +8,7 @@
 
 **Flowboard** is an ergonomic, single-handed 9-key keyboard for Android. Instead of cramming 26 small keys onto a mobile screen, Flowboard uses a 3×3 key grid and a real-time prediction engine to dynamically place the most probable next letter into the main **Tap** position.
 
-<p align="center">
-  <img src="docs/images/flowboard-demo.gif" width="300" alt="Flowboard Live Typing Demo" />
-</p>
+![Flowboard Live Typing Demo](docs/images/flowboard-demo.gif)
 
 ---
 
