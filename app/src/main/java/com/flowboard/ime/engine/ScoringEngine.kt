@@ -75,7 +75,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
         /**
          * Characters blocked from doubling (sticky key) unless explicitly learned/recorded in personalization.
          */
-        val RESTRICTED_DOUBLE_CHARS = setOf("i", "v", "j", "q", "x", "u")
+        val RESTRICTED_DOUBLE_CHARS = setOf("a", "i", "v", "j", "q", "x", "u")
 
         private val WORD_CLEAN_REGEX = Regex("[^a-z'.-]")
         private val EMAIL_TAIL_REGEX = Regex("""[a-z0-9._%+-]+@[a-z0-9.-]*$""")
@@ -605,7 +605,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
 
         val safeChar = charToTest.lowercase()
 
-        // ⚡ Fast Exit 1: If char is restricted from double-tap (i, v, j, q, x, u) and personalization is empty -> return false immediately (O(1))
+        // ⚡ Fast Exit 1: If char is restricted from double-tap (a, i, v, j, q, x, u) and personalization is empty -> return false immediately (O(1))
         if (RESTRICTED_DOUBLE_CHARS.contains(safeChar)) {
             val hasPersonal = repo.personalProfile.learnedOOV.isNotEmpty() || repo.personalProfile.wordFreq.isNotEmpty()
             if (!hasPersonal) return false
@@ -641,7 +641,7 @@ class ScoringEngine(private val repo: FlowboardRepository) {
             return true
         }
 
-        // Check if character is restricted from being doubled (i, v, j, q, x, u)
+        // Check if character is restricted from being doubled (a, i, v, j, q, x, u)
         if (RESTRICTED_DOUBLE_CHARS.contains(safeChar)) {
             val inPersonalFreq = repo.personalProfile.wordFreq.keys.any { it.startsWith(testPrefix, ignoreCase = true) }
             val inLearnedOOV = checkTrie(repo.trieDictOOV) || repo.personalProfile.learnedOOV.any { it.startsWith(testPrefix, ignoreCase = true) }

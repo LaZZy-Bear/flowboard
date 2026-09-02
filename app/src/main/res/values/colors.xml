@@ -5,12 +5,8 @@
 
     <!-- Key Colors -->
     <color name="key_bg">#FFFFFF</color>
-    <color name="key_active">#CACAD0</color>
 
     <!-- Zone Gradient Start Colors -->
-    <color name="zone_top_start">#F0F4FF</color>
-    <color name="zone_mid_start">#F0FFF4</color>
-    <color name="zone_bot_start">#FFF7ED</color>
 
     <!-- Text Colors -->
     <color name="text_tap">#1D1D1F</color>
@@ -20,8 +16,6 @@
     <!-- UI Element Colors -->
     <color name="tool_bg">#D1D1D6</color>
     <color name="accent">#2563EB</color>
-    <color name="accent_active">#1D4ED8</color>
-    <color name="send_text">#FFFFFF</color>
 
     <!-- App Surface, Cards, Backgrounds & Badges (Clean White & Blue) -->
     <color name="app_bg">#F8FAFC</color>
@@ -31,9 +25,6 @@
     <color name="card_stroke">#E2E8F0</color>
     <color name="blue_50">#EFF6FF</color>
     <color name="blue_100">#DBEAFE</color>
-    <color name="blue_200">#BFDBFE</color>
-    <color name="blue_600">#2563EB</color>
-    <color name="blue_700">#1D4ED8</color>
     <color name="blue_900">#1E3A8A</color>
 
     <!-- Status & Alerts -->
@@ -41,7 +32,4 @@
     <color name="red_inactive">#DC2626</color>
 
     <!-- Legacy references (kept for backward compatibility) -->
-    <color name="kb_accent">#2563EB</color>
-    <color name="kb_text">#1D1D1F</color>
-    <color name="kb_text_dim">#86868B</color>
 </resources>

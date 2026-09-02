@@ -95,11 +95,17 @@ object AdvancedTuningFormatter {
                         val slot = slotMatches[i].groupValues[1].lowercase()
                         val valueStart = slotMatches[i].range.last + 1
                         val valueEnd = if (i + 1 < slotMatches.size) slotMatches[i + 1].range.first else rest.length
+                        val isLastSlot = (i == slotMatches.size - 1)
                         var rawVal = rest.substring(valueStart, valueEnd).trim()
 
                         // Remove trailing delimiter comma if present (e.g. "d," -> "d", ",," -> ",")
-                        if (rawVal.endsWith(",")) {
-                            rawVal = rawVal.substring(0, rawVal.length - 1).trim()
+                        if (!isLastSlot) {
+                            if (rawVal == ",") {
+                                // Just the delimiter comma between slots with empty value (e.g. "tap=, up=l")
+                                rawVal = ""
+                            } else if (rawVal.endsWith(",")) {
+                                rawVal = rawVal.substring(0, rawVal.length - 1).trim()
+                            }
                         }
                         if ((rawVal.startsWith("\"") && rawVal.endsWith("\"") && rawVal.length >= 2) ||
                             (rawVal.startsWith("'") && rawVal.endsWith("'") && rawVal.length >= 2)) {

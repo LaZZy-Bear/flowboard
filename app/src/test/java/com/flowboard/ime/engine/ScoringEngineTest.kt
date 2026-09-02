@@ -222,15 +222,17 @@ class ScoringEngineTest {
     }
 
     @Test
-    fun `isDoubleCharValid blocks restricted chars i, v, j, q, x, u without personalization`() {
+    fun `isDoubleCharValid blocks restricted chars a, i, v, j, q, x, u without personalization`() {
         insertWordInTrie(repo.trieDict!!, "see")
+        insertWordInTrie(repo.trieDict!!, "bazaar")
         insertWordInTrie(repo.trieDict!!, "skiing")
         insertWordInTrie(repo.trieDict!!, "vacuum")
 
         // 'e' is not restricted -> valid because 'see' is in trie
         assertTrue("Character 'e' is not restricted and valid in 'see'", engine.isDoubleCharValid("se", "e"))
 
-        // 'i', 'v', 'j', 'q', 'x', 'u' are restricted by default even if in main trie
+        // 'a', 'i', 'v', 'j', 'q', 'x', 'u' are restricted by default even if in main trie
+        assertFalse("Character 'a' is restricted by default", engine.isDoubleCharValid("ba", "a"))
         assertFalse("Character 'i' is restricted by default", engine.isDoubleCharValid("ski", "i"))
         assertFalse("Character 'v' is restricted by default", engine.isDoubleCharValid("ha", "v"))
         assertFalse("Character 'x' is restricted by default", engine.isDoubleCharValid("max", "x"))

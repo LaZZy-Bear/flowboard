@@ -24,8 +24,8 @@
     "defaultSlot": "tap"
   },
   "f": {
-    "homeKey": "key_3",
-    "defaultSlot": "right"
+    "homeKey": "key_9",
+    "defaultSlot": "tap"
   },
   "!": {
     "homeKey": "key_7",
@@ -76,12 +76,12 @@
     "defaultSlot": "right"
   },
   "v": {
-    "homeKey": "key_9",
-    "defaultSlot": "tap"
+    "homeKey": "key_3",
+    "defaultSlot": "right"
   },
   "r": {
     "homeKey": "key_6",
-    "defaultSlot": "left"
+    "defaultSlot": "right"
   },
   "p": {
     "homeKey": "key_3",
@@ -97,7 +97,7 @@
   },
   "s": {
     "homeKey": "key_4",
-    "defaultSlot": "right"
+    "defaultSlot": "left"
   },
   "w": {
     "homeKey": "key_9",
@@ -125,7 +125,7 @@
   },
   ",": {
     "homeKey": "key_4",
-    "defaultSlot": "left"
+    "defaultSlot": "right"
   },
   "h": {
     "homeKey": "key_5",
@@ -133,7 +133,7 @@
   },
   "'": {
     "homeKey": "key_6",
-    "defaultSlot": "right"
+    "defaultSlot": "left"
   },
   "#": {
     "homeKey": "key_1",

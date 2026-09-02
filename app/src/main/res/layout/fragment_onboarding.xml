@@ -5,8 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:orientation="vertical">
 
     <!-- Top Progress Bar -->
     <com.google.android.material.progressindicator.LinearProgressIndicator
@@ -100,7 +99,6 @@
 
                 <!-- Step 1A: Enable in Settings -->
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardStepEnable"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="12dp"
@@ -164,7 +162,6 @@
 
                 <!-- Step 1B: Select Keyboard -->
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardStepSelect"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"

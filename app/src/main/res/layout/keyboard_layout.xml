@@ -155,7 +155,6 @@
             android:paddingHorizontal="2dp">
 
             <FrameLayout
-                android:id="@+id/predictionArea"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1">
@@ -323,7 +322,6 @@
 
                 <!-- Small Pagination Row at the bottom -->
                 <LinearLayout
-                    android:id="@+id/morePanelPagination"
                     android:layout_width="match_parent"
                     android:layout_height="22dp"
                     android:gravity="center"

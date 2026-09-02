@@ -296,20 +296,21 @@ class AdvancedTuningTest {
         val sampleEasyText = """
             Key 1: tap=j, up=l, left=_, right=#
             Key 2: tap=z, up=a, left=", right=t
-            Key 3: tap=p, up=i, left=x, right=f
-            Key 4: tap=q, up=o, left=,, right=s
+            Key 3: tap=p, up=i, left=x, right=v
+            Key 4: tap=q, up=o, left=s, right=,
             Key 5: tap=b, up=&, left=n, right=h
-            Key 6: tap=g, up=?, left=r, right='
+            Key 6: tap=g, up=?, left=', right=r
             Key 7: tap=d, up=!, left=e, right=-
             Key 8: tap=c, up=y, left=@, right=u
-            Key 9: tap=v, up=w, left=k, right=m
+            Key 9: tap=f, up=w, left=k, right=m
         """.trimIndent()
 
         val parsed = com.flowboard.ime.util.AdvancedTuningFormatter.easyTextToLayout(sampleEasyText, json)
         assertEquals("Should parse 36 characters", 36, parsed.size)
         assertEquals("Key 1 tap should be j", MasterLayoutEntry("key_1", "tap"), parsed["j"])
         assertEquals("Key 7 up should be exclamation", MasterLayoutEntry("key_7", "up"), parsed["!"])
-        assertEquals("Key 4 left should be comma", MasterLayoutEntry("key_4", "left"), parsed[","])
+        assertEquals("Key 4 right should be comma", MasterLayoutEntry("key_4", "right"), parsed[","])
+        assertEquals("Key 9 tap should be f", MasterLayoutEntry("key_9", "tap"), parsed["f"])
 
         val formatted = com.flowboard.ime.util.AdvancedTuningFormatter.layoutToEasyText(parsed)
         val roundTrip = com.flowboard.ime.util.AdvancedTuningFormatter.easyTextToLayout(formatted, json)

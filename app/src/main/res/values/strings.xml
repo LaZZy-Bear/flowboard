@@ -22,14 +22,12 @@
     <string name="arrow_down">Arrow Down</string>
 
     <!-- Undo Redo Panel -->
-    <string name="undo_redo">Undo Redo</string>
     <string name="undo_and_history">Undo &amp; History</string>
     <string name="undo">Undo</string>
     <string name="redo">Redo</string>
     <string name="clear_all">Clear All</string>
 
     <!-- Quick Theme Panel -->
-    <string name="themes">Themes</string>
     <string name="quick_theme">Quick Theme</string>
     <string name="mode">Mode</string>
     <string name="theme_light">Light</string>
@@ -38,7 +36,6 @@
     <string name="more_themes">More Themes &amp; Customization →</string>
 
     <!-- Voice Input Panel -->
-    <string name="voice_input">Voice Input</string>
     <string name="voice_typing">Voice Typing</string>
     <string name="speak_now">Speak now&#8230;</string>
     <string name="microphone">Microphone</string>
@@ -49,7 +46,6 @@
     <string name="nav_themes">Themes</string>
 
     <!-- Settings Fragment -->
-    <string name="settings_title">Keyboard Settings</string>
     <string name="keyboard_not_active_title">Keyboard Not Active</string>
     <string name="keyboard_not_activated_title">Keyboard Not Activated</string>
     <string name="keyboard_not_active_desc">Flowboard is enabled, but not selected as current active keyboard.</string>
